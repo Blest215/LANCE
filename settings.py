@@ -10,14 +10,15 @@ SCREENING_THRESHOLD = 0.3
 ALLOWED_MODES = ["LANCE", "CENTRALIZED", "CLOUD", "ONTOLOGY"]
 
 MQTT_BROKER_ADDRESS = "localhost"
-MQTT_TOPIC_LOG = "log/{agent_id}"
+MQTT_TOPIC_LOG = "log/{id}"
+MQTT_TOPIC_RESPONSE = "response/{id}"
 # mode LANCE topics
-MQTT_TOPIC_LANCE_DISCOVERY = "discovery/{team_id}"
-MQTT_TOPIC_LANCE_TEAM = "team/{team_id}"
-MQTT_TOPIC_LANCE_AGENT = "agent/{agent_id}"
+MQTT_TOPIC_LANCE_DISCOVERY = "discovery/{id}"
+MQTT_TOPIC_LANCE_TEAM = "team/{id}"
+MQTT_TOPIC_LANCE_AGENT = "agent/{id}"
 # mode CENTRALIZED topics
-MQTT_TOPIC_CENTRALIZED_REGISTER = "register/{agent_id}"
-MQTT_TOPIC_CENTRALIZED_CONTROL = "control/{agent_id}"
+MQTT_TOPIC_CENTRALIZED_REGISTER = "register/{id}"
+MQTT_TOPIC_CENTRALIZED_CONTROL = "control/{id}"
 # mode CLOUD topics
 # mode ONTOLOGY topics
 

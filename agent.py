@@ -60,10 +60,10 @@ class LanceAgent:
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        self.client.subscribe(MQTT_TOPIC_LANCE_DISCOVERY.format(team_id="+"))
-        self.client.subscribe(MQTT_TOPIC_LANCE_AGENT.format(agent_id=self.id))
-        self.client.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL.format(agent_id=self.id))
-        self.client.publish(MQTT_TOPIC_CENTRALIZED_REGISTER.format(agent_id=self.id), json.dumps(self.device_information))
+        self.subscribe(MQTT_TOPIC_LANCE_DISCOVERY, "+")
+        self.subscribe(MQTT_TOPIC_LANCE_AGENT, self.id)
+        self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
+        self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, self.device_information)
 
     def on_message(self, client, userdata, message):
         topic, id = message.topic.split("/")
@@ -100,11 +100,11 @@ class LanceAgent:
 
     def join_team(self, team_id):
         self.current_team_id = team_id
-        self.client.subscribe(MQTT_TOPIC_LANCE_TEAM.format(team_id=team_id))
+        self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
 
     def proposal(self, message):
         self.log(message)
-        self.client.publish(MQTT_TOPIC_LANCE_TEAM.format(team_id=self.current_team_id), f"[{self.id}] {message}")
+        self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     def control_device(self, args):
         self.log(f"{args}")
@@ -112,7 +112,13 @@ class LanceAgent:
         # TODO repair
 
     def log(self, text):
-        self.client.publish(MQTT_TOPIC_LOG.format(agent_id=self.id), text)
+        self.publish(MQTT_TOPIC_LOG, self.id, text)
+
+    def subscribe(self, topic, id):
+        self.client.subscribe(topic.format(id=id))
+
+    def publish(self, topic, id, message):
+        self.client.publish(topic.format(id=id), json.dumps({"sender": self.id, "message": message}))
 
 def run_agent_process(queue, id, configuration, device_information):
     agent = LanceAgent(id, configuration, device_information)
