@@ -8,6 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from utils import *
+from client import Client
 
 initiate_task_tool = {
     'type': 'function',
@@ -59,14 +60,15 @@ control_device_tool = {
 }
 
 
-class UserAgent:
+class UserAgent(Client):
     def __init__(self, configuration):
+        super().__init__()
+
         # TODO multi user situation
         self.id = "USER"
         self.configuration = configuration
         self.current_team_id = None
         self.team_messages = []
-        self.requests = {}
         self.logs = []
 
         brain = ChatOllama(**configuration)
@@ -76,10 +78,6 @@ class UserAgent:
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | brain.bind_tools([control_device_tool])
 
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
         self.client.loop_start()
 
     async def command(self, mode, user_command):
@@ -135,7 +133,7 @@ class UserAgent:
     # NATURAL methods
 
     async def ask_agent(self, agent_id, message):
-        self.log(f"Call agent {agent_id} {message}")
+        self.log(f"Ask agent {agent_id} {message}")
         await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
 
     # CENTRALIZED methods
@@ -144,20 +142,16 @@ class UserAgent:
         return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
     async def control_device(self, agent_id, capability, command, arguments={}):
-        self.log(f"Control device {agent_id} {capability} {command} {arguments}")
         await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
 
-    def on_connect(self, client, userdata, flags, reason_code, properties):
+    def connection_handler(self):
         self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
         self.subscribe(MQTT_TOPIC_LOG, "+")
 
-    def on_message(self, client, userdata, message):
-        topic, id = message.topic.split("/")
-        payload = json.loads(message.payload.decode("utf-8"))
-
+    def message_handler(self, topic, id, payload):
         if check_topic(topic, MQTT_TOPIC_LOG):
-            print(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']}: {payload['message']}")
-            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']}: {payload['message']}")
+            print(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
+            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
             self.team_messages.append(f"{payload['sender']}: {payload['message']}")
@@ -166,21 +160,5 @@ class UserAgent:
             assert "request_id" in payload and payload["request_id"] in self.requests
             self.requests[payload["request_id"]]["status"] = "done"
             self.requests[payload["request_id"]]["response"] = payload["message"]
+            self.log(f"Request {payload['request_id']} resulted {payload['message']}")
     
-    async def request(self, topic, agent_id, message):
-        new_request_id = get_random_request_id()
-        self.requests[new_request_id] = {"status": "pending"}
-        self.client.publish(topic.format(id=agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
-        # TODO TIMEOUT
-        while self.requests[new_request_id]["status"] == "pending":
-            await asyncio.sleep(0.1)
-        return self.requests[new_request_id]["response"]
-
-    def log(self, text):
-        self.publish(MQTT_TOPIC_LOG, self.id, text)
-    
-    def subscribe(self, topic, id):
-        self.client.subscribe(topic.format(id=id))
-
-    def publish(self, topic, id, message):
-        self.client.publish(topic.format(id=id), json.dumps({"sender": self.id, "message": message}))

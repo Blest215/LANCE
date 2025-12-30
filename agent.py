@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from utils import *
+from client import Client
 
 
 from pydantic import BaseModel, Field
@@ -34,8 +35,10 @@ control_device_tool = {
 }
 
 
-class Agent:
+class Agent(Client):
     def __init__(self, id, configuration, device_information):
+        super().__init__()
+
         self.id = id
         self.configuration = configuration
         self.device_information = device_information
@@ -50,26 +53,15 @@ class Agent:
         # Controller
         self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | brain.bind_tools([control_device_tool])
 
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
-    
-    def loop_forever(self):
-        self.client.loop_forever()
-
-    def on_connect(self, client, userdata, flags, reason_code, properties):
+    def connection_handler(self):
         self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
         self.subscribe(MQTT_TOPIC_NATURAL_AGENT, self.id)
         self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
         self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, self.device_information)
 
-    def on_message(self, client, userdata, message):
-        topic, id = message.topic.split("/")
-        payload = json.loads(message.payload.decode("utf-8"))
-
+    def message_handler(self, topic, id, payload):
         if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_CALL):
-            self.screening(id, message.payload.decode("utf-8"))
+            self.screening(id, payload)
             
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM):
             # TODO handle team messages
@@ -107,20 +99,11 @@ class Agent:
         self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     def control_device(self, sender, request_id, message):
-        self.log(f"{message}")
+        self.log(f"Control device with arguments {message} for request {request_id} from {sender}")
         # result = smartthings_request(self.id, args)
         # TODO repair
         result = "SUCCESS"
-        self.client.publish(MQTT_TOPIC_RESPONSE.format(id=sender), json.dumps({"sender": self.id, "message": result, "request_id": request_id}))
-
-    def log(self, text):
-        self.publish(MQTT_TOPIC_LOG, self.id, text)
-
-    def subscribe(self, topic, id):
-        self.client.subscribe(topic.format(id=id))
-
-    def publish(self, topic, id, message):
-        self.client.publish(topic.format(id=id), json.dumps({"sender": self.id, "message": message}))
+        self.response(sender, request_id, result)
 
 def run_agent_process(queue, id, configuration, device_information):
     agent = Agent(id, configuration, device_information)
