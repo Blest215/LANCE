@@ -66,7 +66,7 @@ class LanceAgent:
         self.client.publish(MQTT_TOPIC_CENTRALIZED_REGISTER.format(agent_id=self.id), json.dumps(self.device_information))
 
     def on_message(self, client, userdata, message):
-        mode, topic, id = message.topic.split("/")
+        topic, id = message.topic.split("/")
 
         if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_DISCOVERY):
             self.screening(id, message.payload.decode("utf-8"))
@@ -103,12 +103,16 @@ class LanceAgent:
         self.client.subscribe(MQTT_TOPIC_LANCE_TEAM.format(team_id=team_id))
 
     def proposal(self, message):
+        self.log(message)
         self.client.publish(MQTT_TOPIC_LANCE_TEAM.format(team_id=self.current_team_id), f"[{self.id}] {message}")
 
     def control_device(self, args):
-        print(f"[{self.id}] {args}")
+        self.log(f"{args}")
         # result = smartthings_request(self.id, args)
         # TODO repair
+
+    def log(self, text):
+        self.client.publish(MQTT_TOPIC_LOG.format(agent_id=self.id), text)
 
 def run_agent_process(queue, id, configuration, device_information):
     agent = LanceAgent(id, configuration, device_information)

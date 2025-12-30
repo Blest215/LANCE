@@ -17,7 +17,7 @@ def get_random_team_id():
     return secrets.token_hex(8)
 
 def check_topic(formatted, unformatted):
-    return formatted == unformatted.split("/")[1]
+    return formatted == unformatted.split("/")[0]
 
 def smartthings_request(id, args):
     try:

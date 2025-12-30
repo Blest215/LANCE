@@ -2,6 +2,7 @@ import json
 import asyncio
 import paho.mqtt.client as mqtt
 
+from datetime import datetime
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -60,10 +61,13 @@ control_device_tool = {
 
 class UserAgent:
     def __init__(self, configuration):
+        # TODO multi user situation
+        self.id = "USER"
         self.configuration = configuration
         self.device_registry = {}
         self.current_team_id = None
         self.team_messages = []
+        self.logs = []
 
         brain = ChatOllama(**configuration)
         # LANCE
@@ -79,7 +83,7 @@ class UserAgent:
         self.client.loop_start()
 
     async def ask(self, mode, user_command):
-        print(f"User asked: {user_command}")
+        self.log(f"User asked: {user_command}")
         if mode == "LANCE":
             coordinator_result = await self.organizer.ainvoke({"user_command": user_command})
             
@@ -101,21 +105,22 @@ class UserAgent:
             pass
 
     async def initiate_task(self, message):
+        self.log(f"Initiate a new task: {message}")
         await self.discovery(10, message)
         # TODO Negotiation
         await self.control(10, self.team_messages)
 
     async def discovery(self, time_to_wait, message):
-        print(f"{message} ({time_to_wait}s)")
+        self.log(f"Agent discovery start ({time_to_wait}s)")
         self.current_team_id = get_random_team_id()
         self.client.subscribe(MQTT_TOPIC_LANCE_TEAM.format(team_id=self.current_team_id))
         self.client.publish(MQTT_TOPIC_LANCE_DISCOVERY.format(team_id=self.current_team_id), message)
         self.team_messages = [message]
         await asyncio.sleep(time_to_wait)
-        print(self.team_messages)
+        self.log("Agent discovery end")
 
     async def control(self, time_to_wait, team_messages):
-        controller_result = await self.coordinator.ainvoke({"user_task": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
+        controller_result = await self.coordinator.ainvoke({"user_command": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
 
         for tool_call in controller_result.tool_calls:
             if tool_call["name"] == "call_agent":
@@ -125,20 +130,29 @@ class UserAgent:
         await asyncio.sleep(time_to_wait)
 
     def call_agent(self, agent_id, message):
+        self.log(f"Call agent {agent_id} {message}")
         self.client.publish(MQTT_TOPIC_LANCE_AGENT.format(agent_id=agent_id), message)
 
     def control_device(self, agent_id, capability, command, arguments={}):
-        print(f"{agent_id}")
+        self.log(f"Control device {agent_id} {capability} {command} {arguments}")
         self.client.publish(MQTT_TOPIC_CENTRALIZED_CONTROL.format(agent_id=agent_id), json.dumps({"capability": capability, "command": command, "arguments": arguments}))
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         self.client.subscribe(MQTT_TOPIC_CENTRALIZED_REGISTER.format(agent_id="+"))
+        self.client.subscribe(MQTT_TOPIC_LOG.format(agent_id="+"))
 
     def on_message(self, client, userdata, message):
-        mode, topic, id = message.topic.split("/")
+        topic, id = message.topic.split("/")
+        payload = message.payload.decode("utf-8")
 
-        if check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
-            self.team_messages.append(message.payload.decode("utf-8"))
+        if check_topic(topic, MQTT_TOPIC_LOG):
+            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {id}: {payload}")
+
+        elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
+            self.team_messages.append(payload)
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_REGISTER):
-            self.device_registry[id] = message.payload.decode("utf-8")
+            self.device_registry[id] = payload
+
+    def log(self, text):
+        self.client.publish(MQTT_TOPIC_LOG.format(agent_id=self.id), text)

@@ -29,9 +29,11 @@ async def main(mode: str):
     # Start a simulation
     await user.ask(mode=mode, user_command="It's too dark, and I need to focus on reading.")
 
+    print("\n".join(user.logs))
+
     # Wrap up
     for p in processes:
         p.terminate()
 
 if __name__ == "__main__":
-    asyncio.run(main(mode="CENTRALIZED"))
+    asyncio.run(main(mode="LANCE"))
