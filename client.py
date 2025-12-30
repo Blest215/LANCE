@@ -38,6 +38,9 @@ class Client(ABC):
     def loop_forever(self):
         self.client.loop_forever()
 
+    def is_connected(self):
+        return self.client.is_connected()
+
     def log(self, text):
         self.publish(MQTT_TOPIC_LOG, self.id, text)
 

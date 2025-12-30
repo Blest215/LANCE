@@ -1,6 +1,4 @@
-import json
 import asyncio
-import paho.mqtt.client as mqtt
 
 from datetime import datetime
 from langchain_ollama import ChatOllama
@@ -25,11 +23,11 @@ initiate_task_tool = {
     },
 }
 
-call_agent_tool = {
+ask_agent_tool = {
     'type': 'function',
     'function': {
-        'name': 'call_agent',
-        'description': 'send a direct message to a specific agent for asking device control',
+        'name': 'ask_agent',
+        'description': 'send a natural language message to a specific agent for asking device control',
         'parameters': {
             'type': 'object',
             'required': ['agent_id', 'message'],
@@ -74,7 +72,9 @@ class UserAgent(Client):
         brain = ChatOllama(**configuration)
         # LANCE
         self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| brain.bind_tools([initiate_task_tool])
-        self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | brain.bind_tools([call_agent_tool])
+        self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | brain.bind_tools([ask_agent_tool])
+        # NATURAL
+        self.natural = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | brain.bind_tools([ask_agent_tool])
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | brain.bind_tools([control_device_tool])
 
@@ -82,29 +82,25 @@ class UserAgent(Client):
 
     async def command(self, mode, user_command):
         self.log(f"User asked: {user_command}")
+        
+        result = None
         if mode == "LANCE":
-            coordinator_result = await self.organizer.ainvoke({"user_command": user_command})
-            
-            for tool_call in coordinator_result.tool_calls:
-                if tool_call["name"] == "initiate_task":
-                    await self.initiate_task(**tool_call["args"])
+            result = await self.organizer.ainvoke({"user_command": user_command})
         
         elif mode == "NATURAL":
-            pass
+            result = await self.natural.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
 
         elif mode == "CENTRALIZED":
-            # TODO discovery
-            centralized_result = await self.centralized.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
-
-            for tool_call in centralized_result.tool_calls:
-                if tool_call["name"] == "control_device":
-                    await self.control_device(**tool_call["args"])
+            result = await self.centralized.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
         
         elif mode == "CLOUD":
             pass
         
         elif mode == "ONTOLOGY":
             pass
+
+        if result and hasattr(result, "tool_calls"):
+            [await getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls]
 
     # LANCE methods
 

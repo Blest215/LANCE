@@ -34,7 +34,7 @@ async def main(mode: str):
 
     # Start a simulation
     user = UserAgent(configuration=agent_configuration)
-    while not user.client.is_connected():
+    while not user.is_connected():
         await asyncio.sleep(0.1)
     await user.command(mode=mode, user_command="It's too dark, and I need to focus on reading.")
 
@@ -44,4 +44,4 @@ async def main(mode: str):
         p.terminate()
 
 if __name__ == "__main__":
-    asyncio.run(main(mode="CENTRALIZED"))
+    asyncio.run(main(mode="NATURAL"))
