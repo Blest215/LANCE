@@ -63,7 +63,7 @@ class UserAgent(Client):
         super().__init__()
 
         # TODO multi user situation
-        self.id = "USER"
+        self.id = "COORDINATOR"
         self.configuration = configuration
         self.current_team_id = None
         self.team_messages = []
@@ -99,8 +99,31 @@ class UserAgent(Client):
         elif mode == "ONTOLOGY":
             pass
 
-        if result and hasattr(result, "tool_calls"):
-            [await getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls]
+        await self.tool_call(result)
+
+    def connection_handler(self):
+        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
+        self.subscribe(MQTT_TOPIC_LOG, "+")
+
+    def message_handler(self, topic, id, payload):
+        if check_topic(topic, MQTT_TOPIC_LOG):
+            print(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
+            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
+
+        elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
+            self.team_messages.append(f"{payload['sender']}: {payload['message']}")
+
+        elif check_topic(topic, MQTT_TOPIC_RESPONSE):
+            assert "request_id" in payload and payload["request_id"] in self.requests
+            self.requests[payload["request_id"]]["status"] = "done"
+            self.requests[payload["request_id"]]["response"] = payload["message"]
+            self.log(f"Request {payload['request_id']} resulted {payload['message']}")
+
+    def get_logs(self):
+        return "\n".join(self.logs)
+
+    async def tool_call(self, result):
+        await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls] if result and hasattr(result, "tool_calls") else [])
 
     # LANCE methods
 
@@ -120,11 +143,8 @@ class UserAgent(Client):
         self.log("Agent call-for-proposal end")
 
     async def control(self, time_to_wait, team_messages):        
-        controller_result = await self.coordinator.ainvoke({"user_command": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
-
-        for tool_call in controller_result.tool_calls:
-            if tool_call["name"] == "call_agent":
-                await self.ask_agent(tool_call["args"]["agent_id"], tool_call["args"]["message"])
+        result = await self.coordinator.ainvoke({"user_command": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
+        await self.tool_call(result)
 
     # NATURAL methods
 
@@ -139,22 +159,4 @@ class UserAgent(Client):
 
     async def control_device(self, agent_id, capability, command, arguments={}):
         await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
-
-    def connection_handler(self):
-        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
-        self.subscribe(MQTT_TOPIC_LOG, "+")
-
-    def message_handler(self, topic, id, payload):
-        if check_topic(topic, MQTT_TOPIC_LOG):
-            print(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
-            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
-
-        elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
-            self.team_messages.append(f"{payload['sender']}: {payload['message']}")
-
-        elif check_topic(topic, MQTT_TOPIC_RESPONSE):
-            assert "request_id" in payload and payload["request_id"] in self.requests
-            self.requests[payload["request_id"]]["status"] = "done"
-            self.requests[payload["request_id"]]["response"] = payload["message"]
-            self.log(f"Request {payload['request_id']} resulted {payload['message']}")
     

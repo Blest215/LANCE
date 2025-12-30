@@ -30,27 +30,27 @@ ORGANIZER_PROMPT = """
 You are an AI assistant that helps users to accomplish their tasks by coordinating other agents.
 Ask other agents to contribute to the user's task.
 
-[User command]
+[User Command]
 {user_command}
 """
 
 COORDINATOR_PROMPT = """
 You are an AI assistant that organizes other agents to accomplish a user's task.
 
-[User command]
+[User Command]
 {user_command}
 
-[Team messages]
+[Team Messages]
 {team_messages}
 """
 
 MASTERMIND_PROMPT = """
 You are an AI assistant that controls devices to accomplish a user's task.
 
-[User command]
+[User Command]
 {user_command}
 
-[Device informations]
+[Device Informations]
 {device_informations}
 """
 
@@ -81,4 +81,19 @@ Control the device based on the given message.
 
 [Message]
 {message}
+"""
+
+# EVALUATION
+
+EVALUATOR_PROMPT = """
+Evaluate the behavior of the agents in the conversation whether the user's task is accomplished or not.
+
+[User Command]
+{user_command}
+
+[Conversation]
+{conversation}
+
+[Format]
+{format}
 """
