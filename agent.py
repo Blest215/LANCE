@@ -35,10 +35,10 @@ control_device_tool = {
 
 
 class LanceAgent:
-    def __init__(self, configuration, device_information):
+    def __init__(self, id, configuration, device_information):
+        self.id = id
         self.configuration = configuration
-        self.device_information = json.loads(device_information)
-        self.id = self.device_information["deviceId"] if "deviceId" in self.device_information else get_random_device_id()
+        self.device_information = device_information
         self.current_team_id = None
 
         brain = ChatOllama(**configuration)
@@ -55,25 +55,31 @@ class LanceAgent:
         self.client.on_message = self.on_message
         self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
 
+    
     def loop_forever(self):
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        self.client.subscribe(MQTT_TOPIC_DISCOVERY.format(team_id="+"))
-        self.client.subscribe(MQTT_TOPIC_AGENT.format(agent_id=self.id))
+        self.client.subscribe(MQTT_TOPIC_LANCE_DISCOVERY.format(team_id="+"))
+        self.client.subscribe(MQTT_TOPIC_LANCE_AGENT.format(agent_id=self.id))
+        self.client.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL.format(agent_id=self.id))
+        self.client.publish(MQTT_TOPIC_CENTRALIZED_REGISTER.format(agent_id=self.id), json.dumps(self.device_information))
 
     def on_message(self, client, userdata, message):
-        topic, id = message.topic.split("/")
+        mode, topic, id = message.topic.split("/")
 
-        if not self.busy and check_topic(topic, MQTT_TOPIC_DISCOVERY):
+        if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_DISCOVERY):
             self.screening(id, message.payload.decode("utf-8"))
             
-        elif check_topic(topic, MQTT_TOPIC_TEAM):
+        elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM):
             # TODO handle team messages
             pass
 
-        elif check_topic(topic, MQTT_TOPIC_AGENT):
+        elif check_topic(topic, MQTT_TOPIC_LANCE_AGENT):
             self.controlling(message.payload.decode("utf-8"))
+
+        elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_CONTROL):
+            self.control_device(eval(message.payload.decode("utf-8")))
 
     @property
     def busy(self):
@@ -94,16 +100,17 @@ class LanceAgent:
 
     def join_team(self, team_id):
         self.current_team_id = team_id
-        self.client.subscribe(MQTT_TOPIC_TEAM.format(team_id=team_id))
+        self.client.subscribe(MQTT_TOPIC_LANCE_TEAM.format(team_id=team_id))
 
     def proposal(self, message):
-        self.client.publish(MQTT_TOPIC_TEAM.format(team_id=self.current_team_id), f"[{self.id}] {message}")
+        self.client.publish(MQTT_TOPIC_LANCE_TEAM.format(team_id=self.current_team_id), f"[{self.id}] {message}")
 
     def control_device(self, args):
         print(f"[{self.id}] {args}")
-        result = smartthings_request(self.id, args)
-        print(result)
+        # result = smartthings_request(self.id, args)
         # TODO repair
 
-def run_agent_process(configuration, device_information):
-    LanceAgent(configuration, device_information).loop_forever()
+def run_agent_process(queue, id, configuration, device_information):
+    agent = LanceAgent(id, configuration, device_information)
+    queue.put(id)
+    agent.loop_forever()

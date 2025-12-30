@@ -17,15 +17,19 @@ def get_random_team_id():
     return secrets.token_hex(8)
 
 def check_topic(formatted, unformatted):
-    return formatted.split("/")[0] == unformatted.split("/")[0]
+    return formatted == unformatted.split("/")[1]
 
 def smartthings_request(id, args):
-    return requests.post(
-        f"{SMARTTHINGS_API_URL}/{id}/commands", 
-        headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
-        json={
-            "commands": [
-                {"component": "main", "capability": args["capability"], "command": args["command"], "arguments": args.get("arguments", [])}
-            ]
-        }
-    ).json()
+    try:
+        return requests.post(
+            f"{SMARTTHINGS_API_URL}/{id}/commands", 
+            headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
+            json={
+                "commands": [
+                    {"component": "main", "capability": args["capability"], "command": args["command"], "arguments": args.get("arguments", [])}
+                ]
+            }
+        ).json()
+    except requests.exceptions.JSONDecodeError as e:
+        # TODO
+        return {}
