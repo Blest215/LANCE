@@ -67,6 +67,7 @@ class LanceAgent:
 
     def on_message(self, client, userdata, message):
         topic, id = message.topic.split("/")
+        payload = json.loads(message.payload.decode("utf-8"))
 
         if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_DISCOVERY):
             self.screening(id, message.payload.decode("utf-8"))
@@ -76,10 +77,10 @@ class LanceAgent:
             pass
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_AGENT):
-            self.controlling(message.payload.decode("utf-8"))
+            self.controlling(**payload)
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_CONTROL):
-            self.control_device(eval(message.payload.decode("utf-8")))
+            self.control_device(**payload)
 
     @property
     def busy(self):
@@ -92,11 +93,11 @@ class LanceAgent:
             self.join_team(team_id)
             self.proposal(screening_result.message)
 
-    def controlling(self, message):
+    def controlling(self, sender, request_id, message):
         control_result = self.controller.invoke({"message": message, "device_information": self.device_information})
         for tool_call in control_result.tool_calls:
             if tool_call["name"] == "control_device":
-                self.control_device(tool_call["args"])
+                self.control_device(sender, request_id, tool_call["args"])
 
     def join_team(self, team_id):
         self.current_team_id = team_id
@@ -106,10 +107,12 @@ class LanceAgent:
         self.log(message)
         self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
-    def control_device(self, args):
-        self.log(f"{args}")
+    def control_device(self, sender, request_id, message):
+        self.log(f"{message}")
         # result = smartthings_request(self.id, args)
         # TODO repair
+        result = "SUCCESS"
+        self.client.publish(MQTT_TOPIC_RESPONSE.format(id=sender), json.dumps({"sender": self.id, "message": result, "request_id": request_id}))
 
     def log(self, text):
         self.publish(MQTT_TOPIC_LOG, self.id, text)

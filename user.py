@@ -67,7 +67,7 @@ class UserAgent:
         self.device_registry = {}
         self.current_team_id = None
         self.team_messages = []
-        self.requests = []
+        self.requests = {}
         self.logs = []
 
         brain = ChatOllama(**configuration)
@@ -97,7 +97,7 @@ class UserAgent:
 
             for tool_call in centralized_result.tool_calls:
                 if tool_call["name"] == "control_device":
-                    self.control_device(**tool_call["args"])
+                    await self.control_device(**tool_call["args"])
         
         elif mode == "CLOUD":
             pass
@@ -125,21 +125,19 @@ class UserAgent:
 
         for tool_call in controller_result.tool_calls:
             if tool_call["name"] == "call_agent":
-                self.call_agent(tool_call["args"]["agent_id"], tool_call["args"]["message"])
+                await self.call_agent(tool_call["args"]["agent_id"], tool_call["args"]["message"])
 
-        # TODO Wait for completion
-        await asyncio.sleep(time_to_wait)
-
-    def call_agent(self, agent_id, message):
+    async def call_agent(self, agent_id, message):
         self.log(f"Call agent {agent_id} {message}")
-        self.publish(MQTT_TOPIC_LANCE_AGENT, agent_id, message)
+        await self.request(MQTT_TOPIC_LANCE_AGENT, agent_id, message)
 
-    def control_device(self, agent_id, capability, command, arguments={}):
+    async def control_device(self, agent_id, capability, command, arguments={}):
         self.log(f"Control device {agent_id} {capability} {command} {arguments}")
-        self.publish(MQTT_TOPIC_CENTRALIZED_CONTROL,agent_id, json.dumps({"capability": capability, "command": command, "arguments": arguments}))
+        await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         self.subscribe(MQTT_TOPIC_CENTRALIZED_REGISTER, "+")
+        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
         self.subscribe(MQTT_TOPIC_LOG, "+")
 
     def on_message(self, client, userdata, message):
@@ -155,10 +153,24 @@ class UserAgent:
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_REGISTER):
             self.device_registry[payload['sender']] = payload['message']
+
+        elif check_topic(topic, MQTT_TOPIC_RESPONSE):
+            assert "request_id" in payload and payload["request_id"] in self.requests
+            self.requests[payload["request_id"]]["status"] = "done"
+            self.requests[payload["request_id"]]["response"] = payload["message"]
     
+    async def request(self, topic, agent_id, message):
+        assert topic == MQTT_TOPIC_LANCE_AGENT or topic == MQTT_TOPIC_CENTRALIZED_CONTROL
+        new_request_id = get_random_request_id()
+        self.requests[new_request_id] = {"status": "pending"}
+        self.client.publish(topic.format(id=agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
+        # TODO TIMEOUT
+        while self.requests[new_request_id]["status"] == "pending":
+            await asyncio.sleep(0.1)
+
     def log(self, text):
         self.publish(MQTT_TOPIC_LOG, self.id, text)
-
+    
     def subscribe(self, topic, id):
         self.client.subscribe(topic.format(id=id))
 

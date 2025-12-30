@@ -16,6 +16,9 @@ def get_random_device_id():
 def get_random_team_id():
     return secrets.token_hex(8)
 
+def get_random_request_id():
+    return uuid.uuid4().hex
+
 def check_topic(formatted, unformatted):
     return formatted == unformatted.split("/")[0]
 
