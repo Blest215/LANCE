@@ -7,16 +7,18 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 SCREENING_THRESHOLD = 0.3
 
-ALLOWED_MODES = ["LANCE", "CENTRALIZED", "CLOUD", "ONTOLOGY"]
+ALLOWED_MODES = ["LANCE", "NATURAL", "CENTRALIZED", "CLOUD", "ONTOLOGY"]
 
 MQTT_BROKER_ADDRESS = "localhost"
 MQTT_TOPIC_LOG = "log/{id}"
 MQTT_TOPIC_RESPONSE = "response/{id}"
 # mode LANCE topics
-MQTT_TOPIC_LANCE_DISCOVERY = "discovery/{id}"
+MQTT_TOPIC_LANCE_CALL = "call/{id}"
 MQTT_TOPIC_LANCE_TEAM = "team/{id}"
-MQTT_TOPIC_LANCE_AGENT = "agent/{id}"
+# mode NATURAL topics
+MQTT_TOPIC_NATURAL_AGENT = "agent/{id}"
 # mode CENTRALIZED topics
+MQTT_TOPIC_CENTRALIZED_DISCOVERY = "discovery/{id}"
 MQTT_TOPIC_CENTRALIZED_REGISTER = "register/{id}"
 MQTT_TOPIC_CENTRALIZED_CONTROL = "control/{id}"
 # mode CLOUD topics

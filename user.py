@@ -64,7 +64,6 @@ class UserAgent:
         # TODO multi user situation
         self.id = "USER"
         self.configuration = configuration
-        self.device_registry = {}
         self.current_team_id = None
         self.team_messages = []
         self.requests = {}
@@ -83,17 +82,21 @@ class UserAgent:
         self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
         self.client.loop_start()
 
-    async def ask(self, mode, user_command):
+    async def command(self, mode, user_command):
         self.log(f"User asked: {user_command}")
         if mode == "LANCE":
             coordinator_result = await self.organizer.ainvoke({"user_command": user_command})
             
             for tool_call in coordinator_result.tool_calls:
                 if tool_call["name"] == "initiate_task":
-                    await self.initiate_task(tool_call["args"]["message"])
+                    await self.initiate_task(**tool_call["args"])
         
+        elif mode == "NATURAL":
+            pass
+
         elif mode == "CENTRALIZED":
-            centralized_result = await self.centralized.ainvoke({"user_command": user_command, "device_informations": self.device_registry})
+            # TODO discovery
+            centralized_result = await self.centralized.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
 
             for tool_call in centralized_result.tool_calls:
                 if tool_call["name"] == "control_device":
@@ -105,38 +108,46 @@ class UserAgent:
         elif mode == "ONTOLOGY":
             pass
 
+    # LANCE methods
+
     async def initiate_task(self, message):
         self.log(f"Initiate a new task: {message}")
-        await self.discovery(20, message)
+        await self.call_for_proposal(20, message)
         # TODO Negotiation
         await self.control(20, self.team_messages)
 
-    async def discovery(self, time_to_wait, message):
-        self.log(f"Agent discovery start ({time_to_wait}s)")
+    async def call_for_proposal(self, time_to_wait, message):
+        self.log(f"Agent call-for-proposal start ({time_to_wait}s)")
         self.current_team_id = get_random_team_id()
         self.subscribe(MQTT_TOPIC_LANCE_TEAM, self.current_team_id)
-        self.publish(MQTT_TOPIC_LANCE_DISCOVERY, self.current_team_id, message)
+        self.publish(MQTT_TOPIC_LANCE_CALL, self.current_team_id, message)
         self.team_messages = [message]
         await asyncio.sleep(time_to_wait)
-        self.log("Agent discovery end")
+        self.log("Agent call-for-proposal end")
 
     async def control(self, time_to_wait, team_messages):        
         controller_result = await self.coordinator.ainvoke({"user_command": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
 
         for tool_call in controller_result.tool_calls:
             if tool_call["name"] == "call_agent":
-                await self.call_agent(tool_call["args"]["agent_id"], tool_call["args"]["message"])
+                await self.ask_agent(tool_call["args"]["agent_id"], tool_call["args"]["message"])
 
-    async def call_agent(self, agent_id, message):
+    # NATURAL methods
+
+    async def ask_agent(self, agent_id, message):
         self.log(f"Call agent {agent_id} {message}")
-        await self.request(MQTT_TOPIC_LANCE_AGENT, agent_id, message)
+        await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
+
+    # CENTRALIZED methods
+
+    async def discovery(self):
+        return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
     async def control_device(self, agent_id, capability, command, arguments={}):
         self.log(f"Control device {agent_id} {capability} {command} {arguments}")
         await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        self.subscribe(MQTT_TOPIC_CENTRALIZED_REGISTER, "+")
         self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
         self.subscribe(MQTT_TOPIC_LOG, "+")
 
@@ -151,22 +162,19 @@ class UserAgent:
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
             self.team_messages.append(f"{payload['sender']}: {payload['message']}")
 
-        elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_REGISTER):
-            self.device_registry[payload['sender']] = payload['message']
-
         elif check_topic(topic, MQTT_TOPIC_RESPONSE):
             assert "request_id" in payload and payload["request_id"] in self.requests
             self.requests[payload["request_id"]]["status"] = "done"
             self.requests[payload["request_id"]]["response"] = payload["message"]
     
     async def request(self, topic, agent_id, message):
-        assert topic == MQTT_TOPIC_LANCE_AGENT or topic == MQTT_TOPIC_CENTRALIZED_CONTROL
         new_request_id = get_random_request_id()
         self.requests[new_request_id] = {"status": "pending"}
         self.client.publish(topic.format(id=agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
         # TODO TIMEOUT
         while self.requests[new_request_id]["status"] == "pending":
             await asyncio.sleep(0.1)
+        return self.requests[new_request_id]["response"]
 
     def log(self, text):
         self.publish(MQTT_TOPIC_LOG, self.id, text)

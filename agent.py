@@ -34,7 +34,7 @@ control_device_tool = {
 }
 
 
-class LanceAgent:
+class Agent:
     def __init__(self, id, configuration, device_information):
         self.id = id
         self.configuration = configuration
@@ -54,14 +54,13 @@ class LanceAgent:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
-
     
     def loop_forever(self):
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        self.subscribe(MQTT_TOPIC_LANCE_DISCOVERY, "+")
-        self.subscribe(MQTT_TOPIC_LANCE_AGENT, self.id)
+        self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
+        self.subscribe(MQTT_TOPIC_NATURAL_AGENT, self.id)
         self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
         self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, self.device_information)
 
@@ -69,14 +68,14 @@ class LanceAgent:
         topic, id = message.topic.split("/")
         payload = json.loads(message.payload.decode("utf-8"))
 
-        if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_DISCOVERY):
+        if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_CALL):
             self.screening(id, message.payload.decode("utf-8"))
             
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM):
             # TODO handle team messages
             pass
 
-        elif check_topic(topic, MQTT_TOPIC_LANCE_AGENT):
+        elif check_topic(topic, MQTT_TOPIC_NATURAL_AGENT):
             self.controlling(**payload)
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_CONTROL):
@@ -124,6 +123,6 @@ class LanceAgent:
         self.client.publish(topic.format(id=id), json.dumps({"sender": self.id, "message": message}))
 
 def run_agent_process(queue, id, configuration, device_information):
-    agent = LanceAgent(id, configuration, device_information)
+    agent = Agent(id, configuration, device_information)
     queue.put(id)
     agent.loop_forever()
