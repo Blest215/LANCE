@@ -28,14 +28,14 @@ class Client(ABC):
         session, topic, id = message.topic.split("/")
         assert session == self.session
         payload = json.loads(message.payload.decode("utf-8"))
-        self.message_handler(topic, id, payload)
+        asyncio.run(self.message_handler(topic, id, payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")))
 
     @abstractmethod
     def connection_handler(self):
         pass
 
     @abstractmethod
-    def message_handler(self, topic, id, payload):
+    async def message_handler(self, topic, id, sender, message, request_id=""):
         pass
 
     def loop_start(self):
@@ -55,24 +55,28 @@ class Client(ABC):
         self.log(f"New request {new_request_id} to {agent_id}: {message}")
         self.requests[new_request_id] = {"status": "pending"}
         self.client.publish(self.build_topic(topic, agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
-        timeout = TIMEOUT_LIMIT
-        while self.requests[new_request_id]["status"] == "pending" and timeout > 0:
-            timeout -= TICK
-            await asyncio.sleep(TICK)
-        if timeout <= 0:
+
+        try:
+            await asyncio.wait_for(self.wait_for_response(new_request_id), TIMEOUT_LIMIT)
+        except asyncio.TimeoutError:
             self.requests[new_request_id]["status"] = "timeout"
             self.requests[new_request_id]["response"] = "timeout"
+        
         self.log(f"Request {new_request_id} resulted {self.requests[new_request_id]['response']}")
         return self.requests[new_request_id]["response"]
     
+    async def wait_for_response(self, request_id):
+        while self.requests[request_id]["status"] == "pending":
+            await asyncio.sleep(TICK)
+
     def response(self, sender, request_id, message):
         self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": message, "request_id": request_id}))
-    
-    def subscribe(self, topic, id):
-        self.client.subscribe(self.build_topic(topic, id))
 
     def publish(self, topic, id, message):
         self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": message}))
+    
+    def subscribe(self, topic, id):
+        self.client.subscribe(self.build_topic(topic, id))
 
     def build_topic(self, topic, id):
         return f"{self.session}/{topic}/{id}"

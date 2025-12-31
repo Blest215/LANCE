@@ -12,12 +12,12 @@ class Registry(Client):
         self.subscribe(MQTT_TOPIC_CENTRALIZED_REGISTER, "+")
         self.subscribe(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "+")
 
-    def message_handler(self, topic, id, payload):        
+    async def message_handler(self, topic, id, sender, message, request_id=""):
         if check_topic(topic, MQTT_TOPIC_CENTRALIZED_REGISTER):
-            self.registry[payload['sender']] = payload['message']
+            self.registry[sender] = message
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_DISCOVERY):
-            self.response(payload["sender"], payload["request_id"], self.registry)
+            self.response(sender, request_id, self.registry)
 
 def run_registry_process(session, id):
     Registry(session, id).loop_forever()

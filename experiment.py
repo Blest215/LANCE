@@ -1,9 +1,11 @@
 import asyncio
 import multiprocessing
 import pandas as pd
-from datetime import datetime
 
-from tqdm.asyncio import tqdm
+from tqdm import tqdm
+from tqdm.asyncio import tqdm as atqdm
+
+from datetime import datetime
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -57,6 +59,7 @@ async def simulate(mode, scenario):
 
     # Start a simulation
     await user.command(mode=mode, user_command=user_command)
+    await asyncio.sleep(TIMEOUT_LIMIT)
 
     # Wrap up
     registry.terminate()
@@ -81,20 +84,17 @@ async def evaluate(scenario):
             continue
 
 
-async def main(mode: str, evaluator):
-    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    os.mkdir(RESULT_PATH.format(now=now))
-
+async def main(now, mode, evaluator):
     assert mode in ALLOWED_MODES
 
     df = pd.read_csv(DATASET_PATH)
 
-    # Simulation TODO parallelism
-    simulation_results = await tqdm.gather(*[simulate(mode, row) for row in df.itertuples()])
+    # Simulation
+    simulation_results = [await simulate(mode, row) for row in tqdm(df.itertuples(), total=len(df), desc="Simulation")]
     df["conversation"] = simulation_results
 
     # Evaluation
-    evaluation_results = await tqdm.gather(*[evaluate(row) for row in df.itertuples()])
+    evaluation_results = await atqdm.gather(*[evaluate(row) for row in df.itertuples()], desc="Evaluation")
     df["score"] = [result.score for result in evaluation_results]
     df["reason"] = [result.reason for result in evaluation_results]
 
@@ -102,11 +102,14 @@ async def main(mode: str, evaluator):
 
 
 if __name__ == "__main__":
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    os.mkdir(RESULT_PATH.format(now=now))
+
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
     evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | ChatOllama(
-        model="gpt-oss-safeguard:20b", 
-        temperature=0, 
-        reasoning=True, 
+        model="gpt-oss-safeguard:20b",
+        temperature=0,
+        reasoning=True,
     ) | evaluator_parser
 
-    asyncio.run(main(mode="NATURAL", evaluator=evaluator))
+    asyncio.run(main(now=now, mode="NATURAL", evaluator=evaluator))

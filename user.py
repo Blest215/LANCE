@@ -104,21 +104,21 @@ class UserAgent(Client):
         self.subscribe(MQTT_TOPIC_ALIVE, "+")
         self.subscribe(MQTT_TOPIC_LOG, "+")
 
-    def message_handler(self, topic, id, payload):
+    async def message_handler(self, topic, id, sender, message, request_id=""):
         if check_topic(topic, MQTT_TOPIC_ALIVE):
             if id in self.wait:
                 self.wait.remove(id)
 
         elif check_topic(topic, MQTT_TOPIC_LOG):
-            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
+            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {sender}: {message}")
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
-            self.team_messages.append(f"{payload['sender']}: {payload['message']}")
+            self.team_messages.append(f"{sender}: {message}")
 
         elif check_topic(topic, MQTT_TOPIC_RESPONSE):
-            assert "request_id" in payload and payload["request_id"] in self.requests
-            self.requests[payload["request_id"]]["status"] = "done"
-            self.requests[payload["request_id"]]["response"] = payload["message"]
+            if request_id and request_id in self.requests:
+                self.requests[request_id]["status"] = "done"
+                self.requests[request_id]["response"] = message
 
     # LANCE methods
 
@@ -144,7 +144,7 @@ class UserAgent(Client):
     # NATURAL methods
 
     async def ask_agent(self, agent_id, message):
-        await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
+        return await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
 
     # CENTRALIZED methods
 
@@ -152,7 +152,7 @@ class UserAgent(Client):
         return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
     async def control_device(self, agent_id, capability, command, arguments={}):
-        await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
+        return await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
     
     # etc
 
