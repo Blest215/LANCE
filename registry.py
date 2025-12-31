@@ -4,10 +4,8 @@ from client import Client
 
 
 class Registry(Client):
-    def __init__(self):
-        super().__init__()
-
-        self.id = "REGISTRY"
+    def __init__(self, session, id):
+        super().__init__(session, id)
         self.registry = {}
 
     def connection_handler(self):
@@ -21,7 +19,5 @@ class Registry(Client):
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_DISCOVERY):
             self.response(payload["sender"], payload["request_id"], self.registry)
 
-def run_registry_process(queue):
-    registry = Registry()
-    queue.put(registry.id)
-    registry.loop_forever()
+def run_registry_process(session, id):
+    Registry(session, id).loop_forever()

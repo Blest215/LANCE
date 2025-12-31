@@ -1,5 +1,6 @@
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
@@ -33,10 +34,8 @@ control_device_tool = {
 
 
 class Agent(Client):
-    def __init__(self, id, configuration, device_information):
-        super().__init__()
-
-        self.id = id
+    def __init__(self, session, id, configuration, device_information):
+        super().__init__(session, id)
         self.configuration = configuration
         self.device_information = device_information
         self.current_team_id = None
@@ -75,17 +74,20 @@ class Agent(Client):
         return self.current_team_id is not None
     
     def screening(self, team_id, message):
-        screening_result = self.screener.invoke({"message": message, "device_information": self.device_information})
-
-        if screening_result.score >= SCREENING_THRESHOLD:
-            self.join_team(team_id)
-            self.proposal(screening_result.message)
+        while True:
+            try:
+                screening_result = self.screener.invoke({"message": message, "device_information": self.device_information})
+                if screening_result.score >= SCREENING_THRESHOLD:
+                    self.join_team(team_id)
+                    self.proposal(screening_result.message)
+                return
+            except OutputParserException:
+                continue
 
     def controlling(self, sender, request_id, message):
         control_result = self.controller.invoke({"message": message, "device_information": self.device_information})
-        for tool_call in control_result.tool_calls:
-            if tool_call["name"] == "control_device":
-                self.control_device(sender, request_id, tool_call["args"])
+        result = [self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if tool_call["name"] == "control_device"]
+        self.response(sender, request_id, result)
 
     def join_team(self, team_id):
         self.current_team_id = team_id
@@ -99,10 +101,7 @@ class Agent(Client):
         self.log(f"Control device with arguments {message} for request {request_id} from {sender}")
         # result = smartthings_request(self.id, args)
         # TODO repair
-        result = "SUCCESS"
-        self.response(sender, request_id, result)
+        return "SUCCESS"
 
-def run_agent_process(queue, id, configuration, device_information):
-    agent = Agent(id, configuration, device_information)
-    queue.put(id)
-    agent.loop_forever()
+def run_agent_process(session, id, configuration, device_information):
+    Agent(session, id, configuration, device_information).loop_forever()

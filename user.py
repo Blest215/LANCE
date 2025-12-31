@@ -59,14 +59,13 @@ control_device_tool = {
 
 
 class UserAgent(Client):
-    def __init__(self, configuration):
-        super().__init__()
-
+    def __init__(self, session, id, configuration):
+        super().__init__(session, id)
         # TODO multi user situation
-        self.id = "COORDINATOR"
         self.configuration = configuration
         self.current_team_id = None
         self.team_messages = []
+        self.wait = set()
         self.logs = []
 
         brain = ChatOllama(**configuration)
@@ -102,11 +101,15 @@ class UserAgent(Client):
         await self.tool_call(result)
 
     def connection_handler(self):
-        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
+        self.subscribe(MQTT_TOPIC_ALIVE, "+")
         self.subscribe(MQTT_TOPIC_LOG, "+")
 
     def message_handler(self, topic, id, payload):
-        if check_topic(topic, MQTT_TOPIC_LOG):
+        if check_topic(topic, MQTT_TOPIC_ALIVE):
+            if id in self.wait:
+                self.wait.remove(id)
+
+        elif check_topic(topic, MQTT_TOPIC_LOG):
             self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
@@ -116,13 +119,6 @@ class UserAgent(Client):
             assert "request_id" in payload and payload["request_id"] in self.requests
             self.requests[payload["request_id"]]["status"] = "done"
             self.requests[payload["request_id"]]["response"] = payload["message"]
-            self.log(f"Request {payload['request_id']} resulted {payload['message']}")
-
-    def get_logs(self):
-        return "\n".join(self.logs)
-
-    async def tool_call(self, result):
-        await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls] if result and hasattr(result, "tool_calls") else [])
 
     # LANCE methods
 
@@ -130,7 +126,7 @@ class UserAgent(Client):
         self.log(f"Initiate a new task: {message}")
         await self.call_for_proposal(20, message)
         # TODO Negotiation
-        await self.control(20, self.team_messages)
+        await self.control(self.team_messages)
 
     async def call_for_proposal(self, time_to_wait, message):
         self.log(f"Agent call-for-proposal start ({time_to_wait}s)")
@@ -141,14 +137,13 @@ class UserAgent(Client):
         await asyncio.sleep(time_to_wait)
         self.log("Agent call-for-proposal end")
 
-    async def control(self, time_to_wait, team_messages):        
+    async def control(self, team_messages):        
         result = await self.coordinator.ainvoke({"user_command": team_messages[0], "team_messages": "\n".join(team_messages[1:])})
         await self.tool_call(result)
 
     # NATURAL methods
 
     async def ask_agent(self, agent_id, message):
-        self.log(f"Ask agent {agent_id} {message}")
         await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
 
     # CENTRALIZED methods
@@ -159,3 +154,16 @@ class UserAgent(Client):
     async def control_device(self, agent_id, capability, command, arguments={}):
         await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
     
+    # etc
+
+    async def wait_for_client(self, client_id):
+        assert self.client.is_connected()
+        self.wait.add(client_id)
+        while client_id in self.wait:
+            await asyncio.sleep(TICK)
+
+    async def tool_call(self, result):
+        await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls] if result and hasattr(result, "tool_calls") else [], return_exceptions=True)
+
+    def get_logs(self):
+        return "\n".join(self.logs)

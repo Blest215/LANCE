@@ -19,6 +19,9 @@ def get_random_team_id():
 def get_random_request_id():
     return uuid.uuid4().hex
 
+def get_random_session():
+    return secrets.token_hex(16)
+
 def check_topic(formatted, unformatted):
     return formatted == unformatted.split("/")[0]
 

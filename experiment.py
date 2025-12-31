@@ -1,4 +1,3 @@
-import json
 import asyncio
 import multiprocessing
 import pandas as pd
@@ -7,8 +6,8 @@ from datetime import datetime
 from tqdm.asyncio import tqdm
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
-from langgraph.errors import GraphRecursionError
 
 from utils import *
 from settings import *
@@ -16,7 +15,6 @@ from registry import run_registry_process
 from agent import run_agent_process
 from user import UserAgent
 
-from pydantic import ValidationError
 from pydantic import BaseModel, Field
 class EvaluationResult(BaseModel):
     score: float = Field(description="How the agents behaved well upon user's command. 0 <= score <= 1", ge=0, le=1)
@@ -25,31 +23,39 @@ class EvaluationResult(BaseModel):
 agent_configuration = {"model": "qwen3:8b", "reasoning": True, "temperature": 0.8, "num_predict": 2048}
 
 
+async def setup_agent(session, user, agent_id, agent_configuration, device_information):
+    p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_information))
+    p.start()
+    await user.wait_for_client(agent_id)
+    return p
+
 async def simulate(mode, scenario):
     _, time, device_informations, user_command, evaluation_criteria = scenario
 
-    queue = multiprocessing.Queue()
-
-    # Set the registry
-    registry = multiprocessing.Process(target=run_registry_process, args=(queue, ))
-    registry.start()
-    if queue.get() == "REGISTRY":
-        pass
-
-    # Set the device agents
-    processes = []
-    for device_information in eval(device_informations):
-        agent_id = device_information["deviceId"] if "deviceId" in device_information else get_random_device_id()
-        p = multiprocessing.Process(target=run_agent_process, args=(queue, agent_id, agent_configuration, device_information))
-        processes.append(p)
-        p.start()
-        if queue.get() == agent_id:
-            pass
-
-    # Start a simulation
-    user = UserAgent(configuration=agent_configuration)
+    session = get_random_session()
+    user_id = "COORDINATOR"
+    user = UserAgent(session, id=user_id, configuration=agent_configuration)
     while not user.is_connected():
         await asyncio.sleep(TICK)
+
+    # Set the registry
+    registry_id = "REGISTRY"
+    registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
+    registry.start()
+    await user.wait_for_client(registry_id)
+
+    # Set the device agents
+    processes = await asyncio.gather(*[setup_agent(
+        session=session,
+        user=user,
+        agent_id=device_information["deviceId"] if "deviceId" in device_information else get_random_device_id(),
+        agent_configuration=agent_configuration,
+        device_information=device_information
+    ) for device_information in eval(device_informations)])        
+
+    assert not user.wait
+
+    # Start a simulation
     await user.command(mode=mode, user_command=user_command)
 
     # Wrap up
@@ -71,7 +77,7 @@ async def evaluate(scenario):
                 "evaluation_criteria": evaluation_criteria,
                 "conversation": conversation,
             })
-        except ValidationError as e:
+        except OutputParserException:
             continue
 
 
@@ -84,9 +90,7 @@ async def main(mode: str, evaluator):
     df = pd.read_csv(DATASET_PATH)
 
     # Simulation TODO parallelism
-    simulation_results = []
-    for row in tqdm(df.itertuples(), total=len(df)):
-        simulation_results.append(await simulate(mode, row))
+    simulation_results = await tqdm.gather(*[simulate(mode, row) for row in df.itertuples()])
     df["conversation"] = simulation_results
 
     # Evaluation
@@ -105,4 +109,4 @@ if __name__ == "__main__":
         reasoning=True, 
     ) | evaluator_parser
 
-    asyncio.run(main(mode="LANCE", evaluator=evaluator))
+    asyncio.run(main(mode="NATURAL", evaluator=evaluator))

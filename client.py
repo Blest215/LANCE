@@ -9,8 +9,11 @@ from settings import *
 
 
 class Client(ABC):
-    def __init__(self):
+    def __init__(self, session, id):
+        self.session = session
+        self.id = id
         self.requests = {}
+
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -18,9 +21,12 @@ class Client(ABC):
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         self.connection_handler()
+        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
+        self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
 
     def on_message(self, client, userdata, message):
-        topic, id = message.topic.split("/")
+        session, topic, id = message.topic.split("/")
+        assert session == self.session
         payload = json.loads(message.payload.decode("utf-8"))
         self.message_handler(topic, id, payload)
 
@@ -46,8 +52,9 @@ class Client(ABC):
 
     async def request(self, topic, agent_id, message):
         new_request_id = get_random_request_id()
+        self.log(f"New request {new_request_id} to {agent_id}: {message}")
         self.requests[new_request_id] = {"status": "pending"}
-        self.client.publish(topic.format(id=agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
+        self.client.publish(self.build_topic(topic, agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
         timeout = TIMEOUT_LIMIT
         while self.requests[new_request_id]["status"] == "pending" and timeout > 0:
             timeout -= TICK
@@ -55,13 +62,17 @@ class Client(ABC):
         if timeout <= 0:
             self.requests[new_request_id]["status"] = "timeout"
             self.requests[new_request_id]["response"] = "timeout"
+        self.log(f"Request {new_request_id} resulted {self.requests[new_request_id]['response']}")
         return self.requests[new_request_id]["response"]
     
     def response(self, sender, request_id, message):
-        self.client.publish(MQTT_TOPIC_RESPONSE.format(id=sender), json.dumps({"sender": self.id, "message": message, "request_id": request_id}))
+        self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": message, "request_id": request_id}))
     
     def subscribe(self, topic, id):
-        self.client.subscribe(topic.format(id=id))
+        self.client.subscribe(self.build_topic(topic, id))
 
     def publish(self, topic, id, message):
-        self.client.publish(topic.format(id=id), json.dumps({"sender": self.id, "message": message}))
+        self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": message}))
+
+    def build_topic(self, topic, id):
+        return f"{self.session}/{topic}/{id}"
