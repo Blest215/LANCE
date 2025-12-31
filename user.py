@@ -107,7 +107,6 @@ class UserAgent(Client):
 
     def message_handler(self, topic, id, payload):
         if check_topic(topic, MQTT_TOPIC_LOG):
-            print(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
             self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {payload['sender']:<36}: {payload['message']}")
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:

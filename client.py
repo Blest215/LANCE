@@ -48,9 +48,13 @@ class Client(ABC):
         new_request_id = get_random_request_id()
         self.requests[new_request_id] = {"status": "pending"}
         self.client.publish(topic.format(id=agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
-        # TODO TIMEOUT
-        while self.requests[new_request_id]["status"] == "pending":
-            await asyncio.sleep(0.1)
+        timeout = TIMEOUT_LIMIT
+        while self.requests[new_request_id]["status"] == "pending" and timeout > 0:
+            timeout -= TICK
+            await asyncio.sleep(TICK)
+        if timeout <= 0:
+            self.requests[new_request_id]["status"] = "timeout"
+            self.requests[new_request_id]["response"] = "timeout"
         return self.requests[new_request_id]["response"]
     
     def response(self, sender, request_id, message):

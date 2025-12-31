@@ -4,8 +4,11 @@ load_dotenv()
 # Settings
 
 DATASET_PATH = "dataset/dataset_synthetic.csv"
+RESULT_PATH = "results/{now}"
 
 SCREENING_THRESHOLD = 0.3
+TIMEOUT_LIMIT = 5.0
+TICK = 0.01
 
 ALLOWED_MODES = ["LANCE", "NATURAL", "CENTRALIZED", "CLOUD", "ONTOLOGY"]
 
@@ -92,8 +95,17 @@ Control the device based on the given message.
 EVALUATOR_PROMPT = """
 Evaluate the behavior of the agents in the conversation whether the user's task is accomplished or not.
 
+[Time]
+{time}
+
+[Device Informations]
+{device_informations}
+
 [User Command]
 {user_command}
+
+[Evaluation Criteria]
+{evaluation_criteria}
 
 [Conversation]
 {conversation}

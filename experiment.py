@@ -1,7 +1,10 @@
 import json
 import asyncio
 import multiprocessing
+import pandas as pd
+from datetime import datetime
 
+from tqdm.asyncio import tqdm
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -20,10 +23,11 @@ class EvaluationResult(BaseModel):
     reason: str = Field(description="Reasoning for the score")
 
 agent_configuration = {"model": "qwen3:8b", "reasoning": True, "temperature": 0.8, "num_predict": 2048}
-device_informations = [l for l in open("example.txt", "r", encoding="utf-8")]
 
-async def main(mode: str, evaluator):
-    assert mode in ALLOWED_MODES
+
+async def simulate(mode, scenario):
+    _, time, device_informations, user_command, evaluation_criteria = scenario
+
     queue = multiprocessing.Queue()
 
     # Set the registry
@@ -34,8 +38,7 @@ async def main(mode: str, evaluator):
 
     # Set the device agents
     processes = []
-    for d in device_informations:
-        device_information = json.loads(d)
+    for device_information in eval(device_informations):
         agent_id = device_information["deviceId"] if "deviceId" in device_information else get_random_device_id()
         p = multiprocessing.Process(target=run_agent_process, args=(queue, agent_id, agent_configuration, device_information))
         processes.append(p)
@@ -44,29 +47,55 @@ async def main(mode: str, evaluator):
             pass
 
     # Start a simulation
-    user_command = "It's too dark, and I need to focus on reading."
-
     user = UserAgent(configuration=agent_configuration)
     while not user.is_connected():
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(TICK)
     await user.command(mode=mode, user_command=user_command)
-
-    # Evaluation
-    while True:
-        try:
-            evaluation_result = evaluator.invoke({
-                "user_command": user_command,
-                "conversation": user.get_logs(),
-            })
-            break
-        except ValidationError as e:
-            continue
-    print(evaluation_result)
 
     # Wrap up
     registry.terminate()
     for p in processes:
         p.terminate()
+    
+    return user.get_logs()
+
+
+async def evaluate(scenario):
+    _, time, device_informations, user_command, evaluation_criteria, conversation = scenario
+    while True:
+        try:
+            return await evaluator.ainvoke({
+                "time": time,
+                "device_informations": device_informations,
+                "user_command": user_command,
+                "evaluation_criteria": evaluation_criteria,
+                "conversation": conversation,
+            })
+        except ValidationError as e:
+            continue
+
+
+async def main(mode: str, evaluator):
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    os.mkdir(RESULT_PATH.format(now=now))
+
+    assert mode in ALLOWED_MODES
+
+    df = pd.read_csv(DATASET_PATH)
+
+    # Simulation TODO parallelism
+    simulation_results = []
+    for row in tqdm(df.itertuples(), total=len(df)):
+        simulation_results.append(await simulate(mode, row))
+    df["conversation"] = simulation_results
+
+    # Evaluation
+    evaluation_results = await tqdm.gather(*[evaluate(row) for row in df.itertuples()])
+    df["score"] = [result.score for result in evaluation_results]
+    df["reason"] = [result.reason for result in evaluation_results]
+
+    df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
+
 
 if __name__ == "__main__":
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
