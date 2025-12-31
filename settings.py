@@ -3,7 +3,7 @@ load_dotenv()
 
 # Settings
 
-SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
+DATASET_PATH = "dataset/dataset_synthetic.csv"
 
 SCREENING_THRESHOLD = 0.3
 
@@ -23,6 +23,10 @@ MQTT_TOPIC_CENTRALIZED_REGISTER = "register/{id}"
 MQTT_TOPIC_CENTRALIZED_CONTROL = "control/{id}"
 # mode CLOUD topics
 # mode ONTOLOGY topics
+
+# Devices
+
+SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 # User agent
 

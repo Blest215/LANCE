@@ -1,0 +1,108 @@
+import os
+import pandas as pd
+import argparse
+import time
+import asyncio
+
+from tqdm.asyncio import tqdm
+from uuid import UUID, uuid4
+from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
+
+from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
+from openai import RateLimitError
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException
+from typing import Optional, Literal, Annotated
+from pydantic import BaseModel, Field, PlainSerializer
+
+from settings import DATASET_PATH
+
+def serialize_id(id: UUID) -> str:
+    return str(id)
+
+class IntegerProperty(BaseModel):
+    type: Literal["integer"]
+
+class StringProperty(BaseModel):
+    type: Literal["string"]
+
+class ObjectProperty(BaseModel):
+    type: Literal["object"]
+    properties: dict[str, IntegerProperty | StringProperty] = Field(description="The properties of the object.")
+    required: list[str] = Field(default=[], description="The required properties of the object.")
+
+class Action(BaseModel):
+    title: str = Field(description="Title of the action that the device can perform.")
+    description: str = Field(description="Description of the action.")
+    input: IntegerProperty | StringProperty | ObjectProperty | dict = Field(default={}, description="The input to the action.")
+    output: IntegerProperty | StringProperty | ObjectProperty | dict = Field(default={}, description="The output from the action.")
+    # TODO forms: list[]
+
+class Device(BaseModel):
+    id: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
+    title: str = Field(description="Title of the device, e.g., light, TV, air_conditioner.")
+    actions: dict[str, Action] = Field(description="Actions the device can perform with optional arguments.")
+
+class Scenario(BaseModel):
+    time: datetime = Field(description="Timestamp of the scenario.")
+    device_informations: list[Device] = Field(description="Device informations in the space.")
+    user_command: str = Field(description="Natural language command showing user intent.")
+    evaluation_criteria: str = Field(description="Simple criteria to evaluate the AI agent's reaction upon user's command according to the context.")
+
+GENERATOR_PROMPT = """
+You are a system designer creating realistic scenarios to test AI agents that control smart devices.
+Generate a random and realistic scenario to test the behavior of AI agents.
+
+[Rules]
+- The device_informations MUST reflect realistic home settings containing heterogeneous devices.
+- The user_command MUST be in fluent natural language.
+- The user_command MAY not be specific enough and contains indirect needs.
+
+[Format]
+{format}
+"""
+
+async def generate_scenario(generator, input):
+    while True:
+        try:
+            return await generator.ainvoke(input)
+        except OutputParserException:
+            continue
+        except Exception as e:
+            break
+
+async def main():
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--reset", action="store_true")
+    argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss-safeguard:20b", help="LLM to use")
+    argument_parser.add_argument("--size", type=int, required=True, default=1, help="Number of scenarios to generate")
+    args = argument_parser.parse_args()
+    
+    llm = ChatOllama(model=args.model, reasoning=True, temperature=1.0)
+
+    parser = PydanticOutputParser(pydantic_object=Scenario)
+    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | llm | parser
+
+    # Synthesize dataset
+    scenarios = await tqdm.gather(*[generate_scenario(scenario_generator, {}) for _ in range(args.size)])
+    scenarios = [scenario.model_dump() for scenario in scenarios]
+    
+    # Save dataset
+    df = pd.concat([pd.read_csv(DATASET_PATH), pd.DataFrame(scenarios)], ignore_index=True) if os.path.exists(DATASET_PATH) and not args.reset else pd.DataFrame(scenarios)
+    while True:
+        try:
+            df.to_csv(DATASET_PATH, index=False, encoding="utf-8-sig")
+            break
+        except PermissionError:
+            time.sleep(1)
+            continue
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
