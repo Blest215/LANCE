@@ -3,6 +3,8 @@ load_dotenv()
 
 # Settings
 
+BASE_URL = "http://localhost:8000/v1"
+
 DATASET_PATH = "dataset/dataset_synthetic.csv"
 RESULT_PATH = "results/{now}"
 

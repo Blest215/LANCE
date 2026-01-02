@@ -7,6 +7,7 @@ from tqdm.asyncio import tqdm as atqdm
 
 from datetime import datetime
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
@@ -22,8 +23,6 @@ class EvaluationResult(BaseModel):
     score: float = Field(description="How the agents behaved well upon user's command. 0 <= score <= 1", ge=0, le=1)
     reason: str = Field(description="Reasoning for the score")
 
-agent_configuration = {"model": "qwen3:8b", "reasoning": True, "temperature": 0.8, "num_predict": 2048}
-
 
 async def setup_agent(session, user, agent_id, agent_configuration, device_information):
     p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_information))
@@ -31,12 +30,12 @@ async def setup_agent(session, user, agent_id, agent_configuration, device_infor
     await user.wait_for_client(agent_id)
     return p
 
-async def simulate(mode, scenario):
+async def simulate(mode, model, scenario):
     _, time, device_informations, user_command, evaluation_criteria = scenario
 
     session = get_random_session()
     user_id = "COORDINATOR"
-    user = UserAgent(session, id=user_id, configuration=agent_configuration)
+    user = UserAgent(session, id=user_id, model=model)
     while not user.is_connected():
         await asyncio.sleep(TICK)
 
@@ -51,7 +50,7 @@ async def simulate(mode, scenario):
         session=session,
         user=user,
         agent_id=device_information["deviceId"] if "deviceId" in device_information else get_random_device_id(),
-        agent_configuration=agent_configuration,
+        agent_configuration=model,
         device_information=device_information
     ) for device_information in eval(device_informations)])        
 
@@ -69,7 +68,7 @@ async def simulate(mode, scenario):
     return user.get_logs()
 
 
-async def evaluate(scenario):
+async def evaluate(evaluator, scenario):
     _, time, device_informations, user_command, evaluation_criteria, conversation = scenario
     while True:
         try:
@@ -84,19 +83,27 @@ async def evaluate(scenario):
             continue
 
 
-async def main(now, mode, evaluator):
+async def main(now, mode, model: Model, evaluation_model: Model):
     assert mode in ALLOWED_MODES
 
     df = pd.read_csv(DATASET_PATH)
 
     # Simulation
-    simulation_results = [await simulate(mode, row) for row in tqdm(df.itertuples(), total=len(df), desc="Simulation")]
+    container = await startup_vllm_container(model)
+    simulation_results = [await simulate(mode, model, row) for row in tqdm(df.itertuples(), total=len(df), desc="Simulation")]
     df["conversation"] = simulation_results
+    container.stop()
+    container.remove()
 
     # Evaluation
-    evaluation_results = await atqdm.gather(*[evaluate(row) for row in df.itertuples()], desc="Evaluation")
+    container = await startup_vllm_container(evaluation_model)
+    evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
+    evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | ChatOpenAI(**evaluation_model.to_dict()) | evaluator_parser
+    evaluation_results = await atqdm.gather(*[evaluate(evaluator, row) for row in df.itertuples()], desc="Evaluation")
     df["score"] = [result.score for result in evaluation_results]
     df["reason"] = [result.reason for result in evaluation_results]
+    container.stop()
+    container.remove()
 
     df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
 
@@ -105,11 +112,7 @@ if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.mkdir(RESULT_PATH.format(now=now))
 
-    evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
-    evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | ChatOllama(
-        model="gpt-oss-safeguard:20b",
-        temperature=0,
-        reasoning=True,
-    ) | evaluator_parser
+    model = Model("Qwen/Qwen3-0.6B", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8)
+    evaluation_model = Model("openai/gpt-oss-20b", options="--enable-auto-tool-choice --tool-call-parser openai", temperature=0.0, reasoning_effort="high")
 
-    asyncio.run(main(now=now, mode="NATURAL", evaluator=evaluator))
+    asyncio.run(main(now=now, mode="NATURAL", model=model, evaluation_model=evaluation_model))

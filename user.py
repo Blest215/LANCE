@@ -2,6 +2,7 @@ import asyncio
 
 from datetime import datetime
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
@@ -59,16 +60,16 @@ control_device_tool = {
 
 
 class UserAgent(Client):
-    def __init__(self, session, id, configuration):
+    def __init__(self, session, id, model):
         super().__init__(session, id)
         # TODO multi user situation
-        self.configuration = configuration
+        self.configuration = model
         self.current_team_id = None
         self.team_messages = []
         self.wait = set()
         self.logs = []
 
-        brain = ChatOllama(**configuration)
+        brain = ChatOpenAI(**model.to_dict())
         # LANCE
         self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| brain.bind_tools([initiate_task_tool])
         self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | brain.bind_tools([ask_agent_tool])
@@ -163,7 +164,7 @@ class UserAgent(Client):
             await asyncio.sleep(TICK)
 
     async def tool_call(self, result):
-        await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls] if result and hasattr(result, "tool_calls") else [], return_exceptions=True)
+        await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls if hasattr(self, tool_call["name"])] if result and hasattr(result, "tool_calls") else [], return_exceptions=True)
 
     def get_logs(self):
         return "\n".join(self.logs)
