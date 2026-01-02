@@ -6,12 +6,11 @@ from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 
 from datetime import datetime
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
 
+from model import Model
 from utils import *
 from settings import *
 from registry import run_registry_process
@@ -89,21 +88,19 @@ async def main(now, mode, model: Model, evaluation_model: Model):
     df = pd.read_csv(DATASET_PATH)
 
     # Simulation
-    container = await startup_vllm_container(model)
+    model.setup()
     simulation_results = [await simulate(mode, model, row) for row in tqdm(df.itertuples(), total=len(df), desc="Simulation")]
     df["conversation"] = simulation_results
-    container.stop()
-    container.remove()
+    model.wrapup()
 
     # Evaluation
-    container = await startup_vllm_container(evaluation_model)
+    evaluation_model.setup()
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
-    evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | ChatOpenAI(**evaluation_model.to_dict()) | evaluator_parser
+    evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
     evaluation_results = await atqdm.gather(*[evaluate(evaluator, row) for row in df.itertuples()], desc="Evaluation")
     df["score"] = [result.score for result in evaluation_results]
     df["reason"] = [result.reason for result in evaluation_results]
-    container.stop()
-    container.remove()
+    evaluation_model.wrapup()
 
     df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
 
@@ -112,7 +109,7 @@ if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.mkdir(RESULT_PATH.format(now=now))
 
-    model = Model("Qwen/Qwen3-0.6B", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8)
-    evaluation_model = Model("openai/gpt-oss-20b", options="--enable-auto-tool-choice --tool-call-parser openai", temperature=0.0, reasoning_effort="high")
+    model = Model("Qwen/Qwen3-8B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high")
+    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
     asyncio.run(main(now=now, mode="NATURAL", model=model, evaluation_model=evaluation_model))

@@ -1,7 +1,5 @@
 import asyncio
 
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
@@ -43,7 +41,7 @@ class Agent(Client):
         self.device_information = device_information
         self.current_team_id = None
 
-        brain = ChatOpenAI(**model.to_dict())
+        brain = model.instantiate()
 
         # Screener
         screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)

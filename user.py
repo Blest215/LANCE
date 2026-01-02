@@ -1,8 +1,6 @@
 import asyncio
 
 from datetime import datetime
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
@@ -69,7 +67,7 @@ class UserAgent(Client):
         self.wait = set()
         self.logs = []
 
-        brain = ChatOpenAI(**model.to_dict())
+        brain = model.instantiate()
         # LANCE
         self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| brain.bind_tools([initiate_task_tool])
         self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | brain.bind_tools([ask_agent_tool])
