@@ -23,8 +23,8 @@ class EvaluationResult(BaseModel):
     reason: str = Field(description="Reasoning for the score")
 
 
-async def setup_agent(session, user, agent_id, agent_configuration, device_information):
-    p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_information))
+async def setup_agent(mode, session, user, agent_id, agent_configuration, device_information):
+    p = multiprocessing.Process(target=run_agent_process, args=(mode, session, agent_id, agent_configuration, device_information))
     p.start()
     await user.wait_for_client(agent_id)
     return p
@@ -34,18 +34,19 @@ async def simulate(mode, model, scenario):
 
     session = get_random_session()
     user_id = "COORDINATOR"
-    user = UserAgent(session, id=user_id, model=model)
+    user = UserAgent(mode, session, id=user_id, model=model)
     while not user.is_connected():
         await asyncio.sleep(TICK)
 
     # Set the registry
     registry_id = "REGISTRY"
-    registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
+    registry = multiprocessing.Process(target=run_registry_process, args=(mode, session, registry_id))
     registry.start()
     await user.wait_for_client(registry_id)
 
     # Set the device agents
     processes = await asyncio.gather(*[setup_agent(
+        mode=mode,
         session=session,
         user=user,
         agent_id=device_information["deviceId"] if "deviceId" in device_information else get_random_device_id(),
@@ -56,7 +57,7 @@ async def simulate(mode, model, scenario):
     assert not user.wait
 
     # Start a simulation
-    await user.command(mode=mode, user_command=user_command)
+    await user.command(user_command)
     await asyncio.sleep(TIMEOUT_LIMIT)
 
     # Wrap up
@@ -109,7 +110,8 @@ if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.mkdir(RESULT_PATH.format(now=now))
 
-    model = Model("Qwen/Qwen3-8B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high")
+    model = Model("Qwen/Qwen3-0.6B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high")
+    # model = Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8)
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
-    asyncio.run(main(now=now, mode="NATURAL", model=model, evaluation_model=evaluation_model))
+    asyncio.run(main(now=now, mode="CENTRALIZED", model=model, evaluation_model=evaluation_model))

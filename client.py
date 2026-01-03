@@ -9,7 +9,8 @@ from settings import *
 
 
 class Client(ABC):
-    def __init__(self, session, id):
+    def __init__(self, mode, session, id):
+        self.mode = mode
         self.session = session
         self.id = id
         self.requests = {}
@@ -25,10 +26,16 @@ class Client(ABC):
         self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
 
     def on_message(self, client, userdata, message):
-        session, topic, id = message.topic.split("/")
-        assert session == self.session
-        payload = json.loads(message.payload.decode("utf-8"))
-        asyncio.run(self.message_handler(topic, id, payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")))
+        try:
+            session, topic, id = message.topic.split("/")
+            assert session == self.session
+            payload = json.loads(message.payload.decode("utf-8"))
+            sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
+            asyncio.run(self.message_handler(topic, id, sender, message, request_id))
+        except Exception as e:
+            self.log(str(e))
+            if payload.get("request_id", ""):
+                self.response(sender, request_id, str(e))
 
     @abstractmethod
     def connection_handler(self):

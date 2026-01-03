@@ -7,16 +7,17 @@ from docker.types import DeviceRequest
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-from settings import BASE_URL
+from settings import VLLM_URL
 
 class Model:
-    def __init__(self, model, backend="openai", options="", temperature=0.8, reasoning=None):
+    def __init__(self, model, backend="openai", options="", temperature=0.8, reasoning=None, base_url=None):
         assert backend in ["ollama", "openai"]
         self.model = model
         self.backend = backend
         self.options = options
         self.temperature = temperature
         self.reasoning = reasoning
+        self.base_url = base_url
 
     @property
     def name(self):
@@ -27,8 +28,11 @@ class Model:
 
     def instantiate(self):
         if self.backend == "ollama":
-            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning)
-        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=BASE_URL)
+            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None)
+        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL)
+    
+    def with_tools(self, tools: list):
+        return self.instantiate().bind_tools(tools)
 
     def wrapup(self):
         docker_client = docker.from_env()
@@ -51,7 +55,7 @@ class Model:
         container = docker_client.containers.run(
             name=self.name,
             image="vllm/vllm-openai:latest",
-            command=f"{self.model} --max-model-len 4096 {self.options} ",
+            command=f"{self.model} --max-model-len 4096 --gpu_memory_utilization 0.8 {self.options} ",
             ports={"8000/tcp": "8000"},
             environment={"TZ": "Asia/Seoul"},
             device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],

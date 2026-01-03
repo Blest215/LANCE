@@ -10,17 +10,13 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
-from openai import RateLimitError
-from langchain_google_genai import ChatGoogleGenerativeAI
-
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 from typing import Optional, Literal, Annotated
 from pydantic import BaseModel, Field, PlainSerializer
 
+from model import Model
 from settings import DATASET_PATH
 
 def serialize_id(id: UUID) -> str:
@@ -84,14 +80,13 @@ async def main():
     argument_parser.add_argument("--size", type=int, required=True, default=1, help="Number of scenarios to generate")
     args = argument_parser.parse_args()
     
-    llm = ChatOllama(model=args.model, reasoning=True, temperature=1.0)
+    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0)
 
     parser = PydanticOutputParser(pydantic_object=Scenario)
-    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | llm | parser
+    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
 
     # Synthesize dataset
-    scenarios = await tqdm.gather(*[generate_scenario(scenario_generator, {}) for _ in range(args.size)])
-    scenarios = [scenario.model_dump() for scenario in scenarios]
+    scenarios = [scenario.model_dump() for scenario in await tqdm.gather(*[generate_scenario(scenario_generator, {}) for _ in range(args.size)])]
     
     # Save dataset
     df = pd.concat([pd.read_csv(DATASET_PATH), pd.DataFrame(scenarios)], ignore_index=True) if os.path.exists(DATASET_PATH) and not args.reset else pd.DataFrame(scenarios)

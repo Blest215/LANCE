@@ -35,20 +35,18 @@ control_device_tool = {
 
 
 class Agent(Client):
-    def __init__(self, session, id, model, device_information):
-        super().__init__(session, id)
+    def __init__(self, mode, session, id, model, device_information):
+        super().__init__(mode, session, id)
         self.configuration = model
         self.device_information = device_information
         self.current_team_id = None
 
-        brain = model.instantiate()
-
-        # Screener
-        screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
-        self.screener = ChatPromptTemplate([("user", SCREENER_PROMPT)]).partial(format=screener_parser.get_format_instructions()) | brain | screener_parser
-
-        # Controller
-        self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | brain.bind_tools([control_device_tool])
+        if self.mode == "LANCE":
+            screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
+            self.screener = ChatPromptTemplate([("user", SCREENER_PROMPT)]).partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
+            self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([control_device_tool])
+        elif self.mode == "NATURAL":
+            self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([control_device_tool])
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
@@ -77,27 +75,26 @@ class Agent(Client):
     # LANCE methods
 
     async def screening(self, team_id, message):
-        while True:
-            try:
-                screening_result = await self.screener.ainvoke({"message": message, "device_information": self.device_information})
-                if screening_result.score >= SCREENING_THRESHOLD:
-                    self.join_team(team_id)
-                    self.proposal(screening_result.message)
-                return
-            except OutputParserException:
-                continue
+        assert self.mode == "LANCE"
+        screening_result = await self.screener.ainvoke({"message": message, "device_information": self.device_information})
+        if screening_result.score >= SCREENING_THRESHOLD:
+            self.join_team(team_id)
+            self.proposal(screening_result.message)
 
     def join_team(self, team_id):
+        assert self.mode == "LANCE"
         self.current_team_id = team_id
         self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
 
     def proposal(self, message):
+        assert self.mode == "LANCE"
         self.log(message)
         self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     # NATURAL methods
 
     async def controlling(self, sender, request_id, message):
+        assert self.mode == "LANCE" or self.mode == "NATURAL"
         control_result = await self.controller.ainvoke({"message": message, "device_information": self.device_information})
         return await asyncio.gather(*[self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if tool_call["name"] == "control_device"])
     
@@ -109,5 +106,5 @@ class Agent(Client):
         # TODO repair
         return "SUCCESS"
 
-def run_agent_process(session, id, configuration, device_information):
-    Agent(session, id, configuration, device_information).loop_forever()
+def run_agent_process(mode, session, id, model, device_information):
+    Agent(mode, session, id, model, device_information).loop_forever()
