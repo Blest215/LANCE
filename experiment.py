@@ -49,7 +49,7 @@ async def simulate(mode, model, scenario):
         mode=mode,
         session=session,
         user=user,
-        agent_id=device_information["deviceId"] if "deviceId" in device_information else get_random_device_id(),
+        agent_id=device_information["id"] if "id" in device_information else get_random_device_id(),
         agent_configuration=model,
         device_information=device_information
     ) for device_information in eval(device_informations)])        
@@ -90,7 +90,7 @@ async def main(now, mode, model: Model, evaluation_model: Model):
 
     # Simulation
     model.setup()
-    simulation_results = [await simulate(mode, model, row) for row in tqdm(df.itertuples(), total=len(df), desc="Simulation")]
+    simulation_results = await atqdm.gather(*[simulate(mode, model, row) for row in df.itertuples()], desc="Simulation")
     df["conversation"] = simulation_results
     model.wrapup()
 
@@ -114,4 +114,4 @@ if __name__ == "__main__":
     # model = Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8)
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
-    asyncio.run(main(now=now, mode="CENTRALIZED", model=model, evaluation_model=evaluation_model))
+    asyncio.run(main(now=now, mode="LANCE", model=model, evaluation_model=evaluation_model))

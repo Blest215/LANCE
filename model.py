@@ -39,8 +39,7 @@ class Model:
         for container in docker_client.containers.list(all=True):
             if container.name == self.name:
                 container.stop()
-                container.remove()
-                return
+                return container
 
     def setup(self):
         if self.backend == "ollama":
@@ -48,32 +47,32 @@ class Model:
 
         print("Startup vLLM container", end="")
 
-        self.wrapup()
-
         docker_client = docker.from_env()
-        docker_client.volumes.create("models")
-        container = docker_client.containers.run(
-            name=self.name,
-            image="vllm/vllm-openai:latest",
-            command=f"{self.model} --max-model-len 4096 --gpu_memory_utilization 0.8 {self.options} ",
-            ports={"8000/tcp": "8000"},
-            environment={"TZ": "Asia/Seoul"},
-            device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],
-            volumes=["models:/root/.cache/huggingface"],
-            ipc_mode="host",
-            detach=True,
-        )
+        container = self.wrapup()
+        if not container:
+            docker_client.volumes.create("models")
+            container = docker_client.containers.run(
+                name=self.name,
+                image="vllm/vllm-openai:latest",
+                command=f"{self.model} --max-model-len 4096 --gpu-memory-utilization 0.8 {self.options} ",
+                ports={"8000/tcp": "8000"},
+                environment={"TZ": "Asia/Seoul"},
+                device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],
+                volumes=["models:/root/.cache/huggingface"],
+                ipc_mode="host",
+                detach=True,
+            )
+        container.start()
 
         test_brain = self.instantiate()
         while True:
             print(".", end="")
             sys.stdout.flush()
             try:
-                container = docker_client.containers.get(container.id)
                 test_brain.invoke("are you alive?")
                 break
             except Exception:
-                if container.status == "exited":
+                if docker_client.containers.get(container.id).status == "exited":
                     raise Exception
                 time.sleep(1)
         print("complete")
