@@ -78,7 +78,7 @@ class Agent(Client):
     # CENTRALIZED methods
 
     async def control_device(self, sender, request_id, arguments):
-        self.log(f"Control device with arguments {arguments} for request {request_id} from {sender}")
+        self.log(f"Received control request {request_id} with {arguments} from {sender}")
         return self.device.control(**arguments)
 
 def run_agent_process(session, id, model, device_description):

@@ -29,7 +29,7 @@ async def setup_agent(session, user, agent_id, agent_configuration, device_descr
     await user.wait_for_client(agent_id)
     return p
 
-async def simulate(model, mode, scenario):
+async def simulate(model, modes, scenario):
     session = get_random_session()
     user_id = "COORDINATOR"
     user = UserAgent(session, id=user_id, model=model)
@@ -53,16 +53,15 @@ async def simulate(model, mode, scenario):
 
     assert not user.wait
 
-    # Start a simulation
-    await user.command(mode, scenario.user_command)
-    await asyncio.sleep(TIMEOUT_LIMIT)
+    # Start simulations
+    results = [await user.command(mode, scenario.user_command) for mode in modes]
 
     # Wrap up
     registry.terminate()
     for p in processes:
         p.terminate()
     
-    return user.get_logs()
+    return results
 
 
 async def evaluate(evaluator, model, mode, scenario):
@@ -85,9 +84,9 @@ async def main(now, models, modes, evaluation_model: Model):
     # Simulation
     for model in models:
         model.setup()
-        for mode in modes:
-            simulation_results = await atqdm.gather(*[simulate(model, mode, row) for row in df.itertuples()], desc="Simulation")
-            df[get_column_name("conversation", model, mode)] = simulation_results
+        simulation_results = await atqdm.gather(*[simulate(model, modes, row) for row in df.itertuples()], desc="Simulation")
+        for i, mode in enumerate(modes):
+            df[get_column_name("conversation", model, mode)] = [result[i] for result in simulation_results]
         model.wrapup()
 
     df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
@@ -115,7 +114,7 @@ if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.mkdir(RESULT_PATH.format(now=now))
 
-    modes = ["LANCE", "NATURAL"]
+    modes = ["LANCE", "NATURAL", "CENTRALIZED"]
     models = [
         Model("Qwen/Qwen3-0.6B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high"),
         Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8),

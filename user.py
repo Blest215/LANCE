@@ -86,6 +86,12 @@ class UserAgent(Client):
         
         except Exception as e:
             self.log(type(e).__name__)
+        
+        finally:
+            await asyncio.sleep(TIMEOUT_LIMIT)
+            logs = self.logs
+            self.logs = []
+            return "\n".join(logs)
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_ALIVE, "+")
@@ -157,6 +163,3 @@ class UserAgent(Client):
 
     async def tool_call(self, result):
         await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls if hasattr(self, tool_call["name"])] if result and hasattr(result, "tool_calls") else [], return_exceptions=True)
-
-    def get_logs(self):
-        return "\n".join(self.logs)
