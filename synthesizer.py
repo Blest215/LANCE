@@ -129,8 +129,7 @@ async def main():
             df.to_csv(DATASET_PATH, index=False, encoding="utf-8-sig")
             break
         except PermissionError:
-            time.sleep(1)
-            continue
+            await asyncio.sleep(1)
 
 
 if __name__ == "__main__":

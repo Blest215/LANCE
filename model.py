@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 
 import docker
 from docker.types import DeviceRequest
@@ -7,7 +8,7 @@ from docker.types import DeviceRequest
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-from settings import VLLM_URL
+from settings import *
 
 class Model:
     def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None):
@@ -61,9 +62,9 @@ class Model:
             container = docker_client.containers.run(
                 name=self.name,
                 image="vllm/vllm-openai:latest",
-                command=f"{self.model} --max-model-len 4096 --gpu-memory-utilization 0.8 {self.options} ",
+                command=f"{self.model} --max-model-len 8192 --gpu-memory-utilization 0.8 {self.options} ",
                 ports={"8000/tcp": "8000"},
-                environment={"TZ": "Asia/Seoul"},
+                environment={"TZ": "Asia/Seoul", "HF_TOKEN": os.getenv("HF_TOKEN")},
                 device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],
                 volumes=["models:/root/.cache/huggingface"],
                 ipc_mode="host",
@@ -80,6 +81,7 @@ class Model:
                 break
             except Exception:
                 if docker_client.containers.get(container.id).status == "exited":
+                    print("fail")
                     raise Exception
                 time.sleep(1)
         print("complete")
