@@ -17,18 +17,17 @@ class ScreeningResult(BaseModel):
 
 
 class Agent(Client):
-    def __init__(self, mode, session, id, model, device):
-        super().__init__(mode, session, id)
+    def __init__(self, session, id, model, device):
+        super().__init__(session, id)
         self.configuration = model
         self.device = device
         self.current_team_id = None
 
-        if self.mode == "LANCE":
-            screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
-            self.screener = ChatPromptTemplate([("user", SCREENER_PROMPT)]).partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
-            self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([device.get_tool()])
-        elif self.mode == "NATURAL":
-            self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([device.get_tool()])
+        # LANCE
+        screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
+        self.screener = ChatPromptTemplate([("user", SCREENER_PROMPT)]).partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
+        # NATURAL
+        self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([device.get_tool()])
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
@@ -57,26 +56,22 @@ class Agent(Client):
     # LANCE methods
 
     async def screening(self, team_id, message):
-        assert self.mode == "LANCE"
         screening_result = await self.screener.ainvoke({"message": message, "device_description": str(self.device)})
         if screening_result.score >= SCREENING_THRESHOLD:
             self.join_team(team_id)
             self.proposal(screening_result.message)
 
     def join_team(self, team_id):
-        assert self.mode == "LANCE"
         self.current_team_id = team_id
         self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
 
     def proposal(self, message):
-        assert self.mode == "LANCE"
         self.log(message)
         self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     # NATURAL methods
 
     async def controlling(self, sender, request_id, message):
-        assert self.mode == "LANCE" or self.mode == "NATURAL"
         control_result = await self.controller.ainvoke({"message": message, "device_description": str(self.device)})
         return await asyncio.gather(*[self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]])
     
@@ -86,5 +81,5 @@ class Agent(Client):
         self.log(f"Control device with arguments {arguments} for request {request_id} from {sender}")
         return self.device.control(**arguments)
 
-def run_agent_process(mode, session, id, model, device_description):
-    Agent(mode, session, id, model, instantiate_device(device_description)).loop_forever()
+def run_agent_process(session, id, model, device_description):
+    Agent(session, id, model, instantiate_device(device_description)).loop_forever()

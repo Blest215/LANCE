@@ -23,8 +23,8 @@ class EvaluationResult(BaseModel):
     reason: str = Field(description="Reasoning for the score")
 
 
-async def setup_agent(mode, session, user, agent_id, agent_configuration, device_description):
-    p = multiprocessing.Process(target=run_agent_process, args=(mode, session, agent_id, agent_configuration, device_description))
+async def setup_agent(session, user, agent_id, agent_configuration, device_description):
+    p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_description))
     p.start()
     await user.wait_for_client(agent_id)
     return p
@@ -32,19 +32,18 @@ async def setup_agent(mode, session, user, agent_id, agent_configuration, device
 async def simulate(model, mode, scenario):
     session = get_random_session()
     user_id = "COORDINATOR"
-    user = UserAgent(mode, session, id=user_id, model=model)
+    user = UserAgent(session, id=user_id, model=model)
     while not user.is_connected():
         await asyncio.sleep(TICK)
 
     # Set the registry
     registry_id = "REGISTRY"
-    registry = multiprocessing.Process(target=run_registry_process, args=(mode, session, registry_id))
+    registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
     registry.start()
     await user.wait_for_client(registry_id)
 
     # Set the device agents
     processes = await asyncio.gather(*[setup_agent(
-        mode=mode,
         session=session,
         user=user,
         agent_id=get_agent_id(device_description),
@@ -55,7 +54,7 @@ async def simulate(model, mode, scenario):
     assert not user.wait
 
     # Start a simulation
-    await user.command(scenario.user_command)
+    await user.command(mode, scenario.user_command)
     await asyncio.sleep(TIMEOUT_LIMIT)
 
     # Wrap up
@@ -87,7 +86,7 @@ async def main(now, models, modes, evaluation_model: Model):
     for model in models:
         model.setup()
         for mode in modes:
-            simulation_results = await atqdm.gather(*[simulate(mode, model, row) for row in df.itertuples()], desc="Simulation")
+            simulation_results = await atqdm.gather(*[simulate(model, mode, row) for row in df.itertuples()], desc="Simulation")
             df[get_column_name("conversation", model, mode)] = simulation_results
         model.wrapup()
 
@@ -99,7 +98,7 @@ async def main(now, models, modes, evaluation_model: Model):
     evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
     for model in models:
         for mode in modes:
-            evaluation_results = await atqdm.gather(*[evaluate(evaluator, mode, model, row) for row in df.itertuples()], desc="Evaluation")
+            evaluation_results = await atqdm.gather(*[evaluate(evaluator, model, mode, row) for row in df.itertuples()], desc="Evaluation")
             df[get_column_name("score", model, mode)] = [result.score for result in evaluation_results]
             df[get_column_name("reason", model, mode)] = [result.reason for result in evaluation_results]
     evaluation_model.wrapup()
@@ -109,8 +108,7 @@ async def main(now, models, modes, evaluation_model: Model):
             df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
             break
         except PermissionError:
-            asyncio.sleep(1)
-            continue
+            await asyncio.sleep(1)
 
 
 if __name__ == "__main__":

@@ -43,8 +43,8 @@ control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool()]
 
 
 class UserAgent(Client):
-    def __init__(self, mode, session, id, model):
-        super().__init__(mode, session, id)
+    def __init__(self, session, id, model):
+        super().__init__(session, id)
         # TODO multi user situation
         self.configuration = model
         self.current_team_id = None
@@ -52,40 +52,40 @@ class UserAgent(Client):
         self.wait = set()
         self.logs = []
 
-        if self.mode == "LANCE":
-            self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| model.with_tools([initiate_task_tool])
-            self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([ask_agent_tool])
-        elif self.mode == "NATURAL":
-            self.natural = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools([ask_agent_tool])
-        elif self.mode == "CENTRALIZED":
-            self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools(control_device_tools)
+        # LANCE
+        self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| model.with_tools([initiate_task_tool])
+        self.coordinator = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([ask_agent_tool])
+        # NATURAL
+        self.natural = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools([ask_agent_tool])
+        # CENTRALIZED
+        self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools(control_device_tools)
 
         self.client.loop_start()
 
-    async def command(self, user_command):
+    async def command(self, mode, user_command):
         self.log(f"User asked: {user_command}")
         
         try:
             result = None
-            if self.mode == "LANCE":
+            if mode == "LANCE":
                 result = await self.organizer.ainvoke({"user_command": user_command})
             
-            elif self.mode == "NATURAL":
+            elif mode == "NATURAL":
                 result = await self.natural.ainvoke({"user_command": user_command, "device_descriptions": await self.discovery()})
 
-            elif self.mode == "CENTRALIZED":
+            elif mode == "CENTRALIZED":
                 result = await self.centralized.ainvoke({"user_command": user_command, "device_descriptions": await self.discovery()})
             
-            elif self.mode == "CLOUD":
+            elif mode == "CLOUD":
                 pass
             
-            elif self.mode == "ONTOLOGY":
+            elif mode == "ONTOLOGY":
                 pass
 
             await self.tool_call(result)
         
         except Exception as e:
-            self.log(str(e))
+            self.log(type(e).__name__)
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_ALIVE, "+")

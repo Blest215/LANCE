@@ -9,8 +9,7 @@ from settings import *
 
 
 class Client(ABC):
-    def __init__(self, mode, session, id):
-        self.mode = mode
+    def __init__(self, session, id):
         self.session = session
         self.id = id
         self.requests = {}
