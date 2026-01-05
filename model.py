@@ -10,8 +10,8 @@ from langchain_openai import ChatOpenAI
 from settings import VLLM_URL
 
 class Model:
-    def __init__(self, model, backend="openai", options="", temperature=0.8, reasoning=None, base_url=None):
-        assert backend in ["ollama", "openai"]
+    def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None):
+        assert backend in ["ollama", "vllm"]
         self.model = model
         self.backend = backend
         self.options = options

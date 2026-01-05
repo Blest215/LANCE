@@ -1,7 +1,6 @@
 import uuid
 import secrets
-import requests
-import os
+import asyncio
 
 from settings import *
 
@@ -34,4 +33,18 @@ def get_agent_id(device_description):
     return get_random_device_id()
 
 def get_column_name(name, model, mode):
-    return f"{name}_{model}_{mode}".replace("-", "_").replace(".", "_")
+    return f"{name}_{model}_{mode}".replace("-", "_").replace(".", "_").replace(":", "_")
+
+async def save_results(df, now, ensure=False):
+    while True:
+        try:
+            df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
+            break
+        except PermissionError:
+            if ensure:
+                await asyncio.sleep(1)
+            else:
+                break
+
+def batch_dataframe(df, batch_size):
+    return [df.iloc[i * batch_size:(i + 1) * batch_size] for i in range(len(df) // batch_size + (1 if len(df) % batch_size else 0))]

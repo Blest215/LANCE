@@ -76,9 +76,6 @@ class UserAgent(Client):
             elif mode == "CENTRALIZED":
                 result = await self.centralized.ainvoke({"user_command": user_command, "device_descriptions": await self.discovery()})
             
-            elif mode == "CLOUD":
-                pass
-            
             elif mode == "ONTOLOGY":
                 pass
 
