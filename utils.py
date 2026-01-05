@@ -23,19 +23,12 @@ def get_random_session():
     return secrets.token_hex(16)
 
 def check_topic(formatted, unformatted):
-    return formatted == unformatted.split("/")[0]
+    return formatted == unformatted.split("/")[0]    
 
-def smartthings_request(id, args):
-    try:
-        return requests.post(
-            f"{SMARTTHINGS_API_URL}/{id}/commands", 
-            headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
-            json={
-                "commands": [
-                    {"component": "main", "capability": args["capability"], "command": args["command"], "arguments": args.get("arguments", [])}
-                ]
-            }
-        ).json()
-    except requests.exceptions.JSONDecodeError as e:
-        # TODO
-        return {}
+def get_agent_id(device_description):
+    if isinstance(device_description, dict):
+        if "id" in device_description:
+            return device_description["id"]
+        if "deviceId" in device_description:
+            return device_description["deviceId"]
+    return get_random_device_id()

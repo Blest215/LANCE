@@ -60,8 +60,8 @@ You are an AI assistant that controls devices to accomplish a user's task.
 [User Command]
 {user_command}
 
-[Device Informations]
-{device_informations}
+[Device Descriptions]
+{device_descriptions}
 """
 
 # LANCE agents
@@ -69,8 +69,8 @@ You are an AI assistant that controls devices to accomplish a user's task.
 SCREENER_PROMPT = """
 You are an AI assistant that controls the following device.
 
-[Device Information]
-{device_information}
+[Device Description]
+{device_description}
 
 Judge how well you can contribute to the given task.
 
@@ -84,8 +84,8 @@ Judge how well you can contribute to the given task.
 CONTROLLER_PROMPT = """
 You are an AI assistant that controls the following device.
 
-[Device Information]
-{device_information}
+[Device Description]
+{device_description}
 
 Control the device based on the given message.
 
@@ -101,8 +101,8 @@ Evaluate the behavior of the agents in the conversation whether the user's task 
 [Time]
 {time}
 
-[Device Informations]
-{device_informations}
+[Device Descriptions]
+{device_descriptions}
 
 [User Command]
 {user_command}

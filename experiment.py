@@ -23,14 +23,14 @@ class EvaluationResult(BaseModel):
     reason: str = Field(description="Reasoning for the score")
 
 
-async def setup_agent(mode, session, user, agent_id, agent_configuration, device_information):
-    p = multiprocessing.Process(target=run_agent_process, args=(mode, session, agent_id, agent_configuration, device_information))
+async def setup_agent(mode, session, user, agent_id, agent_configuration, device_description):
+    p = multiprocessing.Process(target=run_agent_process, args=(mode, session, agent_id, agent_configuration, device_description))
     p.start()
     await user.wait_for_client(agent_id)
     return p
 
 async def simulate(mode, model, scenario):
-    _, time, device_informations, user_command, evaluation_criteria = scenario
+    _, time, device_descriptions, user_command, evaluation_criteria = scenario
 
     session = get_random_session()
     user_id = "COORDINATOR"
@@ -49,10 +49,10 @@ async def simulate(mode, model, scenario):
         mode=mode,
         session=session,
         user=user,
-        agent_id=device_information["id"] if "id" in device_information else get_random_device_id(),
+        agent_id=get_agent_id(device_description),
         agent_configuration=model,
-        device_information=device_information
-    ) for device_information in eval(device_informations)])        
+        device_description=device_description
+    ) for device_description in eval(device_descriptions)])        
 
     assert not user.wait
 
@@ -69,12 +69,12 @@ async def simulate(mode, model, scenario):
 
 
 async def evaluate(evaluator, scenario):
-    _, time, device_informations, user_command, evaluation_criteria, conversation = scenario
+    _, time, device_descriptions, user_command, evaluation_criteria, conversation = scenario
     while True:
         try:
             return await evaluator.ainvoke({
                 "time": time,
-                "device_informations": device_informations,
+                "device_descriptions": device_descriptions,
                 "user_command": user_command,
                 "evaluation_criteria": evaluation_criteria,
                 "conversation": conversation,
@@ -114,4 +114,4 @@ if __name__ == "__main__":
     # model = Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8)
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
-    asyncio.run(main(now=now, mode="LANCE", model=model, evaluation_model=evaluation_model))
+    asyncio.run(main(now=now, mode="CENTRALIZED", model=model, evaluation_model=evaluation_model))

@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from settings import *
 from utils import *
 from client import Client
+from device import W3CDevice, SmartThingsDevice
 
 initiate_task_tool = {
     'type': 'function',
@@ -38,23 +39,7 @@ ask_agent_tool = {
     },
 }
 
-control_device_tool = {
-    'type': 'function',
-    'function': {
-        'name': 'control_device',
-        'description': 'control a device specified by the agent id',
-        'parameters': {
-            'type': 'object',
-            'required': ['agent_id', 'capability', 'command'],
-            'properties': {
-                'agent_id': {'type': 'string', 'description': 'the ID of the agent associated with the device to control'},
-                'capability': {'type': 'string', 'description': 'the capability of the device to control'},
-                'command': {'type': 'string', 'description': 'the command for the action'},
-                'arguments': {'type': 'list', 'description': 'the arguments for the command'},
-            }
-        }
-    }
-}
+control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool()]
 
 
 class UserAgent(Client):
@@ -73,7 +58,7 @@ class UserAgent(Client):
         elif self.mode == "NATURAL":
             self.natural = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools([ask_agent_tool])
         elif self.mode == "CENTRALIZED":
-            self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools([control_device_tool])
+            self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools(control_device_tools)
 
         self.client.loop_start()
 
@@ -86,10 +71,10 @@ class UserAgent(Client):
                 result = await self.organizer.ainvoke({"user_command": user_command})
             
             elif self.mode == "NATURAL":
-                result = await self.natural.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
+                result = await self.natural.ainvoke({"user_command": user_command, "device_descriptions": await self.discovery()})
 
             elif self.mode == "CENTRALIZED":
-                result = await self.centralized.ainvoke({"user_command": user_command, "device_informations": await self.discovery()})
+                result = await self.centralized.ainvoke({"user_command": user_command, "device_descriptions": await self.discovery()})
             
             elif self.mode == "CLOUD":
                 pass
@@ -153,8 +138,8 @@ class UserAgent(Client):
     async def discovery(self):
         return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
-    async def control_device(self, agent_id, capability, command, arguments={}):
-        return await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, {"capability": capability, "command": command, "arguments": arguments})
+    async def control_device(self, agent_id, **kwargs):
+        return await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, kwargs)
     
     # etc
 

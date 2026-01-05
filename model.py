@@ -34,12 +34,16 @@ class Model:
     def with_tools(self, tools: list):
         return self.instantiate().bind_tools(tools)
 
-    def wrapup(self):
+    def get_container(self):
         docker_client = docker.from_env()
         for container in docker_client.containers.list(all=True):
             if container.name == self.name:
-                container.stop()
                 return container
+
+    def wrapup(self):
+        container = self.get_container()
+        if container:
+            container.stop()
 
     def setup(self):
         if self.backend == "ollama":
@@ -48,7 +52,7 @@ class Model:
         print("Startup vLLM container", end="")
 
         docker_client = docker.from_env()
-        container = self.wrapup()
+        container = self.get_container()
         if not container:
             docker_client.volumes.create("models")
             container = docker_client.containers.run(
