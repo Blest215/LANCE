@@ -60,8 +60,8 @@ class W3CDevice(Device):
         return {
             'type': 'function',
             'function': {
-                'name': 'control_device',
-                'description': 'control the associated device',
+                'name': 'control_device_w3c',
+                'description': 'control the associated W3C WoT device',
                 'parameters': {
                     'type': 'object',
                     'required': ['agent_id', 'action'],
@@ -105,8 +105,8 @@ class SmartThingsDevice(Device):
         return {
             'type': 'function',
             'function': {
-                'name': 'control_device',
-                'description': 'control the associated device',
+                'name': 'control_device_smartthings',
+                'description': 'control the associated smartthings device',
                 'parameters': {
                     'type': 'object',
                     'required': ['agent_id', 'capability', 'command'],

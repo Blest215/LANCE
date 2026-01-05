@@ -57,6 +57,9 @@ You are an AI assistant that organizes other agents to accomplish a user's task.
 MASTERMIND_PROMPT = """
 You are an AI assistant that controls devices to accomplish a user's task.
 
+[Rules]
+- You MUST select the appropriate tool to control a device, according to the description format.
+
 [User Command]
 {user_command}
 

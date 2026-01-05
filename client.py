@@ -33,9 +33,9 @@ class Client(ABC):
             sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
             asyncio.run(self.message_handler(topic, id, sender, message, request_id))
         except Exception as e:
-            self.log(str(e))
+            self.log(type(e).__name__)
             if payload.get("request_id", ""):
-                self.response(sender, request_id, str(e))
+                self.response(sender, request_id, type(e).__name__)
 
     @abstractmethod
     def connection_handler(self):

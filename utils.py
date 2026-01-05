@@ -32,3 +32,6 @@ def get_agent_id(device_description):
         if "deviceId" in device_description:
             return device_description["deviceId"]
     return get_random_device_id()
+
+def get_column_name(name, model, mode):
+    return f"{name}_{model}_{mode}".replace("-", "_").replace(".", "_")

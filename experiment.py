@@ -29,9 +29,7 @@ async def setup_agent(mode, session, user, agent_id, agent_configuration, device
     await user.wait_for_client(agent_id)
     return p
 
-async def simulate(mode, model, scenario):
-    _, time, device_descriptions, user_command, evaluation_criteria = scenario
-
+async def simulate(model, mode, scenario):
     session = get_random_session()
     user_id = "COORDINATOR"
     user = UserAgent(mode, session, id=user_id, model=model)
@@ -52,12 +50,12 @@ async def simulate(mode, model, scenario):
         agent_id=get_agent_id(device_description),
         agent_configuration=model,
         device_description=device_description
-    ) for device_description in eval(device_descriptions)])        
+    ) for device_description in eval(scenario.device_descriptions)])        
 
     assert not user.wait
 
     # Start a simulation
-    await user.command(user_command)
+    await user.command(scenario.user_command)
     await asyncio.sleep(TIMEOUT_LIMIT)
 
     # Wrap up
@@ -68,50 +66,62 @@ async def simulate(mode, model, scenario):
     return user.get_logs()
 
 
-async def evaluate(evaluator, scenario):
-    _, time, device_descriptions, user_command, evaluation_criteria, conversation = scenario
+async def evaluate(evaluator, model, mode, scenario):
     while True:
         try:
             return await evaluator.ainvoke({
-                "time": time,
-                "device_descriptions": device_descriptions,
-                "user_command": user_command,
-                "evaluation_criteria": evaluation_criteria,
-                "conversation": conversation,
+                "time": scenario.time,
+                "device_descriptions": scenario.device_descriptions,
+                "user_command": scenario.user_command,
+                "evaluation_criteria": scenario.evaluation_criteria,
+                "conversation": getattr(scenario, get_column_name("conversation", model, mode)),
             })
         except OutputParserException:
             continue
 
 
-async def main(now, mode, model: Model, evaluation_model: Model):
-    assert mode in ALLOWED_MODES
-
+async def main(now, models, modes, evaluation_model: Model):
     df = pd.read_csv(DATASET_PATH)
 
     # Simulation
-    model.setup()
-    simulation_results = await atqdm.gather(*[simulate(mode, model, row) for row in df.itertuples()], desc="Simulation")
-    df["conversation"] = simulation_results
-    model.wrapup()
+    for model in models:
+        model.setup()
+        for mode in modes:
+            simulation_results = await atqdm.gather(*[simulate(mode, model, row) for row in df.itertuples()], desc="Simulation")
+            df[get_column_name("conversation", model, mode)] = simulation_results
+        model.wrapup()
+
+    df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
 
     # Evaluation
     evaluation_model.setup()
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
     evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
-    evaluation_results = await atqdm.gather(*[evaluate(evaluator, row) for row in df.itertuples()], desc="Evaluation")
-    df["score"] = [result.score for result in evaluation_results]
-    df["reason"] = [result.reason for result in evaluation_results]
+    for model in models:
+        for mode in modes:
+            evaluation_results = await atqdm.gather(*[evaluate(evaluator, mode, model, row) for row in df.itertuples()], desc="Evaluation")
+            df[get_column_name("score", model, mode)] = [result.score for result in evaluation_results]
+            df[get_column_name("reason", model, mode)] = [result.reason for result in evaluation_results]
     evaluation_model.wrapup()
 
-    df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
+    while True:
+        try:
+            df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
+            break
+        except PermissionError:
+            asyncio.sleep(1)
+            continue
 
 
 if __name__ == "__main__":
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.mkdir(RESULT_PATH.format(now=now))
 
-    model = Model("Qwen/Qwen3-0.6B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high")
-    # model = Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8)
+    modes = ["LANCE", "NATURAL"]
+    models = [
+        Model("Qwen/Qwen3-0.6B", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.8, reasoning="high"),
+        Model("ibm-granite/granite-4.0-350m", backend="openai", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.8),
+    ]
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
-    asyncio.run(main(now=now, mode="CENTRALIZED", model=model, evaluation_model=evaluation_model))
+    asyncio.run(main(now=now, models=models, modes=modes, evaluation_model=evaluation_model))

@@ -19,6 +19,9 @@ class Model:
         self.reasoning = reasoning
         self.base_url = base_url
 
+    def __str__(self):
+        return self.name
+
     @property
     def name(self):
         return self.model.split("/")[-1]
@@ -49,7 +52,7 @@ class Model:
         if self.backend == "ollama":
             return
 
-        print("Startup vLLM container", end="")
+        print(f"Startup vLLM container for {self.name}", end="")
 
         docker_client = docker.from_env()
         container = self.get_container()

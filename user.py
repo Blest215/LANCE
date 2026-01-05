@@ -141,6 +141,12 @@ class UserAgent(Client):
     async def control_device(self, agent_id, **kwargs):
         return await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, kwargs)
     
+    async def control_device_w3c(self, agent_id, **kwargs):
+        return await self.control_device(agent_id, **kwargs)
+    
+    async def control_device_smartthings(self, agent_id, **kwargs):
+        return await self.control_device(agent_id, **kwargs)
+    
     # etc
 
     async def wait_for_client(self, client_id):

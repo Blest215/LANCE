@@ -78,7 +78,7 @@ class Agent(Client):
     async def controlling(self, sender, request_id, message):
         assert self.mode == "LANCE" or self.mode == "NATURAL"
         control_result = await self.controller.ainvoke({"message": message, "device_description": str(self.device)})
-        return await asyncio.gather(*[self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if tool_call["name"] == "control_device"])
+        return await asyncio.gather(*[self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]])
     
     # CENTRALIZED methods
 

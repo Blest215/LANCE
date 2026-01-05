@@ -81,7 +81,7 @@ class STDevice(BaseModel):
 
 class Scenario(BaseModel):
     time: datetime = Field(description="Timestamp of the scenario.")
-    device_descriptions: List[TDDevice | STDevice] = Field(description="Device descriptions in the space.")
+    device_descriptions: List[TDDevice | STDevice] = Field(description="Device descriptions in the space.", min_length=1)
     user_command: str = Field(description="Natural language command showing user intent.")
     evaluation_criteria: str = Field(description="Simple criteria to evaluate the AI agent's reaction upon user's command according to the context.")
 
