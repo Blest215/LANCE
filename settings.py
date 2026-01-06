@@ -6,15 +6,22 @@ load_dotenv()
 VLLM_URL = "http://localhost:8000/v1"
 
 DATASET_PATH = "dataset/dataset_synthetic.csv"
+SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{now}"
 
 SIMULATION_BATCH_SIZE = 10
 EVALUATION_BATCH_SIZE = 20
-SCREENING_THRESHOLD = 0.3
+SYNTHESIZE_BATCH_SIZE = 5
 TIMEOUT_LIMIT = 5
 TICK = 0.01
 
 ALLOWED_MODES = ["LANCE", "NATURAL", "CENTRALIZED", "ONTOLOGY"]
+
+# LANCE
+
+SCREENING_THRESHOLD = 0.3
+
+# MQTT
 
 MQTT_BROKER_ADDRESS = "localhost"
 MQTT_TOPIC_LOG = "log"

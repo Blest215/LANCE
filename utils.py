@@ -35,10 +35,10 @@ def get_agent_id(device_description):
 def get_column_name(name, model, mode):
     return f"{name}_{model}_{mode}".replace("-", "_").replace(".", "_").replace(":", "_")
 
-async def save_results(df, now, ensure=False):
+async def save_dataframe(df, path, ensure=False):
     while True:
         try:
-            df.to_csv(f"{RESULT_PATH.format(now=now)}/result.csv", index=False, encoding="utf-8-sig")
+            df.to_csv(path, index=False, encoding="utf-8-sig")
             break
         except PermissionError:
             if ensure:

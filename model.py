@@ -49,9 +49,9 @@ class Model:
         if container:
             container.stop()
 
-    def setup(self):
+    def setup(self) -> bool:
         if self.backend == "ollama":
-            return
+            return True
 
         print(f"Startup vLLM container for {self.name}", end="")
 
@@ -62,7 +62,7 @@ class Model:
             container = docker_client.containers.run(
                 name=self.name,
                 image="vllm/vllm-openai:latest",
-                command=f"{self.model} --max-model-len 8192 --gpu-memory-utilization 0.8 {self.options} ",
+                command=f"{self.model} --max-model-len 4096 --gpu-memory-utilization 0.9 {self.options} ",
                 ports={"8000/tcp": "8000"},
                 environment={"TZ": "Asia/Seoul", "HF_TOKEN": os.getenv("HF_TOKEN")},
                 device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],
@@ -82,6 +82,7 @@ class Model:
             except Exception:
                 if docker_client.containers.get(container.id).status == "exited":
                     print("fail")
-                    raise Exception
+                    return False
                 time.sleep(1)
         print("complete")
+        return True

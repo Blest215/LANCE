@@ -18,7 +18,8 @@ from pydantic import BaseModel, Field, PlainSerializer
 from typing import List, Dict, Any, Optional
 
 from model import Model
-from settings import DATASET_PATH
+from settings import *
+from utils import *
 
 def serialize_id(id: UUID) -> str:
     return str(id)
@@ -81,56 +82,76 @@ class STDevice(BaseModel):
 
 class Scenario(BaseModel):
     time: datetime = Field(description="Timestamp of the scenario.")
-    device_descriptions: List[TDDevice | STDevice] = Field(description="Device descriptions in the space.", min_length=1)
-    user_command: str = Field(description="Natural language command showing user intent.")
+    device_descriptions: List[TDDevice | STDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
+    user_command: str = Field(description="The command the user gives to the AI agent.")
     evaluation_criteria: str = Field(description="Simple criteria to evaluate the AI agent's reaction upon user's command according to the context.")
 
 GENERATOR_PROMPT = """
 You are a system designer creating realistic scenarios to test AI agents that control smart devices.
-Generate a random and realistic scenario to test the behavior of AI agents.
+The given answers are from the survey of "Use Cases of AI Assistants to Control Smart Home or IoT Devices."
+Convert the given survey answers into a random and realistic scenario to test the behavior of AI agents.
 
 [Rules]
-- The device_descriptions MUST reflect realistic home settings containing heterogeneous devices.
-- The user_command MUST be in fluent natural language.
-- The user_command MAY not be specific enough and contains indirect needs.
+- You MUST not reveal the private information.
+- The device_descriptions MUST include the devices in the answer.
+- The device_descriptions MAY include additional devices to reflect realistic home settings containing heterogeneous devices.
+- The user_command MUST be in fluent and short natural language.
+- The user_command MAY not be specific enough and MAY contain indirect needs.
+- The user_command MAY include multiple concatenated commands specified in the answer, not necessarily.
+- The evaluation_criteria MUST reflect the expected behavior in the answer.
+- The evaluation_criteria MUST not include inaccurate details not specified in the answer.
+
+[Where were you?]
+{space}
+
+[What devices were in the space? (Select all that apply.)]
+{devices}
+
+[Which AI assistant did you used to control smart devices?]
+{assistant}
+
+[What did you command the AI assistant?]
+{user_command}
+
+[What behavior did you expect from the AI assistant and devices?]
+{expected_behavior}    
 
 [Format]
 {format}
 """
 
-async def generate_scenario(generator, input):
+async def generate_scenario(generator, answer):
     while True:
         try:
-            return await generator.ainvoke(input)
+            scenario = await generator.ainvoke(answer._asdict())
+            return scenario.model_dump(exclude_none=True)
         except OutputParserException:
             continue
         except Exception as e:
             break
 
-async def main():
+async def main(model: Model, iterate: int, reset: bool):
+    parser = PydanticOutputParser(pydantic_object=Scenario)
+    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
+
+    # Load survey results
+    survey_df = pd.read_csv(SURVEY_PATH)
+
+    # Synthesize dataset
+    scenarios = pd.DataFrame(sum([await asyncio.gather(*[generate_scenario(scenario_generator, answer) for answer in batch.itertuples(index=False)]) for batch in tqdm(batch_dataframe(survey_df, SYNTHESIZE_BATCH_SIZE))], []))
+
+    # Save dataset
+    df = pd.concat([pd.read_csv(DATASET_PATH), scenarios], ignore_index=True) if os.path.exists(DATASET_PATH) and not reset else scenarios
+    await save_dataframe(df, DATASET_PATH, ensure=True)
+
+
+if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--reset", action="store_true")
     argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss-safeguard:20b", help="LLM to use")
-    argument_parser.add_argument("--size", type=int, required=True, help="Number of scenarios to generate")
+    argument_parser.add_argument("--iterate", type=int, required=False, default=1, help="Number of iterations over the survey result")
     args = argument_parser.parse_args()
     
     model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0)
 
-    parser = PydanticOutputParser(pydantic_object=Scenario)
-    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
-
-    # Synthesize dataset
-    scenarios = [scenario.model_dump(exclude_none=True) for scenario in await tqdm.gather(*[generate_scenario(scenario_generator, {}) for _ in range(args.size)])]
-    
-    # Save dataset
-    df = pd.concat([pd.read_csv(DATASET_PATH), pd.DataFrame(scenarios)], ignore_index=True) if os.path.exists(DATASET_PATH) and not args.reset else pd.DataFrame(scenarios)
-    while True:
-        try:
-            df.to_csv(DATASET_PATH, index=False, encoding="utf-8-sig")
-            break
-        except PermissionError:
-            await asyncio.sleep(1)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(model=model, iterate=args.iterate, reset=args.reset))
