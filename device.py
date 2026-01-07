@@ -42,6 +42,13 @@ class Device(ABC):
         pass
 
 
+def instantiate_device(description) -> Device:
+    try:
+        return getattr(sys.modules[__name__], f"{description['format']}Device")(description)
+    except:
+        return
+
+
 class W3CDevice(Device):
     def request(self, **kwargs):
         return
@@ -119,10 +126,3 @@ class SmartThingsDevice(Device):
                 },
             },
         }
-    
-
-def instantiate_device(description) -> Device:
-    try:
-        return getattr(sys.modules[__name__], f"{description['format']}Device")(description)
-    except:
-        return

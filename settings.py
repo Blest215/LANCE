@@ -2,6 +2,7 @@ import uuid
 import secrets
 import asyncio
 import re
+import os
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -16,11 +17,17 @@ RESULT_PATH = "results/{now}"
 
 SIMULATION_BATCH_SIZE = 10
 EVALUATION_BATCH_SIZE = 20
-SYNTHESIZE_BATCH_SIZE = 5
+SYNTHESIZE_BATCH_SIZE = 1
 TIMEOUT_LIMIT = 5
 TICK = 0.01
 
 ALLOWED_MODES = ["LANCE", "NATURAL", "CENTRALIZED", "ONTOLOGY"]
+
+# LLM
+
+MAX_OUTPUT_TOKENS = 1024
+MAX_MODEL_LEN = 4096
+GPU_MEMORY_UTILIZATION = 0.9
 
 # LANCE
 
@@ -180,8 +187,12 @@ def parse_column(df, value=""):
     matches = []
     for column in df.columns.tolist():
         match = re.match(pattern, column)
-        if match:
-            groupdict = match.groupdict()
-            if value in groupdict["value"]:
-                matches.append(groupdict)
+        if match and value in match.group():
+            matches.append(match.group())
     return matches
+
+def get_last_result():
+    for now in reversed(os.listdir(RESULT_PATH.split("/")[0])):
+        if os.path.exists(f"{RESULT_PATH.format(now=now)}/result.csv"):
+            return now
+    return ""

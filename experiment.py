@@ -65,23 +65,23 @@ async def simulate_scenario(model, modes, scenario):
 
 async def simulation(now, models, modes):
     result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
-    if os.path.exists(result_path):
-        return
-    
-    df = pd.read_csv(DATASET_PATH)
+    df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(DATASET_PATH)
     batches = batch_dataframe(df, SIMULATION_BATCH_SIZE)
+
+    done_conversation_columns = [column for column in parse_column(df, "conversation")]
     for model in models:
-        if not model.setup():
+        undone_modes = [mode for mode in modes if get_column_name("conversation", model, mode) not in done_conversation_columns]
+        if not undone_modes or not model.setup():
             continue
-        simulation_results = sum([await asyncio.gather(*[simulate_scenario(model, modes, scenario) for scenario in batch.itertuples()]) for batch in tqdm(batches, desc="Simulation")], [])
-        for i, mode in enumerate(modes):
+        simulation_results = sum([await asyncio.gather(*[simulate_scenario(model, undone_modes, scenario) for scenario in batch.itertuples()]) for batch in tqdm(batches, desc=f"Simulation {str(model):30}")], [])
+        for i, mode in enumerate(undone_modes):
             df[get_column_name("conversation", model, mode)] = [result[i] for result in simulation_results]
         model.wrapup()
         await save_dataframe(df, path=result_path)
     await save_dataframe(df, path=result_path, ensure=True)
 
 
-async def evaluate_scenario(evaluator, model, mode, scenario):
+async def evaluate_scenario(evaluator, column_name, scenario):
     while True:
         try:
             return await evaluator.ainvoke({
@@ -89,25 +89,29 @@ async def evaluate_scenario(evaluator, model, mode, scenario):
                 "device_descriptions": scenario.device_descriptions,
                 "user_command": scenario.user_command,
                 "evaluation_criteria": scenario.evaluation_criteria,
-                "conversation": getattr(scenario, get_column_name("conversation", model, mode)),
+                "conversation": getattr(scenario, column_name),
             })
         except OutputParserException:
             continue
 
-async def evaluation(now, models, modes, evaluation_model):
+async def evaluation(now, evaluation_model):
     result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
     if not os.path.exists(result_path):
         return
-    
+
     df = pd.read_csv(result_path)
     batches = batch_dataframe(df, EVALUATION_BATCH_SIZE)
     evaluation_model.setup()
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
     evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
-    for model, mode in tqdm(list(itertools.product(models, modes)), desc="Evaluation"):
-        evaluation_results = sum([await asyncio.gather(*[evaluate_scenario(evaluator, model, mode, scenario) for scenario in batch.itertuples()]) for batch in batches], [])
-        df[get_column_name("score", model, mode)] = [result.score for result in evaluation_results]
-        df[get_column_name("reason", model, mode)] = [result.reason for result in evaluation_results]
+    
+    scored_columns = parse_column(df, "score")
+    unscored_columns = [column for column in parse_column(df, "conversation") if column.replace("conversation", "score") not in scored_columns]
+    for unscored_column in tqdm(unscored_columns, desc="Evaluation"):
+        evaluation_results = sum([await asyncio.gather(*[evaluate_scenario(evaluator, unscored_column, scenario) for scenario in batch.itertuples()]) for batch in batches], [])
+        df[unscored_column.replace("conversation", "score")] = [result.score for result in evaluation_results]
+        df[unscored_column.replace("conversation", "reason")] = [result.reason for result in evaluation_results]
+        await save_dataframe(df, path=result_path)
     evaluation_model.wrapup()
 
     await save_dataframe(df, path=result_path, ensure=True)
@@ -115,24 +119,30 @@ async def evaluation(now, models, modes, evaluation_model):
 
 async def main(now, models: list[Model], modes: list[str], evaluation_model: Model):
     await simulation(now, models, modes)
-    await evaluation(now, models, modes, evaluation_model)    
+    await evaluation(now, evaluation_model)    
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--resume", action="store_true")
     argument_parser.add_argument("--now", type=str, required=False, default="")
     args = argument_parser.parse_args()
 
-    now = args.now if args.now else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    # Remove empty results
+    for result_code in os.listdir(RESULT_PATH.split("/")[0]):
+        if not os.listdir(RESULT_PATH.format(now=result_code)):
+            os.rmdir(RESULT_PATH.format(now=result_code))
+
+    # Get experiment code
+    now = args.now if args.now else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     if not os.path.exists(RESULT_PATH.format(now=now)):
         os.mkdir(RESULT_PATH.format(now=now))
-    now = "2026-01-06-19-38-54"
 
     temperature = 0.8
 
     modes = ["CENTRALIZED", "NATURAL", "LANCE"]
     models = [
         Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
-        Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
@@ -143,6 +153,6 @@ if __name__ == "__main__":
         Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
         # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
     ]
-    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True, num_predict=4096)
+    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
     asyncio.run(main(now=now, models=models, modes=modes, evaluation_model=evaluation_model))

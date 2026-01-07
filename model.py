@@ -33,8 +33,8 @@ class Model:
 
     def instantiate(self):
         if self.backend == "ollama":
-            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, **self.kwargs)
-        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, **self.kwargs)
+            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=MAX_OUTPUT_TOKENS, **self.kwargs)
+        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=MAX_OUTPUT_TOKENS, **self.kwargs)
     
     def with_tools(self, tools: list):
         return self.instantiate().bind_tools(tools)
@@ -63,7 +63,7 @@ class Model:
             container = docker_client.containers.run(
                 name=self.name,
                 image="vllm/vllm-openai:latest",
-                command=f"{self.model} --max-model-len 4096 --gpu-memory-utilization 0.9 {self.options} ",
+                command=f"{self.model} --max-model-len {MAX_MODEL_LEN} --gpu-memory-utilization {GPU_MEMORY_UTILIZATION} {self.options} ",
                 ports={"8000/tcp": "8000"},
                 environment={"TZ": "Asia/Seoul", "HF_TOKEN": os.getenv("HF_TOKEN")},
                 device_requests=[DeviceRequest(device_ids=["all"], capabilities=[["gpu"]])],
