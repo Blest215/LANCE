@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from settings import *
 
 class Model:
-    def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None):
+    def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None, **kwargs):
         assert backend in ["ollama", "vllm"]
         self.model = model
         self.backend = backend
@@ -19,6 +19,7 @@ class Model:
         self.temperature = temperature
         self.reasoning = reasoning
         self.base_url = base_url
+        self.kwargs = kwargs
 
     def __str__(self):
         return self.name
@@ -32,8 +33,8 @@ class Model:
 
     def instantiate(self):
         if self.backend == "ollama":
-            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None)
-        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL)
+            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, **self.kwargs)
+        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, **self.kwargs)
     
     def with_tools(self, tools: list):
         return self.instantiate().bind_tools(tools)

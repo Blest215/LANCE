@@ -4,7 +4,6 @@ import paho.mqtt.client as mqtt
 
 from abc import ABC, abstractmethod
 
-from utils import *
 from settings import *
 
 

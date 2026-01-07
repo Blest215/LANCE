@@ -19,7 +19,6 @@ from typing import List, Dict, Any, Optional
 
 from model import Model
 from settings import *
-from utils import *
 
 def serialize_id(id: UUID) -> str:
     return str(id)
@@ -127,8 +126,6 @@ async def generate_scenario(generator, answer):
             return scenario.model_dump(exclude_none=True)
         except OutputParserException:
             continue
-        except Exception as e:
-            break
 
 async def main(model: Model, iterate: int, reset: bool):
     parser = PydanticOutputParser(pydantic_object=Scenario)
@@ -136,6 +133,8 @@ async def main(model: Model, iterate: int, reset: bool):
 
     # Load survey results
     survey_df = pd.read_csv(SURVEY_PATH)
+    survey_df = survey_df.loc[survey_df.index.repeat(iterate)]
+    survey_df = survey_df.reset_index(drop=True)
 
     # Synthesize dataset
     scenarios = pd.DataFrame(sum([await asyncio.gather(*[generate_scenario(scenario_generator, answer) for answer in batch.itertuples(index=False)]) for batch in tqdm(batch_dataframe(survey_df, SYNTHESIZE_BATCH_SIZE))], []))

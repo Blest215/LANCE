@@ -1,4 +1,3 @@
-from utils import *
 from settings import *
 from client import Client
 

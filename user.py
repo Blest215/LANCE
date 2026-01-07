@@ -4,7 +4,6 @@ from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
-from utils import *
 from client import Client
 from device import W3CDevice, SmartThingsDevice
 

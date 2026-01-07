@@ -5,7 +5,6 @@ from langchain_core.exceptions import OutputParserException
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
-from utils import *
 from client import Client
 from device import instantiate_device
 
