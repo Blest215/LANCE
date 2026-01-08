@@ -1,0 +1,2678 @@
+{
+    "0x001F": {
+        "name": "Access Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ReviewFabricRestrictions",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ReviewFabricRestrictionsResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x050E": {
+        "name": "Account Login Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetSetupPIN",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "GetSetupPINResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Login",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "Logout",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0025": {
+        "name": "Actions Cluster",
+        "commands": {
+            "0x00": {
+                "name": "InstantAction",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "InstantActionWithTransition",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "StartAction",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "StartActionWithDuration",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "StopAction",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "PauseAction",
+                "id": "0x05",
+                "mandatory": false
+            },
+            "0x06": {
+                "name": "PauseActionWithDuration",
+                "id": "0x06",
+                "mandatory": false
+            },
+            "0x07": {
+                "name": "ResumeAction",
+                "id": "0x07",
+                "mandatory": false
+            },
+            "0x08": {
+                "name": "EnableAction",
+                "id": "0x08",
+                "mandatory": false
+            },
+            "0x09": {
+                "name": "EnableActionWithDuration",
+                "id": "0x09",
+                "mandatory": false
+            },
+            "0x0A": {
+                "name": "DisableAction",
+                "id": "0x0A",
+                "mandatory": false
+            },
+            "0x0B": {
+                "name": "DisableActionWithDuration",
+                "id": "0x0B",
+                "mandatory": false
+            }
+        }
+    },
+    "0x003C": {
+        "name": "Administrator Commissioning Cluster",
+        "commands": {
+            "0x00": {
+                "name": "OpenCommissioningWindow",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "OpenBasicCommissioningWindow",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "RevokeCommissioning",
+                "id": "0x02",
+                "mandatory": true
+            }
+        }
+    },
+    "0x005B": {
+        "name": "Air Quality Cluster",
+        "commands": {}
+    },
+    "null": {
+        "name": "Water Content Measurement Clusters",
+        "commands": {}
+    },
+    "0x050D": {
+        "name": "Application Basic Cluster",
+        "commands": {}
+    },
+    "0x050C": {
+        "name": "Application Launcher Cluster",
+        "commands": {
+            "0x00": {
+                "name": "LaunchApp",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "StopApp",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "HideApp",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "LauncherResponse",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x050B": {
+        "name": "Audio Output Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SelectOutput",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "RenameOutput",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0028": {
+        "name": "Basic Information Cluster",
+        "commands": {}
+    },
+    "0x001E": {
+        "name": "Binding Cluster",
+        "commands": {}
+    },
+    "0x0045": {
+        "name": "Boolean State Cluster",
+        "commands": {}
+    },
+    "0x0080": {
+        "name": "Boolean State Configuration Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SuppressAlarm",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "EnableDisableAlarm",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0039": {
+        "name": "Bridged Device Basic Information Cluster",
+        "commands": {
+            "0x80": {
+                "name": "KeepActive",
+                "id": "0x80",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0552": {
+        "name": "Camera AV Settings User Level Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "MPTZSetPosition",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "MPTZRelativeMove",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "MPTZMoveToPreset",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "MPTZSavePreset",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "MPTZRemovePreset",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "DPTZSetViewport",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "DPTZRelativeMove",
+                "id": "0x06",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0551": {
+        "name": "Camera AV Stream Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AudioStreamAllocate",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "AudioStreamAllocateResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "AudioStreamDeallocate",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "VideoStreamAllocate",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "VideoStreamAllocateResponse",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "VideoStreamModify",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "VideoStreamDeallocate",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "SnapshotStreamAllocate",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "SnapshotStreamAllocateResponse",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "SnapshotStreamModify",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "SnapshotStreamDeallocate",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "SetStreamPriorities",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "CaptureSnapshot",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "CaptureSnapshotResponse",
+                "id": "0x0D",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0504": {
+        "name": "Channel Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ChangeChannel",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ChangeChannelResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "ChangeChannelByNumber",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "SkipChannel",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "GetProgramGuide",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "ProgramGuideResponse",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "RecordProgram",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "CancelRecordProgram",
+                "id": "0x07",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0556": {
+        "name": "Chime Cluster",
+        "commands": {
+            "0x00": {
+                "name": "PlayChimeSound",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0104": {
+        "name": "Closure Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Stop",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "MoveTo",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Calibrate",
+                "id": "0x02",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0105": {
+        "name": "Closure Dimension Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SetTarget",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Step",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0300": {
+        "name": "Color Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "MoveToHue",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "MoveHue",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "StepHue",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "MoveToSaturation",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "MoveSaturation",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "StepSaturation",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "MoveToHueAndSaturation",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "MoveToColor",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "MoveColor",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "StepColor",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "MoveToColorTemperature",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x40": {
+                "name": "EnhancedMoveToHue",
+                "id": "0x40",
+                "mandatory": true
+            },
+            "0x41": {
+                "name": "EnhancedMoveHue",
+                "id": "0x41",
+                "mandatory": true
+            },
+            "0x42": {
+                "name": "EnhancedStepHue",
+                "id": "0x42",
+                "mandatory": true
+            },
+            "0x43": {
+                "name": "EnhancedMoveToHueAndSaturation",
+                "id": "0x43",
+                "mandatory": true
+            },
+            "0x44": {
+                "name": "ColorLoopSet",
+                "id": "0x44",
+                "mandatory": true
+            },
+            "0x47": {
+                "name": "StopMoveStep",
+                "id": "0x47",
+                "mandatory": true
+            },
+            "0x4B": {
+                "name": "MoveColorTemperature",
+                "id": "0x4B",
+                "mandatory": true
+            },
+            "0x4C": {
+                "name": "StepColorTemperature",
+                "id": "0x4C",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0751": {
+        "name": "Commissioner Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "RequestCommissioningApproval",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "CommissionNode",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "ReverseOpenCommissioningWindow",
+                "id": "0x02",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0B07": {
+        "name": "Commodity Metering Cluster",
+        "commands": {}
+    },
+    "0x0095": {
+        "name": "Commodity Price Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetDetailedPriceRequest",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "GetDetailedPriceResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "null": {
+                "name": "GetDetailedForecastRequest",
+                "id": null,
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "GetDetailedForecastRequest",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "GetDetailedForecastResponse",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0700": {
+        "name": "Commodity Tariff Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetTariffComponentResponse",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "GetDayEntryResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0510": {
+        "name": "Content App Observer Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ContentAppMessage",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ContentAppMessageResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x050F": {
+        "name": "Content Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "UpdatePIN",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ResetPIN",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "ResetPINResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "Enable",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "Disable",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "AddBonusTime",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "SetScreenDailyTime",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "BlockUnratedContent",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "UnblockUnratedContent",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "SetOnDemandRatingThreshold",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "SetScheduledContentRatingThreshold",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "AddBlockChannels",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "RemoveBlockChannels",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "AddBlockApplications",
+                "id": "0x0D",
+                "mandatory": true
+            },
+            "0x0E": {
+                "name": "RemoveBlockApplications",
+                "id": "0x0E",
+                "mandatory": true
+            },
+            "0x0F": {
+                "name": "SetBlockContentTimeWindow",
+                "id": "0x0F",
+                "mandatory": true
+            },
+            "0x10": {
+                "name": "RemoveBlockContentTimeWindow",
+                "id": "0x10",
+                "mandatory": true
+            }
+        }
+    },
+    "0x050A": {
+        "name": "Content Launcher Cluster",
+        "commands": {
+            "0x00": {
+                "name": "LaunchContent",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "LaunchURL",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "LauncherResponse",
+                "id": "0x02",
+                "mandatory": true
+            }
+        }
+    },
+    "0x001D": {
+        "name": "Descriptor Cluster",
+        "commands": {}
+    },
+    "0x0098": {
+        "name": "Device Energy Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "PowerAdjustRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "CancelPowerAdjustRequest",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "StartTimeAdjustRequest",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "PauseRequest",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "ResumeRequest",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "ModifyForecastRequest",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "RequestConstraintBasedForecast",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "CancelRequest",
+                "id": "0x07",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0032": {
+        "name": "Diagnostic Logs Cluster",
+        "commands": {
+            "0x00": {
+                "name": "RetrieveLogsRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "RetrieveLogsResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0037": {
+        "name": "Ethernet Network Diagnostics Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ResetCounts",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0033": {
+        "name": "General Diagnostics Cluster",
+        "commands": {
+            "0x00": {
+                "name": "TestEventTrigger",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "TimeSnapshot",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "TimeSnapshotResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "PayloadTestRequest",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "PayloadTestResponse",
+                "id": "0x04",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0034": {
+        "name": "Software Diagnostics Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ResetWatermarks",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0035": {
+        "name": "Thread Network Diagnostics Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ResetCounts",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0036": {
+        "name": "Wi-Fi Network Diagnostics Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ResetCounts",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x005D": {
+        "name": "Dishwasher Alarm Cluster",
+        "commands": {}
+    },
+    "0x0101": {
+        "name": "Door Lock Cluster",
+        "commands": {
+            "0x00": {
+                "name": "LockDoor",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "UnlockDoor",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Toggle",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "UnlockWithTimeout",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "SetPINCode",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "GetPINCodeResponse",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "ClearPINCode",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "ClearAllPINCodes",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "SetUserStatus",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "GetUserStatusResponse",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "SetWeekDaySchedule",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "GetWeekDayScheduleResponse",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "ClearWeekDaySchedule",
+                "id": "0x0D",
+                "mandatory": true
+            },
+            "0x0E": {
+                "name": "SetYearDaySchedule",
+                "id": "0x0E",
+                "mandatory": true
+            },
+            "0x0F": {
+                "name": "GetYearDayScheduleResponse",
+                "id": "0x0F",
+                "mandatory": true
+            },
+            "0x10": {
+                "name": "ClearYearDaySchedule",
+                "id": "0x10",
+                "mandatory": true
+            },
+            "0x11": {
+                "name": "SetHolidaySchedule",
+                "id": "0x11",
+                "mandatory": true
+            },
+            "0x12": {
+                "name": "GetHolidayScheduleResponse",
+                "id": "0x12",
+                "mandatory": true
+            },
+            "0x13": {
+                "name": "ClearHolidaySchedule",
+                "id": "0x13",
+                "mandatory": true
+            },
+            "0x14": {
+                "name": "SetUserType",
+                "id": "0x14",
+                "mandatory": true
+            },
+            "0x15": {
+                "name": "GetUserTypeResponse",
+                "id": "0x15",
+                "mandatory": true
+            },
+            "0x16": {
+                "name": "SetRFIDCode",
+                "id": "0x16",
+                "mandatory": true
+            },
+            "0x17": {
+                "name": "GetRFIDCodeResponse",
+                "id": "0x17",
+                "mandatory": true
+            },
+            "0x18": {
+                "name": "ClearRFIDCode",
+                "id": "0x18",
+                "mandatory": true
+            },
+            "0x19": {
+                "name": "ClearAllRFIDCodes",
+                "id": "0x19",
+                "mandatory": true
+            },
+            "0x1A": {
+                "name": "SetUser",
+                "id": "0x1A",
+                "mandatory": true
+            },
+            "0x1B": {
+                "name": "GetUser",
+                "id": "0x1B",
+                "mandatory": true
+            },
+            "0x1C": {
+                "name": "GetUserResponse",
+                "id": "0x1C",
+                "mandatory": true
+            },
+            "0x1D": {
+                "name": "ClearUser",
+                "id": "0x1D",
+                "mandatory": true
+            },
+            "0x22": {
+                "name": "SetCredential",
+                "id": "0x22",
+                "mandatory": true
+            },
+            "0x23": {
+                "name": "SetCredentialResponse",
+                "id": "0x23",
+                "mandatory": true
+            },
+            "0x24": {
+                "name": "GetCredentialStatus",
+                "id": "0x24",
+                "mandatory": true
+            },
+            "0x25": {
+                "name": "GetCredentialStatusResponse",
+                "id": "0x25",
+                "mandatory": true
+            },
+            "0x26": {
+                "name": "ClearCredential",
+                "id": "0x26",
+                "mandatory": true
+            },
+            "0x27": {
+                "name": "UnboltDoor",
+                "id": "0x27",
+                "mandatory": true
+            },
+            "0x28": {
+                "name": "SetAliroReaderConfig",
+                "id": "0x28",
+                "mandatory": true
+            },
+            "0x29": {
+                "name": "ClearAliroReaderConfig",
+                "id": "0x29",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0750": {
+        "name": "Ecosystem Information Cluster",
+        "commands": {}
+    },
+    "0x0091": {
+        "name": "Electrical Energy Measurement Cluster",
+        "commands": {}
+    },
+    "0x00A0": {
+        "name": "Electrical Grid Conditions Cluster",
+        "commands": {}
+    },
+    "0x0090": {
+        "name": "Electrical Power Measurement Cluster",
+        "commands": {}
+    },
+    "0x0099": {
+        "name": "Energy EVSE Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetTargetsResponse",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Disable",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "EnableCharging",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "EnableDischarging",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "StartDiagnostics",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "SetTargets",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "GetTargets",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "ClearTargets",
+                "id": "0x07",
+                "mandatory": true
+            }
+        }
+    },
+    "0x009B": {
+        "name": "Energy Preference Cluster",
+        "commands": {}
+    },
+    "0x0202": {
+        "name": "Fan Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Step",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0040": {
+        "name": "Fixed Label Cluster",
+        "commands": {}
+    },
+    "0x0404": {
+        "name": "Flow Measurement Cluster",
+        "commands": {}
+    },
+    "0x0030": {
+        "name": "General Commissioning Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ArmFailSafe",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ArmFailSafeResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "SetRegulatoryConfig",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "SetRegulatoryConfigResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "CommissioningComplete",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "CommissioningCompleteResponse",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "SetTCAcknowledgements",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "SetTCAcknowledgementsResponse",
+                "id": "0x07",
+                "mandatory": true
+            }
+        }
+    },
+    "0x003F": {
+        "name": "Group Key Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "KeySetWrite",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "KeySetRead",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "KeySetReadResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "KeySetRemove",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "KeySetReadAllIndices",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "KeySetReadAllIndicesResponse",
+                "id": "0x05",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0004": {
+        "name": "Groups Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AddGroupResponse",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ViewGroupResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "GetGroupMembershipResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "RemoveGroupResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "RemoveAllGroups",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "AddGroupIfIdentifying",
+                "id": "0x05",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0046": {
+        "name": "ICD Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "RegisterClient",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "RegisterClientResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "UnregisterClient",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "StayActiveRequest",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "StayActiveResponse",
+                "id": "0x04",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0003": {
+        "name": "Identify Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Identify",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x40": {
+                "name": "TriggerEffect",
+                "id": "0x40",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0400": {
+        "name": "Illuminance Measurement Cluster",
+        "commands": {}
+    },
+    "0x0753": {
+        "name": "Joint Fabric Administrator Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ICACCSRRequest",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "ICACCSRResponse",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "AddICAC",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "ICACResponse",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "OpenJointCommissioningWindow",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "TransferAnchorRequest",
+                "id": "0x05",
+                "mandatory": false
+            },
+            "0x06": {
+                "name": "TransferAnchorResponse",
+                "id": "0x06",
+                "mandatory": false
+            },
+            "0x07": {
+                "name": "TransferAnchorComplete",
+                "id": "0x07",
+                "mandatory": false
+            },
+            "0x08": {
+                "name": "AnnounceJointFabricAdministrator",
+                "id": "0x08",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0752": {
+        "name": "Joint Fabric Datastore Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AddKeySet",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "UpdateKeySet",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "RemoveKeySet",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "AddGroup",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "UpdateGroup",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "RemoveGroup",
+                "id": "0x05",
+                "mandatory": false
+            },
+            "0x06": {
+                "name": "AddAdmin",
+                "id": "0x06",
+                "mandatory": false
+            },
+            "0x07": {
+                "name": "UpdateAdmin",
+                "id": "0x07",
+                "mandatory": false
+            },
+            "0x08": {
+                "name": "RemoveAdmin",
+                "id": "0x08",
+                "mandatory": false
+            },
+            "0x09": {
+                "name": "AddPendingNode",
+                "id": "0x09",
+                "mandatory": false
+            },
+            "0x0A": {
+                "name": "RefreshNode",
+                "id": "0x0A",
+                "mandatory": false
+            },
+            "0x0B": {
+                "name": "UpdateNode",
+                "id": "0x0B",
+                "mandatory": false
+            },
+            "0x0C": {
+                "name": "RemoveNode",
+                "id": "0x0C",
+                "mandatory": false
+            },
+            "0x0D": {
+                "name": "UpdateEndpointForNode",
+                "id": "0x0D",
+                "mandatory": false
+            },
+            "0x0E": {
+                "name": "AddGroupIDToEndpointForNode",
+                "id": "0x0E",
+                "mandatory": false
+            },
+            "0x0F": {
+                "name": "RemoveGroupIDFromEndpointForNode",
+                "id": "0x0F",
+                "mandatory": false
+            },
+            "0x10": {
+                "name": "AddBindingToEndpointForNode",
+                "id": "0x10",
+                "mandatory": false
+            },
+            "0x11": {
+                "name": "RemoveBindingFromEndpointForNode",
+                "id": "0x11",
+                "mandatory": false
+            },
+            "0x12": {
+                "name": "AddACLToNode",
+                "id": "0x12",
+                "mandatory": false
+            },
+            "0x13": {
+                "name": "RemoveACLFromNode",
+                "id": "0x13",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0509": {
+        "name": "Keypad Input Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SendKey",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "SendKeyResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x004A": {
+        "name": "Laundry Dryer Controls Cluster",
+        "commands": {}
+    },
+    "0x0053": {
+        "name": "Laundry Washer Controls Cluster",
+        "commands": {}
+    },
+    "0x0008": {
+        "name": "Level Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "MoveToLevel",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Move",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Step",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "Stop",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "MoveToLevelWithOnOff",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "MoveWithOnOff",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "StepWithOnOff",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "StopWithOnOff",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "MoveToClosestFrequency",
+                "id": "0x08",
+                "mandatory": true
+            }
+        }
+    },
+    "0x002B": {
+        "name": "Localization Configuration Cluster",
+        "commands": {}
+    },
+    "0x002C": {
+        "name": "Time Format Localization Cluster",
+        "commands": {}
+    },
+    "0x002D": {
+        "name": "Unit Localization Cluster",
+        "commands": {}
+    },
+    "0x0508": {
+        "name": "Low Power Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Sleep",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0507": {
+        "name": "Media Input Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SelectInput",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ShowInputStatus",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "HideInputStatus",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "RenameInput",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0506": {
+        "name": "Media Playback Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Play",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Pause",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Stop",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "StartOver",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "Previous",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x05": {
+                "name": "Next",
+                "id": "0x05",
+                "mandatory": false
+            },
+            "0x06": {
+                "name": "Rewind",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "FastForward",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "SkipForward",
+                "id": "0x08",
+                "mandatory": false
+            },
+            "0x09": {
+                "name": "SkipBackward",
+                "id": "0x09",
+                "mandatory": false
+            },
+            "0x0A": {
+                "name": "PlaybackResponse",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "Seek",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "ActivateAudioTrack",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "ActivateTextTrack",
+                "id": "0x0D",
+                "mandatory": true
+            },
+            "0x0E": {
+                "name": "DeactivateTextTrack",
+                "id": "0x0E",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0097": {
+        "name": "Messages Cluster",
+        "commands": {
+            "0x00": {
+                "name": "PresentMessagesRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "CancelMessagesRequest",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0B06": {
+        "name": "Meter Identification Cluster",
+        "commands": {}
+    },
+    "0x005F": {
+        "name": "Microwave Oven Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SetCookingParameters",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "AddMoreTime",
+                "id": "0x01",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0050": {
+        "name": "Mode Select Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ChangeToMode",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x009F": {
+        "name": "Device Energy Management Mode Cluster",
+        "commands": {}
+    },
+    "0x0059": {
+        "name": "Dishwasher Mode Cluster",
+        "commands": {}
+    },
+    "0x009D": {
+        "name": "Energy EVSE Mode Cluster",
+        "commands": {}
+    },
+    "0x0051": {
+        "name": "Laundry Washer Mode Cluster",
+        "commands": {}
+    },
+    "0x005E": {
+        "name": "Microwave Oven Mode Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ChangeToMode",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "ChangeToModeResponse",
+                "id": "0x01",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0049": {
+        "name": "Oven Mode Cluster",
+        "commands": {}
+    },
+    "0x0055": {
+        "name": "RVC Clean Mode Cluster",
+        "commands": {}
+    },
+    "0x0054": {
+        "name": "RVC Run Mode Cluster",
+        "commands": {}
+    },
+    "0x0052": {
+        "name": "Refrigerator And Temperature Controlled Cabinet Mode Cluster",
+        "commands": {}
+    },
+    "0x009E": {
+        "name": "Water Heater Mode Cluster",
+        "commands": {}
+    },
+    "0x0031": {
+        "name": "Network Commissioning Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ScanNetworks",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ScanNetworksResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "AddOrUpdateWiFiNetwork",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "AddOrUpdateThreadNetwork",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "RemoveNetwork",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "NetworkConfigResponse",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "ConnectNetwork",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "ConnectNetworkResponse",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "ReorderNetwork",
+                "id": "0x08",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0029": {
+        "name": "OTA Software Update Provider Cluster",
+        "commands": {
+            "0x00": {
+                "name": "QueryImage",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "QueryImageResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "ApplyUpdateRequest",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "ApplyUpdateResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "NotifyUpdateApplied",
+                "id": "0x04",
+                "mandatory": true
+            }
+        }
+    },
+    "0x002A": {
+        "name": "OTA Software Update Requestor Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AnnounceOTAProvider",
+                "id": "0x00",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0406": {
+        "name": "Occupancy Sensing Cluster",
+        "commands": {}
+    },
+    "0x0006": {
+        "name": "On/Off Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Off",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "On",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "Toggle",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x40": {
+                "name": "OffWithEffect",
+                "id": "0x40",
+                "mandatory": true
+            },
+            "0x41": {
+                "name": "OnWithRecallGlobalScene",
+                "id": "0x41",
+                "mandatory": true
+            },
+            "0x42": {
+                "name": "OnWithTimedOff",
+                "id": "0x42",
+                "mandatory": true
+            }
+        }
+    },
+    "0x003E": {
+        "name": "Operational Credentials Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AttestationRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "AttestationResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "CertificateChainRequest",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "CertificateChainResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "CSRRequest",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "CSRResponse",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "AddNOC",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "UpdateNOC",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "NOCResponse",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "UpdateFabricLabel",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "RemoveFabric",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "AddTrustedRootCertificate",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "SetVIDVerificationStatement",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "SignVIDVerificationRequest",
+                "id": "0x0D",
+                "mandatory": true
+            },
+            "0x0E": {
+                "name": "SignVIDVerificationResponse",
+                "id": "0x0E",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0060": {
+        "name": "Operational State Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Pause",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "null": {
+                "name": "Resume",
+                "id": null,
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "Stop",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "Start",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "Resume",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "OperationalCommandResponse",
+                "id": "0x04",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0048": {
+        "name": "Oven Cavity Operational State Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Pause",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "Stop",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "Start",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "Resume",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "OperationalCommandResponse",
+                "id": "0x04",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0061": {
+        "name": "RVC Operational State Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Pause",
+                "id": "0x00",
+                "mandatory": false
+            },
+            "0x01": {
+                "name": "Stop",
+                "id": "0x01",
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "Start",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "Resume",
+                "id": "0x03",
+                "mandatory": false
+            },
+            "0x04": {
+                "name": "OperationalCommandResponse",
+                "id": "0x04",
+                "mandatory": false
+            },
+            "0x80": {
+                "name": "GoHome",
+                "id": "0x80",
+                "mandatory": false
+            }
+        }
+    },
+    "0x002F": {
+        "name": "Power Source Cluster",
+        "commands": {}
+    },
+    "0x002E": {
+        "name": "Power Source Configuration Cluster",
+        "commands": {}
+    },
+    "0x009C": {
+        "name": "Power Topology Cluster",
+        "commands": {}
+    },
+    "0x0403": {
+        "name": "Pressure Measurement Cluster",
+        "commands": {}
+    },
+    "0x0200": {
+        "name": "Pump Configuration and Control Cluster",
+        "commands": {}
+    },
+    "0x0555": {
+        "name": "Push AV Stream Transport Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AllocatePushTransport",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "AllocatePushTransportResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "DeallocatePushTransport",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "ModifyPushTransport",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "SetTransportStatus",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "ManuallyTriggerTransport",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "FindTransport",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "FindTransportResponse",
+                "id": "0x07",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0057": {
+        "name": "Refrigerator Alarm Cluster",
+        "commands": {
+            "0x01": {
+                "name": "ModifyEnabledAlarms",
+                "id": "0x01",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0062": {
+        "name": "Scenes Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AddSceneResponse",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ViewSceneResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "RemoveSceneResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "RemoveAllScenesResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "StoreSceneResponse",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "RecallScene",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "GetSceneMembershipResponse",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x40": {
+                "name": "CopySceneResponse",
+                "id": "0x40",
+                "mandatory": true
+            },
+            "null": {
+                "name": "CopyScene",
+                "id": null,
+                "mandatory": false
+            }
+        }
+    },
+    "0x0150": {
+        "name": "Service Area Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SelectAreas",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "SelectAreasResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "SkipArea",
+                "id": "0x02",
+                "mandatory": false
+            },
+            "0x03": {
+                "name": "SkipAreaResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "null": {
+                "name": "SkipArea",
+                "id": null,
+                "mandatory": false
+            }
+        }
+    },
+    "0x005C": {
+        "name": "Smoke CO Alarm Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SelfTestRequest",
+                "id": "0x00",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0430": {
+        "name": "Soil Measurement Cluster",
+        "commands": {}
+    },
+    "0x003B": {
+        "name": "Switch Cluster",
+        "commands": {}
+    },
+    "0x0801": {
+        "name": "TLS Certificate Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ProvisionRootCertificate",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ProvisionRootCertificateResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "FindRootCertificate",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "FindRootCertificateResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "LookupRootCertificate",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "LookupRootCertificateResponse",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "RemoveRootCertificate",
+                "id": "0x06",
+                "mandatory": true
+            },
+            "0x07": {
+                "name": "ClientCSR",
+                "id": "0x07",
+                "mandatory": true
+            },
+            "0x08": {
+                "name": "ClientCSRResponse",
+                "id": "0x08",
+                "mandatory": true
+            },
+            "0x09": {
+                "name": "ProvisionClientCertificate",
+                "id": "0x09",
+                "mandatory": true
+            },
+            "0x0A": {
+                "name": "FindClientCertificate",
+                "id": "0x0A",
+                "mandatory": true
+            },
+            "0x0B": {
+                "name": "FindClientCertificateResponse",
+                "id": "0x0B",
+                "mandatory": true
+            },
+            "0x0C": {
+                "name": "LookupClientCertificate",
+                "id": "0x0C",
+                "mandatory": true
+            },
+            "0x0D": {
+                "name": "LookupClientCertificateResponse",
+                "id": "0x0D",
+                "mandatory": true
+            },
+            "0x0E": {
+                "name": "RemoveClientCertificate",
+                "id": "0x0E",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0802": {
+        "name": "TLS Client Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "ProvisionEndpoint",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "ProvisionEndpointResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "FindEndpoint",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "FindEndpointResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "RemoveEndpoint",
+                "id": "0x04",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0505": {
+        "name": "Target Navigator Cluster",
+        "commands": {
+            "0x00": {
+                "name": "NavigateTarget",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "NavigateTargetResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0056": {
+        "name": "Temperature Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SetTemperature",
+                "id": "0x00",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0402": {
+        "name": "Temperature Measurement Cluster",
+        "commands": {}
+    },
+    "0x0201": {
+        "name": "Thermostat Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetWeeklyScheduleResponse",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "SetWeeklySchedule",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "GetWeeklySchedule",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "ClearWeeklySchedule",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "SetActiveScheduleRequest",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "SetActivePresetRequest",
+                "id": "0x06",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0204": {
+        "name": "Thermostat User Interface Configuration Cluster",
+        "commands": {}
+    },
+    "0x0452": {
+        "name": "Thread Border Router Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "GetActiveDatasetRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "GetPendingDatasetRequest",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "DatasetResponse",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "SetActiveDatasetRequest",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "SetPendingDatasetRequest",
+                "id": "0x04",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0453": {
+        "name": "Thread Network Directory Cluster",
+        "commands": {
+            "0x00": {
+                "name": "AddNetwork",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "RemoveNetwork",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "GetOperationalDataset",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "OperationalDatasetResponse",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0038": {
+        "name": "Time Synchronization Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SetUTCTime",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "SetTrustedTimeSource",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "SetTimeZone",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "SetTimeZoneResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "SetDSTOffset",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "SetDefaultNTP",
+                "id": "0x05",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0041": {
+        "name": "User Label Cluster",
+        "commands": {}
+    },
+    "0x0081": {
+        "name": "Valve Configuration and Control Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Open",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Close",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0503": {
+        "name": "Wake On LAN Cluster",
+        "commands": {}
+    },
+    "0x0094": {
+        "name": "Water Heater Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Boost",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "CancelBoost",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0553": {
+        "name": "WebRTC Transport Provider Cluster",
+        "commands": {
+            "0x00": {
+                "name": "SolicitOffer",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "SolicitOfferResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "null": {
+                "name": "ProvideOffer",
+                "id": null,
+                "mandatory": false
+            },
+            "0x02": {
+                "name": "ProvideOffer",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "ProvideOfferResponse",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "ProvideAnswer",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "ProvideICECandidates",
+                "id": "0x05",
+                "mandatory": true
+            },
+            "0x06": {
+                "name": "EndSession",
+                "id": "0x06",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0554": {
+        "name": "WebRTC Transport Requestor Cluster",
+        "commands": {
+            "0x00": {
+                "name": "Offer",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "Answer",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "ICECandidates",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "End",
+                "id": "0x03",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0451": {
+        "name": "Wi-Fi Network Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "NetworkPassphraseRequest",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "NetworkPassphraseResponse",
+                "id": "0x01",
+                "mandatory": true
+            }
+        }
+    },
+    "0x0102": {
+        "name": "Window Covering Cluster",
+        "commands": {
+            "0x00": {
+                "name": "UpOrOpen",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "DownOrClose",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "StopMotion",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "GoToLiftPercentage",
+                "id": "0x05",
+                "mandatory": false
+            },
+            "0x08": {
+                "name": "GoToTiltPercentage",
+                "id": "0x08",
+                "mandatory": false
+            }
+        }
+    },
+    "0x0550": {
+        "name": "Zone Management Cluster",
+        "commands": {
+            "0x00": {
+                "name": "CreateTwoDCartesianZone",
+                "id": "0x00",
+                "mandatory": true
+            },
+            "0x01": {
+                "name": "CreateTwoDCartesianZoneResponse",
+                "id": "0x01",
+                "mandatory": true
+            },
+            "0x02": {
+                "name": "UpdateTwoDCartesianZone",
+                "id": "0x02",
+                "mandatory": true
+            },
+            "0x03": {
+                "name": "RemoveZone",
+                "id": "0x03",
+                "mandatory": true
+            },
+            "0x04": {
+                "name": "CreateOrUpdateTrigger",
+                "id": "0x04",
+                "mandatory": true
+            },
+            "0x05": {
+                "name": "RemoveTrigger",
+                "id": "0x05",
+                "mandatory": true
+            }
+        }
+    }
+}

@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from settings import *
 
 class Model:
-    def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None, **kwargs):
+    def __init__(self, model, backend="vllm", options="", temperature=0.8, reasoning=None, base_url=None, max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs):
         assert backend in ["ollama", "vllm"]
         self.model = model
         self.backend = backend
@@ -19,6 +19,7 @@ class Model:
         self.temperature = temperature
         self.reasoning = reasoning
         self.base_url = base_url
+        self.max_output_tokens = max_output_tokens
         self.kwargs = kwargs
 
     def __str__(self):
@@ -33,8 +34,8 @@ class Model:
 
     def instantiate(self):
         if self.backend == "ollama":
-            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=MAX_OUTPUT_TOKENS, **self.kwargs)
-        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=MAX_OUTPUT_TOKENS, **self.kwargs)
+            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, **self.kwargs)
+        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
     
     def with_tools(self, tools: list):
         return self.instantiate().bind_tools(tools)

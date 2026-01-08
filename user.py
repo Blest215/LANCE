@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from client import Client
-from device import W3CDevice, SmartThingsDevice
+from device import *
 
 initiate_task_tool = {
     'type': 'function',
@@ -38,7 +38,7 @@ ask_agent_tool = {
     },
 }
 
-control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool()]
+control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
 
 class UserAgent(Client):
@@ -147,6 +147,9 @@ class UserAgent(Client):
         return await self.control_device(agent_id, **kwargs)
     
     async def control_device_smartthings(self, agent_id, **kwargs):
+        return await self.control_device(agent_id, **kwargs)
+    
+    async def control_device_matter(self, agent_id, **kwargs):
         return await self.control_device(agent_id, **kwargs)
     
     # etc

@@ -24,6 +24,7 @@ class Device(ABC):
             validation_result = self.validate_input(**kwargs)
             if validation_result == "VALID" and not self.experiment:
                 return self.request(**kwargs)
+            # TODO semantics check
             return validation_result
         except Exception as e:
             return type(e).__name__
@@ -51,7 +52,7 @@ def instantiate_device(description) -> Device:
 
 class W3CDevice(Device):
     def request(self, **kwargs):
-        return
+        pass
     
     def validate_input(self, **kwargs):
         if "action" not in kwargs:
@@ -125,4 +126,44 @@ class SmartThingsDevice(Device):
                     },
                 },
             },
+        }
+
+
+class MatterDevice(Device):
+    def request(self, **kwargs):
+        pass
+
+    def validate_input(self, **kwargs) -> str:
+        if "endpoint_id" not in kwargs:
+            return "NO ENDPOINT ID"
+        if "cluster_id" not in kwargs:
+            return "NO CLUSTER ID"
+        if "command_id" not in kwargs:
+            return "NO COMMAND ID"
+        if kwargs["endpoint_id"] not in self.dict["endpoints"]:
+            return "INVALID ENDPOINT ID"
+        if kwargs["cluster_id"] not in self.dict["endpoints"]["clusters"]:
+            return "INVALID CLUSTER ID"
+        if kwargs["command_id"] not in self.dict["endpoints"]["clusters"]["commands"]:
+            return "INVALID COMMAND ID"
+        return "VALID"
+
+    @staticmethod
+    def get_tool() -> dict:
+        return {
+            'type': 'function',
+            'function': {
+                'name': 'control_device_matter',
+                'description': 'control the matter device associated with agent_id',
+                'parameters': {
+                    'type': 'object',
+                    'required': ['agent_id', 'endpoint_id', 'cluster_id', 'command_id'],
+                    'properties': {
+                        'agent_id': {'type': 'string', 'description': 'the ID of the agent associated with the device to control'},
+                        'endpoint_id': {'type': 'str', 'description': 'the hexcode ID of the endpoint to control'},
+                        'cluster_id': {'type': 'str', 'description': 'the hexcode ID of the cluster to control'},
+                        'command_id': {'type': 'str', 'description': 'the hexcode ID of the command'}
+                    }
+                }
+            }
         }
