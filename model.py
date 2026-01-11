@@ -47,9 +47,10 @@ class Model:
                 return container
 
     def wrapup(self):
-        container = self.get_container()
-        if container:
-            container.stop()
+        if self.backend == "vllm":
+            container = self.get_container()
+            if container:
+                container.stop()
 
     def setup(self) -> bool:
         if self.backend == "ollama":

@@ -15,9 +15,10 @@ DATASET_PATH = "dataset/dataset_synthetic.csv"
 SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{now}"
 
-SIMULATION_BATCH_SIZE = 10
-EVALUATION_BATCH_SIZE = 20
-SYNTHESIZE_BATCH_SIZE = 1
+SIMULATION_CONCURRENCY_MAX = 5
+SIMULATION_CONCURRENCY_DELAY = 10 * SIMULATION_CONCURRENCY_MAX
+EVALUATION_CONCURRENCY_MAX = 10
+SYNTHESIZE_BATCH_SIZE = 5
 TIMEOUT_LIMIT = 5
 TICK = 0.01
 
@@ -181,9 +182,6 @@ async def save_dataframe(df, path, ensure=False):
                 await asyncio.sleep(1)
             else:
                 break
-
-def batch_dataframe(df, batch_size):
-    return [df.iloc[i * batch_size:(i + 1) * batch_size] for i in range(len(df) // batch_size + (1 if len(df) % batch_size else 0))]
 
 def parse_column(df, value=""):
     pattern = r"^(?P<value>.*?)_(?P<model_name>.*)_(?P<method>.*?)$"

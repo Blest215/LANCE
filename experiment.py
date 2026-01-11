@@ -2,10 +2,11 @@ import asyncio
 import multiprocessing
 import pandas as pd
 import os
-import itertools
 import argparse
+import random
 
 from tqdm import tqdm
+from tqdm.asyncio import tqdm as atqdm
 from datetime import datetime
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -29,51 +30,56 @@ async def setup_agent(session, user, agent_id, agent_configuration, device_descr
     await user.wait_for_client(agent_id)
     return p
 
-async def simulate_scenario(model, modes, scenario):
-    session = get_random_session()
-    user_id = "COORDINATOR"
-    user = UserAgent(session, id=user_id, model=model)
-    while not user.is_connected():
-        await asyncio.sleep(TICK)
+async def simulate_scenario(semaphore, model, modes, scenario):
+    results = []
+    async with semaphore:
+        await asyncio.sleep(random.randint(0, SIMULATION_CONCURRENCY_DELAY))
+        for mode in modes:
+            session = get_random_session()
+            user_id = "COORDINATOR"
+            user = UserAgent(session, id=user_id, model=model)
+            while not user.is_connected():
+                await asyncio.sleep(TICK)
 
-    # Set the registry
-    registry_id = "REGISTRY"
-    registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
-    registry.start()
-    await user.wait_for_client(registry_id)
+            # Set the registry
+            registry_id = "REGISTRY"
+            registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
+            registry.start()
+            await user.wait_for_client(registry_id)
 
-    # Set the device agents
-    processes = await asyncio.gather(*[setup_agent(
-        session=session,
-        user=user,
-        agent_id=get_agent_id(device_description),
-        agent_configuration=model,
-        device_description=device_description
-    ) for device_description in eval(scenario.device_descriptions)])        
+            # Set the device agents
+            processes = await asyncio.gather(*[setup_agent(
+                session=session,
+                user=user,
+                agent_id=get_agent_id(device_description),
+                agent_configuration=model,
+                device_description=device_description
+            ) for device_description in eval(scenario.device_descriptions)])        
 
-    assert not user.wait
+            assert not user.wait
 
-    # Start simulations
-    results = [await user.command(mode, scenario.user_command) for mode in modes]
+            # Start simulations
+            results.append(await user.command(mode, scenario.user_command))
 
-    # Wrap up
-    registry.terminate()
-    for p in processes:
-        p.terminate()
-    
+            # Wrap up
+            registry.terminate()
+            for p in processes:
+                p.terminate()
+        
     return results
 
 async def simulation(now, models, modes):
     result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(DATASET_PATH)
-    batches = batch_dataframe(df, SIMULATION_BATCH_SIZE)
+
+    semaphore = asyncio.Semaphore(SIMULATION_CONCURRENCY_MAX)
 
     done_conversation_columns = [column for column in parse_column(df, "conversation")]
     for model in models:
         undone_modes = [mode for mode in modes if get_column_name("conversation", model, mode) not in done_conversation_columns]
         if not undone_modes or not model.setup():
             continue
-        simulation_results = sum([await asyncio.gather(*[simulate_scenario(model, undone_modes, scenario) for scenario in batch.itertuples()]) for batch in tqdm(batches, desc=f"Simulation {str(model):30}")], [])
+        simulation_results = await atqdm.gather(*[simulate_scenario(semaphore, model, undone_modes, scenario) for scenario in df.itertuples()], desc=f"Simulation {str(model):30}")
         for i, mode in enumerate(undone_modes):
             df[get_column_name("conversation", model, mode)] = [result[i] for result in simulation_results]
         model.wrapup()
@@ -81,18 +87,19 @@ async def simulation(now, models, modes):
     await save_dataframe(df, path=result_path, ensure=True)
 
 
-async def evaluate_scenario(evaluator, column_name, scenario):
-    while True:
-        try:
-            return await evaluator.ainvoke({
-                "time": scenario.time,
-                "device_descriptions": scenario.device_descriptions,
-                "user_command": scenario.user_command,
-                "evaluation_criteria": scenario.evaluation_criteria,
-                "conversation": getattr(scenario, column_name),
-            })
-        except OutputParserException:
-            continue
+async def evaluate_scenario(semaphore, evaluator, scenario, column_name):
+    async with semaphore:
+        while True:
+            try:
+                return await evaluator.ainvoke({
+                    "time": scenario.time,
+                    "device_descriptions": scenario.device_descriptions,
+                    "user_command": scenario.user_command,
+                    "evaluation_criteria": scenario.evaluation_criteria,
+                    "conversation": getattr(scenario, column_name),
+                })
+            except OutputParserException:
+                continue
 
 async def evaluation(now, evaluation_model):
     result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
@@ -100,17 +107,21 @@ async def evaluation(now, evaluation_model):
         return
 
     df = pd.read_csv(result_path)
-    batches = batch_dataframe(df, EVALUATION_BATCH_SIZE)
     evaluation_model.setup()
     evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
     evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
     
-    scored_columns = parse_column(df, "score")
-    unscored_columns = [column for column in parse_column(df, "conversation") if column.replace("conversation", "score") not in scored_columns]
-    for unscored_column in tqdm(unscored_columns, desc="Evaluation"):
-        evaluation_results = sum([await asyncio.gather(*[evaluate_scenario(evaluator, unscored_column, scenario) for scenario in batch.itertuples()]) for batch in batches], [])
-        df[unscored_column.replace("conversation", "score")] = [result.score for result in evaluation_results]
-        df[unscored_column.replace("conversation", "reason")] = [result.reason for result in evaluation_results]
+    semaphore = asyncio.Semaphore(EVALUATION_CONCURRENCY_MAX)
+
+    columns = parse_column(df, "conversation")
+    for column in columns:
+        df[column.replace("conversation", "score")] = None
+        df[column.replace("conversation", "reason")] = None
+    for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation"):
+        evaluation_results = await asyncio.gather(*[evaluate_scenario(semaphore, evaluator, scenario, column) for column in columns])
+        for i, column in enumerate(columns):
+            df.loc[scenario.Index, column.replace("conversation", "score")] = evaluation_results[i].score
+            df.loc[scenario.Index, column.replace("conversation", "reason")] = evaluation_results[i].reason
         await save_dataframe(df, path=result_path)
     evaluation_model.wrapup()
 
@@ -141,16 +152,19 @@ if __name__ == "__main__":
 
     modes = ["CENTRALIZED", "NATURAL", "LANCE"]
     models = [
-        Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
-        # Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
+        Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
+        # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
+        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
         # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
     ]
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)

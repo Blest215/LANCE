@@ -84,10 +84,7 @@ class UserAgent(Client):
             self.log(type(e).__name__)
         
         finally:
-            await asyncio.sleep(TIMEOUT_LIMIT)
-            logs = self.logs
-            self.logs = []
-            return "\n".join(logs)
+            return "\n".join(self.logs)
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_ALIVE, "+")
