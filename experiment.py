@@ -18,11 +18,7 @@ from registry import run_registry_process
 from agent import run_agent_process
 from user import UserAgent
 
-from pydantic import BaseModel, Field
-class EvaluationResult(BaseModel):
-    score: float = Field(description="How the agents behaved well upon user's command. 0 <= score <= 1", ge=0, le=1)
-    reason: str = Field(description="Reasoning for the score")
-
+# Simulation
 
 async def setup_agent(session, user, agent_id, agent_configuration, device_description):
     p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_description))
@@ -68,8 +64,8 @@ async def simulate_scenario(semaphore, model, modes, scenario):
         
     return results
 
-async def simulation(now, models, modes):
-    result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
+async def simulation(code, models, modes):
+    result_path = f"{RESULT_PATH.format(code=code)}/result.csv"
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(DATASET_PATH)
 
     semaphore = asyncio.Semaphore(SIMULATION_CONCURRENCY_MAX)
@@ -86,6 +82,12 @@ async def simulation(now, models, modes):
         await save_dataframe(df, path=result_path)
     await save_dataframe(df, path=result_path, ensure=True)
 
+# Evaluation
+
+from pydantic import BaseModel, Field
+class EvaluationResult(BaseModel):
+    score: float = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
+    reason: str = Field(description="Reasoning for the score")
 
 async def evaluate_scenario(semaphore, evaluator, scenario, column_name):
     async with semaphore:
@@ -101,8 +103,8 @@ async def evaluate_scenario(semaphore, evaluator, scenario, column_name):
             except OutputParserException:
                 continue
 
-async def evaluation(now, evaluation_model):
-    result_path = f"{RESULT_PATH.format(now=now)}/result.csv"
+async def evaluation(code, evaluation_model):
+    result_path = f"{RESULT_PATH.format(code=code)}/result.csv"
     if not os.path.exists(result_path):
         return
 
@@ -128,25 +130,25 @@ async def evaluation(now, evaluation_model):
     await save_dataframe(df, path=result_path, ensure=True)
 
 
-async def main(now, models: list[Model], modes: list[str], evaluation_model: Model):
-    await simulation(now, models, modes)
-    await evaluation(now, evaluation_model)    
+async def main(code, models: list[Model], modes: list[str], evaluation_model: Model):
+    await simulation(code, models, modes)
+    await evaluation(code, evaluation_model)    
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--resume", action="store_true")
-    argument_parser.add_argument("--now", type=str, required=False, default="")
+    argument_parser.add_argument("--code", type=str, required=False, default="")
     args = argument_parser.parse_args()
 
-    # Remove empty results
+    # Remove empty directories
     for result_code in os.listdir(RESULT_PATH.split("/")[0]):
-        if not os.listdir(RESULT_PATH.format(now=result_code)):
-            os.rmdir(RESULT_PATH.format(now=result_code))
+        if not os.listdir(RESULT_PATH.format(code=result_code)):
+            os.rmdir(RESULT_PATH.format(code=result_code))
 
     # Get experiment code
-    now = args.now if args.now else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    if not os.path.exists(RESULT_PATH.format(now=now)):
-        os.mkdir(RESULT_PATH.format(now=now))
+    code = args.code if args.code else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    if not os.path.exists(RESULT_PATH.format(code=code)):
+        os.mkdir(RESULT_PATH.format(code=code))
 
     temperature = 0.8
 
@@ -154,8 +156,8 @@ if __name__ == "__main__":
     models = [
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
-        # Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
-        # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
@@ -169,4 +171,4 @@ if __name__ == "__main__":
     ]
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
 
-    asyncio.run(main(now=now, models=models, modes=modes, evaluation_model=evaluation_model))
+    asyncio.run(main(code=code, models=models, modes=modes, evaluation_model=evaluation_model))

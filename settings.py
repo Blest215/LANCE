@@ -13,7 +13,7 @@ VLLM_URL = "http://localhost:8000/v1"
 
 DATASET_PATH = "dataset/dataset_synthetic.csv"
 SURVEY_PATH = "dataset/survey_result.csv"
-RESULT_PATH = "results/{now}"
+RESULT_PATH = "results/{code}"
 
 SIMULATION_CONCURRENCY_MAX = 5
 SIMULATION_CONCURRENCY_DELAY = 10 * SIMULATION_CONCURRENCY_MAX
@@ -192,7 +192,7 @@ def parse_column(df, value=""):
     return matches
 
 def get_last_result():
-    for now in reversed(os.listdir(RESULT_PATH.split("/")[0])):
-        if os.path.exists(f"{RESULT_PATH.format(now=now)}/result.csv"):
-            return now
+    for code in reversed(os.listdir(RESULT_PATH.split("/")[0])):
+        if os.path.exists(f"{RESULT_PATH.format(code=code)}/result.csv"):
+            return code
     return ""
