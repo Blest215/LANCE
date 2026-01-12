@@ -2,6 +2,7 @@ import json
 import asyncio
 import paho.mqtt.client as mqtt
 
+from datetime import datetime
 from abc import ABC, abstractmethod
 
 from settings import *
@@ -12,6 +13,7 @@ class Client(ABC):
         self.session = session
         self.id = id
         self.requests = {}
+        self.logs = []
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
@@ -52,12 +54,12 @@ class Client(ABC):
     def is_connected(self):
         return self.client.is_connected()
 
-    def log(self, text):
-        self.publish(MQTT_TOPIC_LOG, self.id, text)
+    def log(self, text, agent_id=None):
+        self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {f'Agent {agent_id} ' if agent_id else ''}{text}")
 
     async def request(self, topic, agent_id, message):
         new_request_id = get_random_request_id()
-        self.log(f"New request {new_request_id} to {agent_id}: {message}")
+        self.log(f"New request to agent {agent_id} {message}")
         self.requests[new_request_id] = {"status": "pending"}
         self.client.publish(self.build_topic(topic, agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
 
@@ -67,7 +69,7 @@ class Client(ABC):
             self.requests[new_request_id]["status"] = "timeout"
             self.requests[new_request_id]["response"] = "timeout"
         
-        self.log(f"Request {new_request_id} resulted {self.requests[new_request_id]['response']}")
+        self.log(f"Agent {agent_id} responded {self.requests[new_request_id]['response']}")
         return self.requests[new_request_id]["response"]
     
     async def wait_for_response(self, request_id):

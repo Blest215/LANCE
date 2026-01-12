@@ -40,7 +40,6 @@ SCREENING_THRESHOLD = 0.3
 # MQTT
 
 MQTT_BROKER_ADDRESS = "localhost"
-MQTT_TOPIC_LOG = "log"
 MQTT_TOPIC_ALIVE = "alive"
 MQTT_TOPIC_RESPONSE = "response"
 # mode LANCE topics

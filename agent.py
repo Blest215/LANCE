@@ -65,7 +65,6 @@ class Agent(Client):
         self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
 
     def proposal(self, message):
-        self.log(message)
         self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     # NATURAL methods
@@ -77,7 +76,6 @@ class Agent(Client):
     # CENTRALIZED methods
 
     async def control_device(self, sender, request_id, arguments):
-        self.log(f"Received control request {request_id} with {arguments} from {sender}")
         return self.device.control(**arguments)
 
 def run_agent_process(session, id, model, device_description):

@@ -1,6 +1,5 @@
 import asyncio
 
-from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
@@ -49,7 +48,6 @@ class UserAgent(Client):
         self.current_team_id = None
         self.team_messages = []
         self.wait = set()
-        self.logs = []
 
         # LANCE
         self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| model.with_tools([initiate_task_tool])
@@ -62,7 +60,7 @@ class UserAgent(Client):
         self.client.loop_start()
 
     async def command(self, mode, user_command):
-        self.log(f"User asked: {user_command}")
+        self.log(f"User asked \"{user_command}\"")
         
         try:
             result = None
@@ -88,18 +86,16 @@ class UserAgent(Client):
 
     def connection_handler(self):
         self.subscribe(MQTT_TOPIC_ALIVE, "+")
-        self.subscribe(MQTT_TOPIC_LOG, "+")
 
     async def message_handler(self, topic, id, sender, message, request_id=""):
         if check_topic(topic, MQTT_TOPIC_ALIVE):
             if id in self.wait:
                 self.wait.remove(id)
 
-        elif check_topic(topic, MQTT_TOPIC_LOG):
-            self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {sender}: {message}")
-
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
-            self.team_messages.append(f"{sender}: {message}")
+            text = f"Agent {sender} suggested \"{message}\""
+            self.log(text)
+            self.team_messages.append(text)
 
         elif check_topic(topic, MQTT_TOPIC_RESPONSE):
             if request_id and request_id in self.requests:
@@ -109,7 +105,7 @@ class UserAgent(Client):
     # LANCE methods
 
     async def initiate_task(self, message):
-        self.log(f"Initiate a new task: {message}")
+        self.log(f"Initiate a new task \"{message}\"")
         await self.call_for_proposal(20, message)
         # TODO Negotiation
         await self.control(self.team_messages)
