@@ -7,7 +7,7 @@ import requests
 import xml.etree.ElementTree as ET
 import json
 
-from tqdm.asyncio import tqdm
+from tqdm.asyncio import tqdm as atqdm
 from uuid import UUID, uuid4
 from datetime import datetime
 from dotenv import load_dotenv
@@ -86,12 +86,14 @@ class STDevice(BaseModel):
 # Matter
 
 class MTEndpoint(BaseModel):
+    endpoint_id: int
     device_type_name: str = Field(description="Device type name.")
     device_type_id: str = Field(description="Device type id associated with the name.")
     clusters: Dict = Field(default={})
 
 class MTDevice(BaseModel):
     format: Literal["Matter"]
+    id: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
     endpoints: Dict[int, MTEndpoint] = Field(description="Endpoints of the device node.")
 
 class MatterRetriever:
@@ -162,6 +164,7 @@ class MatterRetriever:
                 return False
             device_type = self.device_types[endpoint.device_type_id]
             endpoints[count] = MTEndpoint(
+                endpoint_id=count,
                 device_type_name=endpoint.device_type_name,
                 device_type_id=endpoint.device_type_id,
                 clusters={
@@ -190,7 +193,7 @@ class Scenario(BaseModel):
     time: datetime = Field(description="Timestamp of the scenario.")
     device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
     user_command: str = Field(description="The command the user gives to the AI agent.")
-    evaluation_criteria: str = Field(description="Simple criteria to evaluate the AI agent's reaction upon user's command according to the context.")
+    evaluation_criteria: Dict[str, str] = Field(description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
 
 GENERATOR_PROMPT = """
 You are a software engineer creating realistic scenarios to test AI agents that control smart devices.
@@ -199,14 +202,15 @@ Convert the given survey answers into a random and realistic scenario to test th
 
 [Rules]
 - You MUST not reveal the private information.
-- The device_descriptions MUST include the device types in the answer.
+- The device_descriptions MUST include the device types in the survey answer.
 - The device_descriptions MAY include additional devices to reflect realistic home settings.
 - In device_descriptions, each MTEndpoint MUST have correct names and ids following the given Matter specifications.
 - The user_command MUST be in fluent and short natural language.
+- The user_command MUST be a command that can be accomplished with the devices in the device_descriptions.
 - The user_command MAY not be specific enough and MAY contain indirect needs.
-- The user_command MAY include multiple concatenated commands specified in the answer, not necessarily.
-- The evaluation_criteria MUST reflect the expected behavior in the answer.
-- The evaluation_criteria MUST not include inaccurate details not specified in the answer.
+- The user_command MAY include multiple concatenated commands specified in the survey answer, not necessarily.
+- The evaluation_criteria MUST reflect the expected behavior in the survey answer.
+- The evaluation_criteria MUST not include inaccurate details not specified in the survey answer.
 
 [Where were you?]
 {space}
@@ -230,21 +234,22 @@ Convert the given survey answers into a random and realistic scenario to test th
 {format}
 """
 
-async def generate_scenario(generator, retriever, answer):
-    while True:
-        try:
-            answer_dict = answer._asdict()
-            answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
-            scenario = await generator.ainvoke(answer_dict)
+async def generate_scenario(semaphore, generator, retriever, answer):
+    async with semaphore:
+        while True:
+            try:
+                answer_dict = answer._asdict()
+                answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
+                scenario = await generator.ainvoke(answer_dict)
 
-            # Validation
-            autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
-            if not all(autocompleted_descriptions):
+                # Validation
+                autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
+                if not all(autocompleted_descriptions):
+                    continue
+                
+                return scenario.model_dump(exclude_none=True)
+            except OutputParserException:
                 continue
-            
-            return scenario.model_dump(exclude_none=True)
-        except OutputParserException:
-            continue
 
 async def main(model: Model, iterate: int, reset: bool):
     parser = PydanticOutputParser(pydantic_object=Scenario)
@@ -257,7 +262,8 @@ async def main(model: Model, iterate: int, reset: bool):
     survey_df = survey_df.reset_index(drop=True)
 
     # Synthesize dataset
-    scenarios = pd.DataFrame(sum([await asyncio.gather(*[generate_scenario(scenario_generator, retriever, answer) for answer in batch.itertuples(index=False)]) for batch in tqdm(batch_dataframe(survey_df, SYNTHESIZE_BATCH_SIZE))], []))
+    semaphore = asyncio.Semaphore(SYNTHESIZE_CONCURRENCY_MAX)
+    scenarios = pd.DataFrame(await atqdm.gather(*[generate_scenario(semaphore, scenario_generator, retriever, answer) for answer in survey_df.itertuples(index=False)], desc="Synthesize"))
 
     # Save dataset
     df = pd.concat([pd.read_csv(DATASET_PATH), scenarios], ignore_index=True) if os.path.exists(DATASET_PATH) and not reset else scenarios
