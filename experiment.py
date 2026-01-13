@@ -86,7 +86,7 @@ async def simulation(code, models, modes):
 
 from pydantic import BaseModel, Field
 class EvaluationResult(BaseModel):
-    score: float = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
+    score: int = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
     reason: str = Field(description="Reasoning for the score")
 
 async def evaluate_scenario(semaphore, evaluator, scenario, column_name):
@@ -97,10 +97,10 @@ async def evaluate_scenario(semaphore, evaluator, scenario, column_name):
                     "time": scenario.time,
                     "device_descriptions": scenario.device_descriptions,
                     "user_command": scenario.user_command,
-                    "evaluation_criteria": scenario.evaluation_criteria,
+                    "evaluation_criteria": "\n".join([f"Agent {agent_id}: {reaction}" for agent_id, reaction in eval(scenario.evaluation_criteria).items()]),
                     "conversation": getattr(scenario, column_name),
                 })
-            except OutputParserException:
+            except OutputParserException as e:
                 continue
 
 async def evaluation(code, evaluation_model):
@@ -154,21 +154,22 @@ if __name__ == "__main__":
 
     modes = ["CENTRALIZED", "NATURAL", "LANCE"]
     models = [
-        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
+        Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
         Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
-        Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
+        Model("granite4:350m", backend="ollama", temperature=temperature),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
+        Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
         # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
     ]
-    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.0, reasoning=True)
+    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.3, reasoning=False)
 
     asyncio.run(main(code=code, models=models, modes=modes, evaluation_model=evaluation_model))

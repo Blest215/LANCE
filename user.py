@@ -60,7 +60,7 @@ class UserAgent(Client):
         self.client.loop_start()
 
     async def command(self, mode, user_command):
-        self.log(f"User asked \"{user_command}\"")
+        self.log(f"User asked: {user_command}")
         
         try:
             result = None
@@ -93,7 +93,7 @@ class UserAgent(Client):
                 self.wait.remove(id)
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
-            text = f"Agent {sender} suggested \"{message}\""
+            text = f"Agent {sender} suggested: {message}"
             self.log(text)
             self.team_messages.append(text)
 
@@ -105,7 +105,7 @@ class UserAgent(Client):
     # LANCE methods
 
     async def initiate_task(self, message):
-        self.log(f"Initiate a new task \"{message}\"")
+        self.log(f"Initiate a new task: {message}")
         await self.call_for_proposal(20, message)
         # TODO Negotiation
         await self.control(self.team_messages)

@@ -33,9 +33,8 @@ class Client(ABC):
             sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
             asyncio.run(self.message_handler(topic, id, sender, message, request_id))
         except Exception as e:
-            self.log(type(e).__name__)
             if payload.get("request_id", ""):
-                self.response(sender, request_id, type(e).__name__)
+                self.response(sender, request_id, str(e))
 
     @abstractmethod
     def connection_handler(self):
@@ -77,10 +76,10 @@ class Client(ABC):
             await asyncio.sleep(TICK)
 
     def response(self, sender, request_id, message):
-        self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": message, "request_id": request_id}))
+        self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": str(message), "request_id": request_id}))
 
     def publish(self, topic, id, message):
-        self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": message}))
+        self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": str(message)}))
     
     def subscribe(self, topic, id):
         self.client.subscribe(self.build_topic(topic, id))

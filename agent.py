@@ -76,7 +76,7 @@ class Agent(Client):
     # CENTRALIZED methods
 
     async def control_device(self, sender, request_id, arguments):
-        return self.device.control(**arguments)
+        return str(self.device.control(**arguments))
 
 def run_agent_process(session, id, model, device_description):
     Agent(session, id, model, instantiate_device(device_description)).loop_forever()

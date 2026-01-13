@@ -86,7 +86,7 @@ class STDevice(BaseModel):
 # Matter
 
 class MTEndpoint(BaseModel):
-    endpoint_id: int
+    endpoint_id: str
     device_type_name: str = Field(description="Device type name.")
     device_type_id: str = Field(description="Device type id associated with the name.")
     clusters: Dict = Field(default={})
@@ -94,7 +94,7 @@ class MTEndpoint(BaseModel):
 class MTDevice(BaseModel):
     format: Literal["Matter"]
     id: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
-    endpoints: Dict[int, MTEndpoint] = Field(description="Endpoints of the device node.")
+    endpoints: Dict[str, MTEndpoint] = Field(description="Endpoints of the device node.")
 
 class MatterRetriever:
     def __init__(self, version=1.5):
@@ -163,8 +163,8 @@ class MatterRetriever:
             if endpoint.device_type_id not in self.device_types or self.device_types[endpoint.device_type_id]["name"] != endpoint.device_type_name:
                 return False
             device_type = self.device_types[endpoint.device_type_id]
-            endpoints[count] = MTEndpoint(
-                endpoint_id=count,
+            endpoints[str(count)] = MTEndpoint(
+                endpoint_id=str(count),
                 device_type_name=endpoint.device_type_name,
                 device_type_id=endpoint.device_type_id,
                 clusters={
@@ -217,9 +217,6 @@ Convert the given survey answers into a random and realistic scenario to test th
 
 [What devices were in the space? (Select all that apply.)]
 {devices}
-
-[Which AI assistant did you used to control smart devices?]
-{assistant}
 
 [What did you command the AI assistant?]
 {user_command}
