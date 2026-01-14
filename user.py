@@ -57,8 +57,6 @@ class UserAgent(Client):
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(MASTERMIND_PROMPT) | model.with_tools(control_device_tools)
 
-        self.client.loop_start()
-
     async def command(self, mode, user_command):
         self.log(f"User asked: {user_command}")
         
@@ -84,8 +82,8 @@ class UserAgent(Client):
         finally:
             return "\n".join(self.logs)
 
-    def connection_handler(self):
-        self.subscribe(MQTT_TOPIC_ALIVE, "+")
+    async def connection_handler(self):
+        await self.subscribe(MQTT_TOPIC_ALIVE, "+")
 
     async def message_handler(self, topic, id, sender, message, request_id=""):
         if check_topic(topic, MQTT_TOPIC_ALIVE):
@@ -113,8 +111,8 @@ class UserAgent(Client):
     async def call_for_proposal(self, time_to_wait, message):
         self.log(f"Agent call-for-proposal start ({time_to_wait}s)")
         self.current_team_id = get_random_team_id()
-        self.subscribe(MQTT_TOPIC_LANCE_TEAM, self.current_team_id)
-        self.publish(MQTT_TOPIC_LANCE_CALL, self.current_team_id, message)
+        await self.subscribe(MQTT_TOPIC_LANCE_TEAM, self.current_team_id)
+        await self.publish(MQTT_TOPIC_LANCE_CALL, self.current_team_id, message)
         self.team_messages = [message]
         await asyncio.sleep(time_to_wait)
         self.log("Agent call-for-proposal end")
@@ -148,7 +146,6 @@ class UserAgent(Client):
     # etc
 
     async def wait_for_client(self, client_id):
-        assert self.client.is_connected()
         self.wait.add(client_id)
         while client_id in self.wait:
             await asyncio.sleep(TICK)

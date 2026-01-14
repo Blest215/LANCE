@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -7,7 +8,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from settings import *
 from client import Client
 from device import instantiate_device
-
 
 from pydantic import BaseModel, Field
 class ScreeningResult(BaseModel):
@@ -28,11 +28,11 @@ class Agent(Client):
         # NATURAL
         self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([device.get_tool()])
 
-    def connection_handler(self):
-        self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
-        self.subscribe(MQTT_TOPIC_NATURAL_AGENT, self.id)
-        self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
-        self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, str(self.device))
+    async def connection_handler(self):
+        await self.subscribe(MQTT_TOPIC_LANCE_CALL, "+")
+        await self.subscribe(MQTT_TOPIC_NATURAL_AGENT, self.id)
+        await self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
+        await self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, str(self.device))
 
     async def message_handler(self, topic, id, sender, message, request_id=""):
         if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_CALL):
@@ -43,10 +43,10 @@ class Agent(Client):
             pass
 
         elif check_topic(topic, MQTT_TOPIC_NATURAL_AGENT):
-            self.response(sender, request_id, await self.controlling(sender, request_id, message))
+            await self.response(sender, request_id, await self.controlling(sender, request_id, message))
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_CONTROL):
-            self.response(sender, request_id, await self.control_device(sender, request_id, message))
+            await self.response(sender, request_id, self.control_device(sender, request_id, message))
 
     @property
     def busy(self):
@@ -57,26 +57,29 @@ class Agent(Client):
     async def screening(self, team_id, message):
         screening_result = await self.screener.ainvoke({"message": message, "device_description": str(self.device)})
         if screening_result.score >= SCREENING_THRESHOLD:
-            self.join_team(team_id)
-            self.proposal(screening_result.message)
+            await self.join_team(team_id)
+            await self.proposal(screening_result.message)
 
-    def join_team(self, team_id):
+    async def join_team(self, team_id):
         self.current_team_id = team_id
-        self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
+        await self.subscribe(MQTT_TOPIC_LANCE_TEAM, team_id)
 
-    def proposal(self, message):
-        self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
+    async def proposal(self, message):
+        await self.publish(MQTT_TOPIC_LANCE_TEAM, self.current_team_id, message)
 
     # NATURAL methods
 
     async def controlling(self, sender, request_id, message):
         control_result = await self.controller.ainvoke({"message": message, "device_description": str(self.device)})
-        return await asyncio.gather(*[self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]])
+        return [self.control_device(sender, request_id, tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]]
     
     # CENTRALIZED methods
 
-    async def control_device(self, sender, request_id, arguments):
+    def control_device(self, sender, request_id, arguments):
         return str(self.device.control(**arguments))
 
 def run_agent_process(session, id, model, device_description):
-    Agent(session, id, model, instantiate_device(device_description)).loop_forever()
+    if sys.platform.lower() == "win32" or os.name.lower() == "nt":
+        from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
+        set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+    asyncio.run(Agent(session, id, model, instantiate_device(device_description)).loop())

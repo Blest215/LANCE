@@ -1,6 +1,6 @@
 import json
 import asyncio
-import paho.mqtt.client as mqtt
+import aiomqtt
 
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -14,44 +14,46 @@ class Client(ABC):
         self.id = id
         self.requests = {}
         self.logs = []
+        self.is_connected = False
 
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
-
-    def on_connect(self, client, userdata, flags, reason_code, properties):
-        self.connection_handler()
-        self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
-        self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
-
-    def on_message(self, client, userdata, message):
-        try:
-            session, topic, id = message.topic.split("/")
-            assert session == self.session
-            payload = json.loads(message.payload.decode("utf-8"))
-            sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
-            asyncio.run(self.message_handler(topic, id, sender, message, request_id))
-        except Exception as e:
-            if payload.get("request_id", ""):
-                self.response(sender, request_id, str(e))
+        self.client = None
 
     @abstractmethod
-    def connection_handler(self):
+    async def connection_handler(self):
         pass
 
     @abstractmethod
     async def message_handler(self, topic, id, sender, message, request_id=""):
         pass
 
-    def loop_start(self):
-        self.client.loop_start()
-
-    def loop_forever(self):
-        self.client.loop_forever()
-
-    def is_connected(self):
-        return self.client.is_connected()
+    async def loop(self):
+        self.client = aiomqtt.Client(MQTT_BROKER_ADDRESS)
+        while True:
+            try:
+                async with self.client:
+                    self.is_connected = True
+                    
+                    # Connection
+                    await self.connection_handler()
+                    await self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
+                    await self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
+                    
+                    # Message
+                    async for message in self.client.messages:
+                        try:
+                            session, topic, id = str(message.topic).split("/")
+                            if session == self.session:
+                                payload = json.loads(message.payload.decode("utf-8"))
+                                sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
+                                asyncio.create_task(self.message_handler(topic, id, sender, message, request_id))
+                        except Exception as e:
+                            if payload.get("request_id", ""):
+                                self.response(sender, request_id, str(e))
+            
+            # Connection lost
+            except aiomqtt.MqttError:
+                self.is_connected = False
+                await asyncio.sleep(MQTT_RECONNECT_DELAY)
 
     def log(self, text, agent_id=None):
         self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {f'Agent {agent_id} ' if agent_id else ''}{text}")
@@ -60,7 +62,7 @@ class Client(ABC):
         new_request_id = get_random_request_id()
         self.log(f"New request to agent {agent_id} {message}")
         self.requests[new_request_id] = {"status": "pending"}
-        self.client.publish(self.build_topic(topic, agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
+        await self.client.publish(self.build_topic(topic, agent_id), json.dumps({"sender": self.id, "message": message, "request_id": new_request_id}))
 
         try:
             await asyncio.wait_for(self.wait_for_response(new_request_id), TIMEOUT_LIMIT)
@@ -75,14 +77,14 @@ class Client(ABC):
         while self.requests[request_id]["status"] == "pending":
             await asyncio.sleep(TICK)
 
-    def response(self, sender, request_id, message):
-        self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": str(message), "request_id": request_id}))
+    async def response(self, sender, request_id, message):
+        await self.client.publish(self.build_topic(MQTT_TOPIC_RESPONSE, sender), json.dumps({"sender": self.id, "message": str(message), "request_id": request_id}))
 
-    def publish(self, topic, id, message):
-        self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": str(message)}))
+    async def publish(self, topic, id, message):
+        await self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": str(message)}))
     
-    def subscribe(self, topic, id):
-        self.client.subscribe(self.build_topic(topic, id))
+    async def subscribe(self, topic, id):
+        await self.client.subscribe(self.build_topic(topic, id))
 
     def build_topic(self, topic, id):
         return f"{self.session}/{topic}/{id}"

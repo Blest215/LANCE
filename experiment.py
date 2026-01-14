@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import argparse
 import random
+import sys
 
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
@@ -34,7 +35,8 @@ async def simulate_scenario(semaphore, model, modes, scenario):
             session = get_random_session()
             user_id = "COORDINATOR"
             user = UserAgent(session, id=user_id, model=model)
-            while not user.is_connected():
+            user_loop = asyncio.create_task(user.loop())
+            while not user.is_connected:
                 await asyncio.sleep(TICK)
 
             # Set the registry
@@ -58,6 +60,7 @@ async def simulate_scenario(semaphore, model, modes, scenario):
             results.append(await user.command(mode, scenario.user_command))
 
             # Wrap up
+            user_loop.cancel()
             registry.terminate()
             for p in processes:
                 p.terminate()
@@ -155,14 +158,14 @@ if __name__ == "__main__":
     modes = ["CENTRALIZED", "NATURAL", "LANCE"]
     models = [
         Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
-        Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
         Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
+        Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
-        Model("granite4:350m", backend="ollama", temperature=temperature),
+        # Model("granite4:350m", backend="ollama", temperature=temperature),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
@@ -172,4 +175,7 @@ if __name__ == "__main__":
     ]
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.3, reasoning=False)
 
+    if sys.platform.lower() == "win32" or os.name.lower() == "nt":
+        from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
+        set_event_loop_policy(WindowsSelectorEventLoopPolicy())
     asyncio.run(main(code=code, models=models, modes=modes, evaluation_model=evaluation_model))
