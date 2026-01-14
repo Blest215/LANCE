@@ -3,6 +3,7 @@ import secrets
 import asyncio
 import re
 import os
+import subprocess
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,8 +16,8 @@ DATASET_PATH = "dataset/dataset_synthetic.csv"
 SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{code}"
 
-SIMULATION_CONCURRENCY_MAX = 5
-SIMULATION_CONCURRENCY_DELAY = 10 * SIMULATION_CONCURRENCY_MAX
+SIMULATION_CONCURRENCY_GPU_MAX = 70
+SIMULATION_CONCURRENCY_DELAY = 5
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_CONCURRENCY_MAX = 5
 TIMEOUT_LIMIT = 5
@@ -197,3 +198,15 @@ def get_last_result():
         if os.path.exists(f"{RESULT_PATH.format(code=code)}/result.csv"):
             return code
     return ""
+
+def get_gpu_utilization():
+    try:
+        result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], capture_output=True, text=True)
+        return int(result.stdout.strip().split('\n')[0])
+    except:
+        return 0
+    
+def moving_average(l: list, window: int):
+    while len(l) > window:
+        l.pop(0)
+    return sum(l) / len(l)

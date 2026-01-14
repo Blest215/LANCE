@@ -16,7 +16,7 @@ class Registry(Client):
         await self.subscribe(MQTT_TOPIC_NATURAL_AGENT, "+")
         await self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, "+")
 
-    async def message_handler(self, topic, id, sender, message, request_id=""):
+    async def message_handler(self, topic, id, sender, message, request_id):
         if check_topic(topic, MQTT_TOPIC_CENTRALIZED_REGISTER):
             self.registry[sender] = message
 

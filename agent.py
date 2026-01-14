@@ -34,7 +34,7 @@ class Agent(Client):
         await self.subscribe(MQTT_TOPIC_CENTRALIZED_CONTROL, self.id)
         await self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, str(self.device))
 
-    async def message_handler(self, topic, id, sender, message, request_id=""):
+    async def message_handler(self, topic, id, sender, message, request_id):
         if not self.busy and check_topic(topic, MQTT_TOPIC_LANCE_CALL):
             await self.screening(id, message)
         

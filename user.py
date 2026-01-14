@@ -45,9 +45,8 @@ class UserAgent(Client):
         super().__init__(session, id)
         # TODO multi user situation
         self.configuration = model
-        self.current_team_id = None
-        self.team_messages = []
         self.wait = set()
+        self.agents = set()
 
         # LANCE
         self.organizer = ChatPromptTemplate.from_template(ORGANIZER_PROMPT)| model.with_tools([initiate_task_tool])
@@ -85,9 +84,10 @@ class UserAgent(Client):
     async def connection_handler(self):
         await self.subscribe(MQTT_TOPIC_ALIVE, "+")
 
-    async def message_handler(self, topic, id, sender, message, request_id=""):
+    async def message_handler(self, topic, id, sender, message, request_id):
         if check_topic(topic, MQTT_TOPIC_ALIVE):
             if id in self.wait:
+                self.agents.add(id)
                 self.wait.remove(id)
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:

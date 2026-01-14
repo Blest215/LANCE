@@ -15,6 +15,10 @@ class Client(ABC):
         self.requests = {}
         self.logs = []
         self.is_connected = False
+        
+        # LANCE
+        self.current_team_id = None
+        self.team_messages = []
 
         self.client = None
 
@@ -23,8 +27,14 @@ class Client(ABC):
         pass
 
     @abstractmethod
-    async def message_handler(self, topic, id, sender, message, request_id=""):
+    async def message_handler(self, topic, id, sender, message, request_id):
         pass
+
+    async def on_message(self, topic, id, sender, message, request_id=""):
+        try:
+            await self.message_handler(topic, id, sender, message, request_id)
+        except Exception as e:
+            self.log(type(e).__name__)
 
     async def loop(self):
         self.client = aiomqtt.Client(MQTT_BROKER_ADDRESS)
@@ -41,14 +51,14 @@ class Client(ABC):
                     # Message
                     async for message in self.client.messages:
                         try:
+                            payload = json.loads(message.payload.decode("utf-8"))
                             session, topic, id = str(message.topic).split("/")
                             if session == self.session:
-                                payload = json.loads(message.payload.decode("utf-8"))
                                 sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
-                                asyncio.create_task(self.message_handler(topic, id, sender, message, request_id))
+                                asyncio.create_task(self.on_message(topic, id, sender, message, request_id))
                         except Exception as e:
                             if payload.get("request_id", ""):
-                                self.response(sender, request_id, str(e))
+                                await self.response(sender, request_id, type(e).__name__)
             
             # Connection lost
             except aiomqtt.MqttError:
@@ -88,3 +98,9 @@ class Client(ABC):
 
     def build_topic(self, topic, id):
         return f"{self.session}/{topic}/{id}"
+    
+    def reset(self):
+        self.requests = {}
+        self.logs = []
+        self.current_team_id = None
+        self.team_messages = []
