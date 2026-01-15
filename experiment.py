@@ -53,10 +53,10 @@ async def simulate_scenario(model, modes, scenario):
 
     result = {}
     for mode in modes:
+        await user.new_session(get_random_session())
         conversation, consequences = await user.command(mode, scenario.user_command)
         result[get_column_name("conversation", model, mode)] = conversation
         result[get_column_name("consequences", model, mode)] = consequences
-        user.reset()
 
     # Wrap up
     user_loop.cancel()
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     models = [
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
-        # Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
@@ -219,7 +219,7 @@ if __name__ == "__main__":
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
+        Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
         # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
     ]
     evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.3, reasoning=False) if args.scoring else None

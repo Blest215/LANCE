@@ -16,6 +16,7 @@ class Client(ABC):
         self.logs = []
         self.consequences = []
         self.is_connected = False
+        self.subscriptions = []
         
         # LANCE
         self.current_team_id = None
@@ -31,8 +32,16 @@ class Client(ABC):
     async def message_handler(self, topic, id, sender, message, request_id):
         pass
 
+    async def on_connection(self):
+        await self.connection_handler()
+        await self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
+        await self.subscribe(MQTT_TOPIC_RESET, self.id)
+        await self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
+
     async def on_message(self, topic, id, sender, message, request_id=""):
         try:
+            if check_topic(topic, MQTT_TOPIC_RESET):
+                await self.reset(message)
             await self.message_handler(topic, id, sender, message, request_id)
         except Exception as e:
             self.log(type(e).__name__)
@@ -45,9 +54,7 @@ class Client(ABC):
                     self.is_connected = True
                     
                     # Connection
-                    await self.connection_handler()
-                    await self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
-                    await self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
+                    await self.on_connection()
                     
                     # Message
                     async for message in self.client.messages:
@@ -95,14 +102,24 @@ class Client(ABC):
         await self.client.publish(self.build_topic(topic, id), json.dumps({"sender": self.id, "message": str(message)}))
     
     async def subscribe(self, topic, id):
-        await self.client.subscribe(self.build_topic(topic, id))
-
-    def build_topic(self, topic, id):
-        return f"{self.session}/{topic}/{id}"
+        new_topic = self.build_topic(topic, id)
+        self.subscriptions.append(new_topic)
+        await self.client.subscribe(new_topic)
     
-    def reset(self):
+    async def unsubscribe(self):
+        for topic in self.subscriptions:
+            await self.client.unsubscribe(topic)
+        self.subscriptions = []
+
+    async def reset(self, new_session):
+        self.session = new_session
         self.requests = {}
         self.logs = []
         self.consequences = []
         self.current_team_id = None
         self.team_messages = []
+        await self.unsubscribe()
+        await self.on_connection()
+
+    def build_topic(self, topic, id):
+        return f"{self.session}/{topic}/{id}"

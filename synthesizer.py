@@ -253,7 +253,7 @@ You are a secretary who controls smart devices. How would you control the device
 {format}
 """
 
-async def generate_expectation(planner, answer_dict, scenario):
+async def generate_expectations(planner, answer_dict, scenario):
     while True:
         try:
             # Expectation
@@ -296,10 +296,8 @@ async def generate_scenario(semaphore, generator, retriever, planner, answer):
                 if not all(autocompleted_descriptions):
                     continue
 
-                expectations = await generate_expectation(planner, answer_dict, scenario)
-
                 scenario = scenario.model_dump(exclude_none=True)
-                scenario["evaluation_criteria"] = expectations
+                scenario["evaluation_criteria"] = await generate_expectations(planner, answer_dict, scenario)
                 
                 return scenario
             except OutputParserException:

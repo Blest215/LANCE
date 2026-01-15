@@ -87,7 +87,8 @@ class UserAgent(Client):
     async def message_handler(self, topic, id, sender, message, request_id):
         if check_topic(topic, MQTT_TOPIC_ALIVE):
             if id in self.wait:
-                self.agents.add(id)
+                if id != "REGISTRY":
+                    self.agents.add(id)
                 self.wait.remove(id)
 
         elif check_topic(topic, MQTT_TOPIC_LANCE_TEAM) and id == self.current_team_id:
@@ -152,3 +153,14 @@ class UserAgent(Client):
 
     async def tool_call(self, result):
         await asyncio.gather(*[getattr(self, tool_call["name"])(**tool_call["args"]) for tool_call in result.tool_calls if hasattr(self, tool_call["name"])] if result and hasattr(result, "tool_calls") else [], return_exceptions=True)
+
+    async def new_session(self, new_session):
+        old_session = self.session
+        await self.reset(new_session)
+        await self.client.publish(f"{old_session}/{MQTT_TOPIC_RESET}/{'REGISTRY'}", json.dumps({"sender": self.id, "message": new_session}))
+        await self.wait_for_client("REGISTRY")
+        agents = self.agents
+        for agent_id in agents:
+            await self.client.publish(f"{old_session}/{MQTT_TOPIC_RESET}/{agent_id}", json.dumps({"sender": self.id, "message": new_session}))
+            await self.wait_for_client(agent_id)
+        self.agents = agents
