@@ -199,14 +199,6 @@ class MatterRetriever:
             count += 1
         device.endpoints = endpoints
         return True
-    
-# Scenario
-
-class Scenario(BaseModel):
-    time: datetime = Field(description="Timestamp of the scenario.")
-    device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
-    user_command: str = Field(description="The command the user gives to the AI agent.")
-    evaluation_criteria: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(default={}, description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
 
 GENERATOR_PROMPT = """
 You are a software engineer creating realistic scenarios to test AI agents that control smart devices.
@@ -222,8 +214,6 @@ Convert the given survey answers into a random and realistic scenario to test th
 - The user_command MUST be a command that can be accomplished with the devices in the device_descriptions.
 - The user_command MAY not be specific enough and MAY contain indirect needs.
 - The user_command MAY include multiple concatenated commands specified in the survey answer, not necessarily.
-- The evaluation_criteria MUST reflect the expected behavior in the survey answer.
-- The evaluation_criteria MUST match the device type.
 
 [Where were you?]
 {space}
@@ -234,9 +224,6 @@ Convert the given survey answers into a random and realistic scenario to test th
 [What did you command the AI assistant?]
 {user_command}
 
-[What behavior did you expect from the AI assistant and devices?]
-{expected_behavior}    
-
 [Matter specifications]
 {matter_specifications}
 
@@ -244,10 +231,62 @@ Convert the given survey answers into a random and realistic scenario to test th
 {format}
 """
 
-async def generate_scenario(semaphore, generator, retriever, answer):
+class Expectations(BaseModel):
+    expectations: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
+
+PLANNER_PROMPT = """
+You are a secretary who controls smart devices. How would you control the devices upon the following user's command?
+
+[Space]
+{space}
+
+[Device descriptions]
+{device_descriptions}
+
+[User command]
+{user_command}
+
+[Expected behavior]
+{expected_behavior}
+
+[Format]
+{format}
+"""
+
+async def generate_expectation(planner, answer_dict, scenario):
+    while True:
+        try:
+            # Expectation
+            expectations = await planner.ainvoke({
+                "space": answer_dict["space"],
+                "device_descriptions": scenario.device_descriptions,
+                "user_command": answer_dict["user_command"],
+                "expected_behavior": answer_dict["expected_behavior"],
+            })
+
+            # Validation
+            for agent_id, expectation in expectations.expectations.items():
+                description = None
+                for d in scenario.device_descriptions:
+                    if agent_id == (str(d.deviceId) if isinstance(d, STDevice) else str(d.id)):
+                        description = d
+                        break
+                if description is None:
+                    raise Exception
+                
+                device = instantiate_device("", description.model_dump(exclude_none=True))
+                if device.validate_input(**dict(expectation)) != "VALID":
+                    raise Exception
+            
+            return expectations.model_dump(exclude_none=True)["expectations"]
+        except Exception:
+            continue
+
+async def generate_scenario(semaphore, generator, retriever, planner, answer):
     async with semaphore:
         while True:
             try:
+                # Scenario
                 answer_dict = answer._asdict()
                 answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
                 scenario = await generator.ainvoke(answer_dict)
@@ -257,30 +296,21 @@ async def generate_scenario(semaphore, generator, retriever, answer):
                 if not all(autocompleted_descriptions):
                     continue
 
-                # Validation
-                for agent_id, expectation in scenario.evaluation_criteria.items():
-                    description = None
-                    for d in scenario.device_descriptions:
-                        if agent_id == (str(d.deviceId) if isinstance(d, STDevice) else str(d.id)):
-                            description = d
-                            break
-                    if description is None:
-                        raise Exception
-                    
-                    device = instantiate_device(description.model_dump(exclude_none=True))
-                    if device.validate_input(**dict(expectation)) != "VALID":
-                        raise Exception
+                expectations = await generate_expectation(planner, answer_dict, scenario)
+
+                scenario = scenario.model_dump(exclude_none=True)
+                scenario["evaluation_criteria"] = expectations
                 
-                return scenario.model_dump(exclude_none=True)
+                return scenario
             except OutputParserException:
-                continue
-            except Exception:
                 continue
 
 async def main(model: Model, iterate: int, reset: bool):
     parser = PydanticOutputParser(pydantic_object=Scenario)
     scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
     retriever = MatterRetriever()
+    expectation_parser = PydanticOutputParser(pydantic_object=Expectations)
+    planner = PromptTemplate.from_template(PLANNER_PROMPT).partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
 
     # Load survey results
     survey_df = pd.read_csv(SURVEY_PATH)
@@ -289,7 +319,7 @@ async def main(model: Model, iterate: int, reset: bool):
 
     # Synthesize dataset
     semaphore = asyncio.Semaphore(SYNTHESIZE_CONCURRENCY_MAX)
-    scenarios = pd.DataFrame(await atqdm.gather(*[generate_scenario(semaphore, scenario_generator, retriever, answer) for answer in survey_df.itertuples(index=False)], desc="Synthesize"))
+    scenarios = pd.DataFrame(await atqdm.gather(*[generate_scenario(semaphore, scenario_generator, retriever, planner, answer) for answer in survey_df.itertuples(index=False)], desc="Synthesize"))
 
     # Save dataset
     df = pd.concat([pd.read_csv(DATASET_PATH), scenarios], ignore_index=True) if os.path.exists(DATASET_PATH) and not reset else scenarios
@@ -302,6 +332,12 @@ if __name__ == "__main__":
     argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss-safeguard:20b", help="LLM to use")
     argument_parser.add_argument("--iterate", type=int, required=False, default=1, help="Number of iterations over the survey result")
     args = argument_parser.parse_args()
+
+    class Scenario(BaseModel):
+        time: datetime = Field(description="Timestamp of the scenario.")
+        device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
+        user_command: str = Field(description="The command the user gives to the AI agent.")
+
     model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0, max_output_tokens=16384)
 
     asyncio.run(main(model=model, iterate=args.iterate, reset=args.reset))
