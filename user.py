@@ -79,7 +79,7 @@ class UserAgent(Client):
             self.log(type(e).__name__)
         
         finally:
-            return "\n".join(self.logs)
+            return "\n".join(self.logs), self.consequences
 
     async def connection_handler(self):
         await self.subscribe(MQTT_TOPIC_ALIVE, "+")
@@ -124,7 +124,7 @@ class UserAgent(Client):
     # NATURAL methods
 
     async def ask_agent(self, agent_id, message):
-        return await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message)
+        self.consequences += eval(await self.request(MQTT_TOPIC_NATURAL_AGENT, agent_id, message))
 
     # CENTRALIZED methods
 
@@ -132,16 +132,16 @@ class UserAgent(Client):
         return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
     async def control_device(self, agent_id, **kwargs):
-        return await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, kwargs)
+        self.consequences += eval(await self.request(MQTT_TOPIC_CENTRALIZED_CONTROL, agent_id, kwargs))
     
     async def control_device_w3c(self, agent_id, **kwargs):
-        return await self.control_device(agent_id, **kwargs)
+        await self.control_device(agent_id, **kwargs)
     
     async def control_device_smartthings(self, agent_id, **kwargs):
-        return await self.control_device(agent_id, **kwargs)
+        await self.control_device(agent_id, **kwargs)
     
     async def control_device_matter(self, agent_id, **kwargs):
-        return await self.control_device(agent_id, **kwargs)
+        await self.control_device(agent_id, **kwargs)
     
     # etc
 

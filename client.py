@@ -14,6 +14,7 @@ class Client(ABC):
         self.id = id
         self.requests = {}
         self.logs = []
+        self.consequences = []
         self.is_connected = False
         
         # LANCE
@@ -102,5 +103,6 @@ class Client(ABC):
     def reset(self):
         self.requests = {}
         self.logs = []
+        self.consequences = []
         self.current_team_id = None
         self.team_messages = []

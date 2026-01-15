@@ -8,14 +8,16 @@ from abc import ABC, abstractmethod
 from settings import *
 
 from pydantic import BaseModel, Field
-class ResponseMessage(BaseModel):
+class DeviceBehavior(BaseModel):
+    agent_id: str
     request: dict
     success: bool
     message: str
 
 class Device(ABC):
-    def __init__(self, description):
+    def __init__(self, agent_id, description):
         # TODO natural language descriptions
+        self.agent_id = agent_id # One-to-one
         self.description = description
         self.dict = description
         # TODO experiment control
@@ -24,14 +26,14 @@ class Device(ABC):
     def __str__(self):
         return str(self.description)
     
-    def control(self, **kwargs) -> ResponseMessage:
+    def control(self, **kwargs) -> DeviceBehavior:
         try:
             validation_result = self.validate_input(**kwargs)
             if validation_result == "VALID":
                 return self.execute(**kwargs) if self.experiment else self.request(kwargs)
-            return ResponseMessage(request=kwargs, success=False, message=validation_result)
+            return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=False, message=validation_result)
         except Exception as e:
-            return ResponseMessage(request=kwargs, success=False, message=str(e))
+            return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=False, message=str(e))
         
     @staticmethod
     @abstractmethod
@@ -43,18 +45,15 @@ class Device(ABC):
         pass
 
     @abstractmethod
-    def execute(self, **kwargs) -> ResponseMessage:
+    def execute(self, **kwargs) -> DeviceBehavior:
         pass
 
     @abstractmethod
-    def request(self, **kwargs) -> ResponseMessage:
+    def request(self, **kwargs) -> DeviceBehavior:
         pass
 
-def instantiate_device(description) -> Device:
-    try:
-        return getattr(sys.modules[__name__], f"{description['format']}Device")(description)
-    except:
-        return
+def instantiate_device(id, description) -> Device:
+    return getattr(sys.modules[__name__], f"{description['format']}Device")(id, description)
 
 
 class W3CDevice(Device):
@@ -84,10 +83,11 @@ class W3CDevice(Device):
             return "INVALID ACTION NAME"
         if "required" in self.dict["actions"][kwargs["action"]] and self.dict["actions"][kwargs["action"]]["required"] not in kwargs["arguments"]:
             return "REQUIRED ARGUMENTS MISSING"
+        # TODO ARGUMENTS
         return "VALID"
     
     def execute(self, **kwargs):
-        return ResponseMessage(request=kwargs, success=True, message="")
+        return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=True, message="")
 
     def request(self, **kwargs):
         pass
@@ -126,13 +126,14 @@ class SmartThingsDevice(Device):
         return "VALID"
     
     def execute(self, **kwargs):
-        return ResponseMessage(request=kwargs, success=True, message="")
+        return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=True, message="")
     
     def request(self, **kwargs):
         try:
             command = {"component": "main", "capability": kwargs["capability"], "command": kwargs["command"]}
             # TODO arguments control
-            return ResponseMessage(
+            return DeviceBehavior(
+                agent_id=self.agent_id,
                 request=kwargs,
                 success=True,
                 message=requests.post(
@@ -143,7 +144,7 @@ class SmartThingsDevice(Device):
             )
         except Exception as e:
             # TODO
-            return ResponseMessage(request=kwargs, success=False, message=str(e))
+            return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=False, message=str(e))
 
 
 class MatterDevice(Device):
@@ -176,9 +177,9 @@ class MatterDevice(Device):
             return "NO COMMAND ID"
         if kwargs["endpoint_id"] not in self.dict["endpoints"]:
             return "INVALID ENDPOINT ID"
-        if kwargs["cluster_id"] not in self.dict["endpoints"][int(kwargs["endpoint_id"])]["clusters"]:
+        if kwargs["cluster_id"] not in self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"]:
             return "INVALID CLUSTER ID"
-        if kwargs["command_id"] not in self.dict["endpoints"][int(kwargs["endpoint_id"])]["clusters"][kwargs["cluster_id"]]["commands"]:
+        if kwargs["command_id"] not in self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"][kwargs["cluster_id"]]["commands"]:
             return "INVALID COMMAND ID"
         return "VALID"
     
@@ -186,7 +187,7 @@ class MatterDevice(Device):
         endpoint = self.dict['endpoints'][kwargs['endpoint_id']]
         cluster = endpoint['clusters'][kwargs['cluster_id']]
         command = cluster['commands'][kwargs['command_id']]
-        return ResponseMessage(request=kwargs, success=True, message=f"Endpoint {endpoint['device_type_name']} Cluster {cluster['cluster_name']} Command {command['command_name']}")
+        return DeviceBehavior(agent_id=self.agent_id, request=kwargs, success=True, message=f"Endpoint {endpoint['device_type_name']} Cluster {cluster['cluster_name']} Command {command['command_name']}")
 
     def request(self, **kwargs):
         pass

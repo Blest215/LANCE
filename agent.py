@@ -46,7 +46,7 @@ class Agent(Client):
             await self.response(sender, request_id, await self.controlling(sender, request_id, message))
 
         elif check_topic(topic, MQTT_TOPIC_CENTRALIZED_CONTROL):
-            await self.response(sender, request_id, self.control_device(sender, request_id, message))
+            await self.response(sender, request_id, [self.control_device(sender, request_id, message)])
 
     @property
     def busy(self):
@@ -76,10 +76,10 @@ class Agent(Client):
     # CENTRALIZED methods
 
     def control_device(self, sender, request_id, arguments):
-        return str(self.device.control(**arguments))
+        return dict(self.device.control(**arguments))
 
 def run_agent_process(session, id, model, device_description):
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(Agent(session, id, model, instantiate_device(device_description)).loop())
+    asyncio.run(Agent(session, id, model, instantiate_device(id, device_description)).loop())

@@ -23,13 +23,17 @@ from typing import Optional, Literal, Annotated
 from pydantic import BaseModel, Field, PlainSerializer
 from typing import List, Dict, Any, Optional
 
-from model import Model
 from settings import *
+from device import instantiate_device
+from model import Model
 
 def serialize_id(id: UUID) -> str:
     return str(id)
 
 # W3C WoT TD
+
+class TDExpectation(BaseModel):
+    action: str
 
 class TDProperty(BaseModel):
     type: Literal["integer", "string"]
@@ -54,6 +58,10 @@ class TDDevice(BaseModel):
     actions: Dict[str, TDAction] = Field(description="Actions the device can perform with optional arguments.")
 
 # SmartThings
+
+class STExpectation(BaseModel):
+    capability: str
+    command: str
 
 class STCapability(BaseModel):
     id: str = Field(description="Name of the capability.")
@@ -84,6 +92,11 @@ class STDevice(BaseModel):
     # TODO relationships
 
 # Matter
+
+class MTExpectation(BaseModel):
+    endpoint_id: str
+    cluster_id: str
+    command_id: str
 
 class MTEndpoint(BaseModel):
     endpoint_id: str
@@ -193,7 +206,7 @@ class Scenario(BaseModel):
     time: datetime = Field(description="Timestamp of the scenario.")
     device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
     user_command: str = Field(description="The command the user gives to the AI agent.")
-    evaluation_criteria: Dict[str, str] = Field(description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
+    evaluation_criteria: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(default={}, description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
 
 GENERATOR_PROMPT = """
 You are a software engineer creating realistic scenarios to test AI agents that control smart devices.
@@ -210,7 +223,7 @@ Convert the given survey answers into a random and realistic scenario to test th
 - The user_command MAY not be specific enough and MAY contain indirect needs.
 - The user_command MAY include multiple concatenated commands specified in the survey answer, not necessarily.
 - The evaluation_criteria MUST reflect the expected behavior in the survey answer.
-- The evaluation_criteria MUST not include inaccurate details not specified in the survey answer.
+- The evaluation_criteria MUST match the device type.
 
 [Where were you?]
 {space}
@@ -239,13 +252,29 @@ async def generate_scenario(semaphore, generator, retriever, answer):
                 answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
                 scenario = await generator.ainvoke(answer_dict)
 
-                # Validation
+                # Matter autocompletion
                 autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
                 if not all(autocompleted_descriptions):
                     continue
+
+                # Validation
+                for agent_id, expectation in scenario.evaluation_criteria.items():
+                    description = None
+                    for d in scenario.device_descriptions:
+                        if agent_id == (str(d.deviceId) if isinstance(d, STDevice) else str(d.id)):
+                            description = d
+                            break
+                    if description is None:
+                        raise Exception
+                    
+                    device = instantiate_device(description.model_dump(exclude_none=True))
+                    if device.validate_input(**dict(expectation)) != "VALID":
+                        raise Exception
                 
                 return scenario.model_dump(exclude_none=True)
             except OutputParserException:
+                continue
+            except Exception:
                 continue
 
 async def main(model: Model, iterate: int, reset: bool):
