@@ -18,7 +18,7 @@ class Client(ABC):
         self.is_connected = False
         self.subscriptions = []
         
-        # LANCE
+        # RECRUIT
         self.current_team_id = None
         self.team_messages = []
 
@@ -63,7 +63,7 @@ class Client(ABC):
                             session, topic, id = str(message.topic).split("/")
                             if session == self.session:
                                 sender, message, request_id = payload.get("sender", "UNKNOWN"), payload.get("message", "EMPTY"), payload.get("request_id", "")
-                                asyncio.create_task(self.on_message(topic, id, sender, message, request_id))
+                                await self.on_message(topic, id, sender, message, request_id)
                         except Exception as e:
                             if payload.get("request_id", ""):
                                 await self.response(sender, request_id, type(e).__name__)
@@ -76,6 +76,14 @@ class Client(ABC):
     def log(self, text, agent_id=None):
         self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {f'Agent {agent_id} ' if agent_id else ''}{text}")
 
+    async def join_team(self, team_id):
+        self.current_team_id = team_id
+        await self.subscribe(MQTT_TOPIC_RECRUIT_TEAM, team_id)
+
+    async def leave_team(self):
+        await self.unsubscribe(self.build_topic(MQTT_TOPIC_RECRUIT_TEAM, self.current_team_id))
+        self.current_team_id = None
+
     async def request(self, topic, agent_id, message):
         new_request_id = get_random_request_id()
         self.log(f"New request to agent {agent_id} {message}")
@@ -86,7 +94,7 @@ class Client(ABC):
             await asyncio.wait_for(self.wait_for_response(new_request_id), TIMEOUT_LIMIT)
         except asyncio.TimeoutError:
             self.requests[new_request_id]["status"] = "timeout"
-            self.requests[new_request_id]["response"] = "timeout"
+            self.requests[new_request_id]["response"] = ["timeout"]
         
         self.log(f"Agent {agent_id} responded {self.requests[new_request_id]['response']}")
         return self.requests[new_request_id]["response"]
@@ -106,10 +114,10 @@ class Client(ABC):
         self.subscriptions.append(new_topic)
         await self.client.subscribe(new_topic)
     
-    async def unsubscribe(self):
-        for topic in self.subscriptions:
+    async def unsubscribe(self, topic):
+        if topic in self.subscriptions:
             await self.client.unsubscribe(topic)
-        self.subscriptions = []
+            self.subscriptions.remove(topic)
 
     async def reset(self, new_session):
         self.session = new_session
@@ -118,7 +126,8 @@ class Client(ABC):
         self.consequences = []
         self.current_team_id = None
         self.team_messages = []
-        await self.unsubscribe()
+        for topic in self.subscriptions:
+            await self.unsubscribe(topic)
         await self.on_connection()
 
     def build_topic(self, topic, id):

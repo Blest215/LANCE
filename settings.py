@@ -16,14 +16,14 @@ DATASET_PATH = "dataset/dataset_synthetic.csv"
 SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{code}"
 
-SIMULATION_CONCURRENCY_GPU_MAX = 70
+SIMULATION_CONCURRENCY_GPU_MAX = 60
 SIMULATION_CONCURRENCY_DELAY = 5
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_EXPECTATION_RETRY = 3
 TIMEOUT_LIMIT = 5
 TICK = 0.1
 
-ALLOWED_MODES = ["LANCE", "NATURAL", "CENTRALIZED", "ONTOLOGY"]
+ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
 
 # LLM
 
@@ -34,9 +34,10 @@ DB_PATH = "dataset/db"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 
-# LANCE
+# RECRUIT
 
-SCREENING_THRESHOLD = 0.3
+RECRUIT_SCREENING_THRESHOLD = 0.3
+RECRUIT_TIME_TO_WAIT = 20
 
 # MQTT
 
@@ -45,15 +46,15 @@ MQTT_BROKER_ADDRESS = "localhost"
 MQTT_TOPIC_ALIVE = "alive"
 MQTT_TOPIC_RESET = "reset"
 MQTT_TOPIC_RESPONSE = "response"
-# mode LANCE topics
-MQTT_TOPIC_LANCE_CALL = "call"
-MQTT_TOPIC_LANCE_TEAM = "team"
+# mode RECRUIT topics
+MQTT_TOPIC_RECRUIT_CALL = "call"
+MQTT_TOPIC_RECRUIT_TEAM = "team"
 # mode NATURAL topics
-MQTT_TOPIC_NATURAL_AGENT = "agent"
+MQTT_TOPIC_NATURAL_CONTROL = "natural"
 # mode CENTRALIZED topics
+MQTT_TOPIC_STRUCTURED_CONTROL = "structured"
 MQTT_TOPIC_CENTRALIZED_DISCOVERY = "discovery"
 MQTT_TOPIC_CENTRALIZED_REGISTER = "register"
-MQTT_TOPIC_CENTRALIZED_CONTROL = "control"
 # mode CLOUD topics
 # mode ONTOLOGY topics
 
@@ -61,39 +62,20 @@ MQTT_TOPIC_CENTRALIZED_CONTROL = "control"
 
 SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
-# User agent
-
-ORGANIZER_PROMPT = """
-You are an organizer AI agent that helps users to accomplish their tasks with other device agents.
-Recruit other agents that can contribute to accomplishing the user's command.
-
-[User Command]
-{user_command}
-"""
+# User
 
 COORDINATOR_PROMPT = """
 You are a coordinator AI agent that orchestrates other agents to accomplish the user's command.
-According to the team messages, order other agents the appropriate sub-task.
+According to the given information, order other agents the appropriate sub-task.
 
 [User Command]
 {user_command}
 
-[Team Messages]
-{team_messages}
+[Agent Information]
+{agent_information}
 """
 
-MASTERMIND_PROMPT = """
-You are an AI agent that controls devices to accomplish the user's command.
-Control the appropriate device by selecting the correct tool matched to the format.
-
-[User Command]
-{user_command}
-
-[Device Descriptions]
-{device_descriptions}
-"""
-
-# LANCE agents
+# Agents
 
 SCREENER_PROMPT = """
 You are an AI agent that controls the following device.

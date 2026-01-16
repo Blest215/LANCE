@@ -70,6 +70,10 @@ async def simulation(code, models, modes):
     result_path = f"{RESULT_PATH.format(code=code)}/result.csv"
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(DATASET_PATH)
 
+    async def wait():
+        await asyncio.sleep(1)
+        gpu_utilizations.append(get_gpu_utilization())
+
     done_conversation_columns = [column for column in parse_column(df, "conversation")]
     for model in models:
         undone_modes = [mode for mode in modes if get_column_name("conversation", model, mode) not in done_conversation_columns]
@@ -81,12 +85,10 @@ async def simulation(code, models, modes):
         gpu_utilizations = [get_gpu_utilization()]
         for scenario in tqdm(df.itertuples(), total=len(df), desc=f"Simulation {str(model):30}"):
             while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
-                await asyncio.sleep(1)
-                gpu_utilizations.append(get_gpu_utilization())
+                await wait()
             tasks.append(asyncio.create_task(simulate_scenario(model, undone_modes, scenario)))
             for _ in range(SIMULATION_CONCURRENCY_DELAY):
-                await asyncio.sleep(1)
-                gpu_utilizations.append(get_gpu_utilization())
+                await wait()
         simulation_results = await asyncio.gather(*tasks)
 
         for mode in undone_modes:
@@ -204,7 +206,7 @@ if __name__ == "__main__":
 
     temperature = 0.8
 
-    modes = ["CENTRALIZED", "NATURAL", "LANCE"]
+    modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
     models = [
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
