@@ -16,8 +16,8 @@ DATASET_PATH = "dataset/dataset_synthetic.csv"
 SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{code}"
 
-SIMULATION_CONCURRENCY_GPU_MAX = 60
-SIMULATION_CONCURRENCY_DELAY = 10
+SIMULATION_CONCURRENCY_GPU_MAX = 50
+SIMULATION_CONCURRENCY_DELAY = 5
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_EXPECTATION_RETRY = 3
 TIMEOUT_LIMIT = 5
@@ -65,14 +65,17 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 # User
 
 COORDINATOR_PROMPT = """
-You are a coordinator AI agent that orchestrates other agents to accomplish the user's command.
-According to the given information, order other agents the appropriate sub-task.
+You are a coordinator who can control devices in the descriptions by using the given tool.
+To accomplish the user's command, instruct the agents or control the devices by using the given tool.
+
+[Rules]
+- **You MUST use at least one tool.**
 
 [User Command]
 {user_command}
 
-[Agent Information]
-{agent_information}
+[Descriptions]
+{descriptions}
 """
 
 # Agents
@@ -81,9 +84,9 @@ SCREENER_PROMPT = """
 You are an AI agent that controls the following device.
 
 [Device Description]
-{device_description}
+{description}
 
-Answer the message with how well you can contribute to the task.
+Answer the recruting message with how well you can contribute to the task.
 
 [Message]
 {message}
@@ -96,7 +99,7 @@ CONTROLLER_PROMPT = """
 You are an AI agent that controls the following device.
 
 [Device Description]
-{device_description}
+{description}
 
 Control the device according to the given message.
 

@@ -210,7 +210,7 @@ if __name__ == "__main__":
     if not os.path.exists(RESULT_PATH.format(code=code)):
         os.mkdir(RESULT_PATH.format(code=code))
 
-    temperature = 0.8
+    temperature = 0.3
 
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
     models = [

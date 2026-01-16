@@ -1,26 +1,27 @@
 import asyncio
 
+from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from client import Client
 from device import *
 
-ask_agent_tool = {
+instruct_agent_tool = convert_to_openai_tool({
     'type': 'function',
     'function': {
-        'name': 'ask_agent',
-        'description': 'send a natural language message to a specific agent for asking device control',
+        'name': 'instruct_agent',
+        'description': 'instruct an agent to control the associated device',
         'parameters': {
             'type': 'object',
             'required': ['agent_id', 'message'],
             'properties': {
-                'agent_id': {'type': 'string', 'description': 'the ID of the agent to call'},
-                'message': {'type': 'string', 'description': 'the message to send to the agent'},
+                'agent_id': {'type': 'string', 'description': 'the ID of the agent to instruct'},
+                'message': {'type': 'string', 'description': 'the instructing message to send to the agent'},
             },
         },
     },
-}
+})
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -34,7 +35,7 @@ class UserAgent(Client):
         self.agents = set()
 
         # NATURAL
-        self.natural = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([ask_agent_tool])
+        self.natural = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([instruct_agent_tool])
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools(control_device_tools)
 
@@ -43,13 +44,13 @@ class UserAgent(Client):
         
         try:
             if mode == "CENTRALIZED":
-                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "agent_information": await self.discovery()}))
+                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "descriptions": await self.discovery()}))
             
             elif mode == "NATURAL":
-                await self.ask_agent(await self.natural.ainvoke({"user_command": user_command, "agent_information": await self.discovery()}))
+                await self.instruct_agent(await self.natural.ainvoke({"user_command": user_command, "descriptions": await self.discovery()}))
             
             elif mode == "RECRUIT":
-                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "agent_information": await self.recruit_team(user_command)}))
+                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "descriptions": await self.recruit_team(user_command)}))
             
             elif mode == "CONVERSATIONAL":
                 pass
@@ -96,7 +97,7 @@ class UserAgent(Client):
 
     # NATURAL methods
 
-    async def ask_agent(self, result):
+    async def instruct_agent(self, result):
         self.consequences += sum(await asyncio.gather(*[self.control(MQTT_TOPIC_NATURAL_CONTROL, **tool_call["args"]) for tool_call in result.tool_calls]), []) if hasattr(result, "tool_calls") else []
 
     # CENTRALIZED methods

@@ -3,6 +3,8 @@ import os
 import json
 import sys
 
+from langchain_core.utils.function_calling import convert_to_openai_tool
+
 from abc import ABC, abstractmethod
 
 from settings import *
@@ -30,7 +32,7 @@ class Device(ABC):
         
     @staticmethod
     @abstractmethod
-    def get_tool() -> dict:
+    def get_tool():
         pass
 
     @abstractmethod
@@ -52,22 +54,22 @@ def instantiate_device(id, description) -> Device:
 class W3CDevice(Device):
     @staticmethod
     def get_tool():
-        return {
+        return convert_to_openai_tool({
             'type': 'function',
             'function': {
                 'name': 'control_device_w3c',
-                'description': 'control the W3C WoT device associated with agent_id',
+                'description': 'control the W3C device associated with agent_id',
                 'parameters': {
                     'type': 'object',
                     'required': ['agent_id', 'action'],
                     'properties': {
                         'agent_id': {'type': 'string', 'description': 'the ID of the agent associated with the device to control'},
                         'action': {'type': 'string', 'description': 'the action to perform'},
-                        'arguments': {'type': 'list', 'description': 'the arguments for the action'},
+                        'arguments': {'type': 'dict', 'description': 'the arguments for the action'},
                     },
                 },
             },
-        }
+        })
     
     def validate_input(self, **kwargs):
         if "action" not in kwargs:
@@ -89,7 +91,7 @@ class W3CDevice(Device):
 class SmartThingsDevice(Device):
     @staticmethod
     def get_tool():
-        return {
+        return convert_to_openai_tool({
             'type': 'function',
             'function': {
                 'name': 'control_device_smartthings',
@@ -100,12 +102,12 @@ class SmartThingsDevice(Device):
                     'properties': {
                         'agent_id': {'type': 'string', 'description': 'the ID of the agent associated with the device to control'},
                         'capability': {'type': 'string', 'description': 'the capability of the device to control'},
-                        'command': {'type': 'string', 'description': 'the command for the action'},
-                        'arguments': {'type': 'list', 'description': 'the arguments for the command'},
+                        'command': {'type': 'string', 'description': 'the command to apply to the capability'},
+                        'arguments': {'type': 'dict', 'description': 'the arguments for the command'},
                     },
                 },
             },
-        }
+        })
         
     def validate_input(self, **kwargs):
         if "capability" not in kwargs:
@@ -143,7 +145,7 @@ class SmartThingsDevice(Device):
 class MatterDevice(Device):
     @staticmethod
     def get_tool() -> dict:
-        return {
+        return convert_to_openai_tool({
             'type': 'function',
             'function': {
                 'name': 'control_device_matter',
@@ -153,13 +155,13 @@ class MatterDevice(Device):
                     'required': ['agent_id', 'endpoint_id', 'cluster_id', 'command_id'],
                     'properties': {
                         'agent_id': {'type': 'string', 'description': 'the ID of the agent associated with the device to control'},
-                        'endpoint_id': {'type': 'str', 'description': 'the hexcode ID of the endpoint to control'},
-                        'cluster_id': {'type': 'str', 'description': 'the hexcode ID of the cluster to control'},
-                        'command_id': {'type': 'str', 'description': 'the hexcode ID of the command'}
+                        'endpoint_id': {'type': 'string', 'description': 'the hexcode ID of the endpoint to control'},
+                        'cluster_id': {'type': 'string', 'description': 'the hexcode ID of the cluster to control'},
+                        'command_id': {'type': 'string', 'description': 'the hexcode ID of the command'}
                     }
                 }
             }
-        }
+        })
 
     def validate_input(self, **kwargs) -> str:
         if "endpoint_id" not in kwargs:
