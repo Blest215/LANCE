@@ -74,6 +74,7 @@ async def simulation(code, models, modes):
         await asyncio.sleep(1)
         gpu_utilizations.append(get_gpu_utilization())
         pbar.n = sum(1 for t in tasks if t.done())
+        pbar.set_postfix({"running": len(tasks) - pbar.n})
         pbar.refresh()
 
     done_conversation_columns = [column for column in parse_column(df, "conversation")]
@@ -92,6 +93,8 @@ async def simulation(code, models, modes):
                 tasks.append(asyncio.create_task(simulate_scenario(model, undone_modes, scenario)))
                 for _ in range(SIMULATION_CONCURRENCY_DELAY):
                     await wait()
+            while not all(t.done() for t in tasks):
+                await wait()
         simulation_results = await asyncio.gather(*tasks)
 
         for mode in undone_modes:
@@ -213,7 +216,7 @@ if __name__ == "__main__":
     models = [
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
-        Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),

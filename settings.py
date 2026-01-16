@@ -17,7 +17,7 @@ SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{code}"
 
 SIMULATION_CONCURRENCY_GPU_MAX = 60
-SIMULATION_CONCURRENCY_DELAY = 5
+SIMULATION_CONCURRENCY_DELAY = 10
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_EXPECTATION_RETRY = 3
 TIMEOUT_LIMIT = 5
@@ -128,6 +128,12 @@ Evaluate the behavior of the agents in the conversation whether the user's task 
 {format}
 """
 
+from pydantic import BaseModel, Field
+class Response(BaseModel):
+    agent_id: str
+    request: dict
+    success: bool
+    message: str
 
 def get_random_device_id():
     return str(uuid.uuid4())
