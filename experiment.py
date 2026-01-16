@@ -73,6 +73,8 @@ async def simulation(code, models, modes):
     async def wait():
         await asyncio.sleep(1)
         gpu_utilizations.append(get_gpu_utilization())
+        pbar.n = sum(1 for t in tasks if t.done())
+        pbar.refresh()
 
     done_conversation_columns = [column for column in parse_column(df, "conversation")]
     for model in models:
@@ -83,12 +85,13 @@ async def simulation(code, models, modes):
         tasks = []
         simulation_results = []
         gpu_utilizations = [get_gpu_utilization()]
-        for scenario in tqdm(df.itertuples(), total=len(df), desc=f"Simulation {str(model):30}"):
-            while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
-                await wait()
-            tasks.append(asyncio.create_task(simulate_scenario(model, undone_modes, scenario)))
-            for _ in range(SIMULATION_CONCURRENCY_DELAY):
-                await wait()
+        with tqdm(total=len(df), desc=f"Simulation {str(model):30}") as pbar:
+            for scenario in df.itertuples():
+                while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
+                    await wait()
+                tasks.append(asyncio.create_task(simulate_scenario(model, undone_modes, scenario)))
+                for _ in range(SIMULATION_CONCURRENCY_DELAY):
+                    await wait()
         simulation_results = await asyncio.gather(*tasks)
 
         for mode in undone_modes:
