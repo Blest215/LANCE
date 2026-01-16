@@ -126,7 +126,7 @@ def evaluate_scenario(scenario, columns):
         consequences = eval(getattr(scenario, column))
         for agent_id, expectation in evaluation_criteria.items():
             correct += 1 if compare_consequence(expectation, find_consequence(consequences, agent_id)) else 0
-        result[column.replace("consequences", "accuracy")] = correct / len(evaluation_criteria)
+        result[column.replace("consequences", "accuracy")] = correct / len(evaluation_criteria) if len(evaluation_criteria) > 0 else None
     return result
 
 async def scoring_scenario(semaphore, evaluator, scenario, column_name):

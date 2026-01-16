@@ -19,7 +19,7 @@ RESULT_PATH = "results/{code}"
 SIMULATION_CONCURRENCY_GPU_MAX = 70
 SIMULATION_CONCURRENCY_DELAY = 5
 EVALUATION_CONCURRENCY_MAX = 10
-SYNTHESIZE_CONCURRENCY_MAX = 5
+SYNTHESIZE_EXPECTATION_RETRY = 3
 TIMEOUT_LIMIT = 5
 TICK = 0.1
 
@@ -31,8 +31,8 @@ MAX_OUTPUT_TOKENS = 1024
 MAX_MODEL_LEN = 4096
 GPU_MEMORY_UTILIZATION = 0.8
 DB_PATH = "dataset/db"
-CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
-DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
+MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
+MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 
 # LANCE
 
@@ -64,15 +64,16 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 # User agent
 
 ORGANIZER_PROMPT = """
-You are an AI assistant that helps users to accomplish their tasks by coordinating other agents.
-Ask other agents to contribute to the user's task.
+You are an organizer AI agent that helps users to accomplish their tasks with other device agents.
+Recruit other agents that can contribute to accomplishing the user's command.
 
 [User Command]
 {user_command}
 """
 
 COORDINATOR_PROMPT = """
-You are an AI assistant that organizes other agents to accomplish a user's task.
+You are a coordinator AI agent that orchestrates other agents to accomplish the user's command.
+According to the team messages, order other agents the appropriate sub-task.
 
 [User Command]
 {user_command}
@@ -82,10 +83,8 @@ You are an AI assistant that organizes other agents to accomplish a user's task.
 """
 
 MASTERMIND_PROMPT = """
-You are an AI assistant that controls devices to accomplish a user's task.
-
-[Rules]
-- You MUST select the appropriate tool to control a device, according to the description format.
+You are an AI agent that controls devices to accomplish the user's command.
+Control the appropriate device by selecting the correct tool matched to the format.
 
 [User Command]
 {user_command}
@@ -97,12 +96,12 @@ You are an AI assistant that controls devices to accomplish a user's task.
 # LANCE agents
 
 SCREENER_PROMPT = """
-You are an AI assistant that controls the following device.
+You are an AI agent that controls the following device.
 
 [Device Description]
 {device_description}
 
-Judge how well you can contribute to the given task.
+Answer the message with how well you can contribute to the task.
 
 [Message]
 {message}
@@ -112,12 +111,12 @@ Judge how well you can contribute to the given task.
 """
 
 CONTROLLER_PROMPT = """
-You are an AI assistant that controls the following device.
+You are an AI agent that controls the following device.
 
 [Device Description]
 {device_description}
 
-Control the device based on the given message.
+Control the device according to the given message.
 
 [Message]
 {message}

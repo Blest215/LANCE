@@ -7,6 +7,7 @@ import requests
 import xml.etree.ElementTree as ET
 import json
 
+from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -34,6 +35,7 @@ def serialize_id(id: UUID) -> str:
 
 class TDExpectation(BaseModel):
     action: str
+    # TODO arguments
 
 class TDProperty(BaseModel):
     type: Literal["integer", "string"]
@@ -97,6 +99,7 @@ class MTExpectation(BaseModel):
     endpoint_id: str
     cluster_id: str
     command_id: str
+    # TODO arguments
 
 class MTEndpoint(BaseModel):
     endpoint_id: str
@@ -117,7 +120,7 @@ class MatterRetriever:
             os.mkdir(DB_PATH)
 
         # Get clusters
-        if not os.path.exists(CLUSTERS_PATH):
+        if not os.path.exists(MATTER_CLUSTERS_PATH):
             files = requests.get(f"https://api.github.com/repos/project-chip/connectedhomeip/contents/data_model/{version}/clusters").json()
             clusters = {}
             for file in files:
@@ -134,11 +137,11 @@ class MatterRetriever:
                             for command in cluster_xml.findall(".//command")
                         }
                     }
-            json.dump(clusters, open(CLUSTERS_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
-        self.clusters = json.load(open(CLUSTERS_PATH, 'r', encoding='utf-8'))
+            json.dump(clusters, open(MATTER_CLUSTERS_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
+        self.clusters = json.load(open(MATTER_CLUSTERS_PATH, 'r', encoding='utf-8'))
 
         # Get device types
-        if not os.path.exists(DEVICE_TYPES_PATH):
+        if not os.path.exists(MATTER_DEVICE_TYPES_PATH):
             files = requests.get(f"https://api.github.com/repos/project-chip/connectedhomeip/contents/data_model/{version}/device_types").json()
             device_types = {}
             for file in files:
@@ -155,13 +158,13 @@ class MatterRetriever:
                             for cluster in device_type_xml.findall('.//cluster') if cluster.get('id') in self.clusters
                         }
                     }
-            json.dump(device_types, open(DEVICE_TYPES_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
-        self.device_types = json.load(open(DEVICE_TYPES_PATH, 'r', encoding='utf-8'))
+            json.dump(device_types, open(MATTER_DEVICE_TYPES_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
+        self.device_types = json.load(open(MATTER_DEVICE_TYPES_PATH, 'r', encoding='utf-8'))
 
         documents = [Document(page_content=f"Device type: {self.device_types[id]['name']} (ID: {id})", metadata={"device_type": self.device_types[id]["name"], "device_type_id": id}) for id in self.device_types]
         
         self.retriever = BM25Retriever.from_documents(documents)
-        self.retriever.k = 10
+        self.retriever.k = 5
     
     def invoke(self, input, **kwargs):
         return "\n".join(document.page_content for document in self.retriever.invoke(input, **kwargs))
@@ -208,12 +211,11 @@ Convert the given survey answers into a random and realistic scenario to test th
 [Rules]
 - You MUST not reveal the private information.
 - The device_descriptions MUST include the device types in the survey answer.
+- The device_descriptions MUST include every device required to accomplish the user_command.
 - The device_descriptions MAY include additional devices to reflect realistic home settings.
-- In device_descriptions, each MTEndpoint MUST have correct names and ids following the given Matter specifications.
 - The user_command MUST be in fluent and short natural language.
 - The user_command MUST be a command that can be accomplished with the devices in the device_descriptions.
 - The user_command MAY not be specific enough and MAY contain indirect needs.
-- The user_command MAY include multiple concatenated commands specified in the survey answer, not necessarily.
 
 [Where were you?]
 {space}
@@ -232,7 +234,7 @@ Convert the given survey answers into a random and realistic scenario to test th
 """
 
 class Expectations(BaseModel):
-    expectations: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(description="The pairs of device ID and their correct reaction upon the user's command according to the context.")
+    controls: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's command.")
 
 PLANNER_PROMPT = """
 You are a secretary who controls smart devices. How would you control the devices upon the following user's command?
@@ -253,55 +255,56 @@ You are a secretary who controls smart devices. How would you control the device
 {format}
 """
 
-async def generate_expectations(planner, answer_dict, scenario):
-    while True:
+async def generate_expectations(planner, answer_dict, scenario_dict):
+    for _ in range(SYNTHESIZE_EXPECTATION_RETRY):
         try:
             # Expectation
             expectations = await planner.ainvoke({
                 "space": answer_dict["space"],
-                "device_descriptions": scenario.device_descriptions,
-                "user_command": answer_dict["user_command"],
+                "device_descriptions": scenario_dict["device_descriptions"],
+                "user_command": scenario_dict["user_command"],
                 "expected_behavior": answer_dict["expected_behavior"],
             })
 
             # Validation
-            for agent_id, expectation in expectations.expectations.items():
+            for agent_id, expectation in expectations.controls.items():
                 description = None
-                for d in scenario.device_descriptions:
-                    if agent_id == (str(d.deviceId) if isinstance(d, STDevice) else str(d.id)):
+                for d in scenario_dict["device_descriptions"]:
+                    if agent_id == (d["deviceId"] if d["format"] == "SmartThings" else d["id"]):
                         description = d
                         break
                 if description is None:
-                    raise Exception
+                    raise Exception # INVALID AGENT ID
                 
-                device = instantiate_device("", description.model_dump(exclude_none=True))
-                if device.validate_input(**dict(expectation)) != "VALID":
-                    raise Exception
+                if instantiate_device("", description).validate_input(**dict(expectation)) != "VALID":
+                    raise Exception # INVALID COMMAND
             
-            return expectations.model_dump(exclude_none=True)["expectations"]
+            return expectations.model_dump(exclude_none=True)["controls"]
         except Exception:
             continue
 
-async def generate_scenario(semaphore, generator, retriever, planner, answer):
-    async with semaphore:
-        while True:
-            try:
-                # Scenario
-                answer_dict = answer._asdict()
-                answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
-                scenario = await generator.ainvoke(answer_dict)
+async def generate_scenario(generator, retriever, planner, answer):
+    while True:
+        try:
+            # Scenario
+            answer_dict = answer._asdict()
+            answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
+            scenario = await generator.ainvoke(answer_dict)
 
-                # Matter autocompletion
-                autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
-                if not all(autocompleted_descriptions):
-                    continue
-
-                scenario = scenario.model_dump(exclude_none=True)
-                scenario["evaluation_criteria"] = await generate_expectations(planner, answer_dict, scenario)
-                
-                return scenario
-            except OutputParserException:
+            # Matter autocompletion
+            autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
+            if not all(autocompleted_descriptions):
                 continue
+
+            scenario = scenario.model_dump(exclude_none=True)
+            expectations = await generate_expectations(planner, answer_dict, scenario)
+            if not expectations:
+                continue
+            scenario["evaluation_criteria"] = expectations
+
+            return scenario
+        except Exception:
+            continue
 
 async def main(model: Model, iterate: int, reset: bool):
     parser = PydanticOutputParser(pydantic_object=Scenario)
@@ -316,11 +319,12 @@ async def main(model: Model, iterate: int, reset: bool):
     survey_df = survey_df.reset_index(drop=True)
 
     # Synthesize dataset
-    semaphore = asyncio.Semaphore(SYNTHESIZE_CONCURRENCY_MAX)
-    scenarios = pd.DataFrame(await atqdm.gather(*[generate_scenario(semaphore, scenario_generator, retriever, planner, answer) for answer in survey_df.itertuples(index=False)], desc="Synthesize"))
+    df = pd.read_csv(DATASET_PATH) if os.path.exists(DATASET_PATH) and not reset else pd.DataFrame()
+    for answer in tqdm(survey_df.itertuples(), total=len(survey_df), desc="Synthesize"):
+        df = pd.concat([df, pd.DataFrame([await generate_scenario(scenario_generator, retriever, planner, answer)])], ignore_index=True)
+        await save_dataframe(df, DATASET_PATH)
 
     # Save dataset
-    df = pd.concat([pd.read_csv(DATASET_PATH), scenarios], ignore_index=True) if os.path.exists(DATASET_PATH) and not reset else scenarios
     await save_dataframe(df, DATASET_PATH, ensure=True)
 
 
@@ -336,6 +340,6 @@ if __name__ == "__main__":
         device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
         user_command: str = Field(description="The command the user gives to the AI agent.")
 
-    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0, max_output_tokens=16384)
+    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0, max_output_tokens=4096)
 
     asyncio.run(main(model=model, iterate=args.iterate, reset=args.reset))
