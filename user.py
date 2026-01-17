@@ -1,27 +1,18 @@
 import asyncio
 
-from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from client import Client
 from device import *
 
-instruct_agent_tool = convert_to_openai_tool({
-    'type': 'function',
-    'function': {
-        'name': 'instruct_agent',
-        'description': 'instruct an agent to control the associated device',
-        'parameters': {
-            'type': 'object',
-            'required': ['agent_id', 'message'],
-            'properties': {
-                'agent_id': {'type': 'string', 'description': 'the ID of the agent to instruct'},
-                'message': {'type': 'string', 'description': 'the instructing message to send to the agent'},
-            },
-        },
-    },
-})
+class AgentInput(BaseModel):
+    agent_id: str = Field(description="the ID of the agent associated with the device to control")
+    message: str = Field(description="the instructing message to send to the agent")
+
+@tool("instruct_agent", args_schema=AgentInput)
+def instruct_agent_tool(agent_id: str, message: str):
+    """Instruct other agent to control the associated device."""
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -56,7 +47,7 @@ class UserAgent(Client):
                 pass
         
         except Exception as e:
-            self.log(type(e).__name__)
+            self.log(e)
         
         finally:
             return "\n".join(self.logs), self.consequences
@@ -98,6 +89,7 @@ class UserAgent(Client):
     # NATURAL methods
 
     async def instruct_agent(self, result):
+        self.log_result(result)
         self.consequences += sum(await asyncio.gather(*[self.control(MQTT_TOPIC_NATURAL_CONTROL, **tool_call["args"]) for tool_call in result.tool_calls]), []) if hasattr(result, "tool_calls") else []
 
     # CENTRALIZED methods
@@ -106,9 +98,16 @@ class UserAgent(Client):
         return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
 
     async def control_device(self, result):
+        self.log_result(result)
         self.consequences += sum(await asyncio.gather(*[self.control(MQTT_TOPIC_STRUCTURED_CONTROL, **tool_call["args"]) for tool_call in result.tool_calls]), []) if hasattr(result, "tool_calls") else []
     
     # etc
+
+    def log_result(self, result):
+        if hasattr(result, "content") and result.content:
+            self.log(result.content)
+        if hasattr(result, "additional_kwargs") and "reasoning_content" in result.additional_kwargs:
+            self.log(f"Reasoning: {result.additional_kwargs['reasoning_content']}")
 
     async def control(self, topic, agent_id, **kwargs):
         return eval(await self.request(topic, agent_id, kwargs))

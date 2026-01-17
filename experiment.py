@@ -210,19 +210,20 @@ if __name__ == "__main__":
     if not os.path.exists(RESULT_PATH.format(code=code)):
         os.mkdir(RESULT_PATH.format(code=code))
 
-    temperature = 0.3
+    temperature = 0.1
 
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
     models = [
-        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
+        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
+        Model("granite4:350m", backend="ollama", temperature=temperature),
         # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
-        Model("granite4:350m", backend="ollama", temperature=temperature),
+        Model("functiongemma:270m", backend="ollama", temperature=temperature),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),

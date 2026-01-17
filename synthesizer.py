@@ -25,17 +25,13 @@ from pydantic import BaseModel, Field, PlainSerializer
 from typing import List, Dict, Any, Optional
 
 from settings import *
-from device import instantiate_device
+from device import *
 from model import Model
 
 def serialize_id(id: UUID) -> str:
     return str(id)
 
 # W3C WoT TD
-
-class TDExpectation(BaseModel):
-    action: str
-    # TODO arguments
 
 class TDProperty(BaseModel):
     type: Literal["integer", "string"]
@@ -60,10 +56,6 @@ class TDDevice(BaseModel):
     actions: Dict[str, TDAction] = Field(description="Actions the device can perform with optional arguments.")
 
 # SmartThings
-
-class STExpectation(BaseModel):
-    capability: str
-    command: str
 
 class STCapability(BaseModel):
     id: str = Field(description="Name of the capability.")
@@ -94,12 +86,6 @@ class STDevice(BaseModel):
     # TODO relationships
 
 # Matter
-
-class MTExpectation(BaseModel):
-    endpoint_id: str
-    cluster_id: str
-    command_id: str
-    # TODO arguments
 
 class MTEndpoint(BaseModel):
     endpoint_id: str
@@ -234,7 +220,7 @@ Convert the given survey answers into a random and realistic scenario to test th
 """
 
 class Expectations(BaseModel):
-    controls: Dict[str, TDExpectation | STExpectation | MTExpectation] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's command.")
+    controls: Dict[str, W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's command.")
 
 PLANNER_PROMPT = """
 You are a secretary who controls smart devices. How would you control the devices upon the following user's command?
