@@ -11,9 +11,8 @@ from device import instantiate_device
 
 from pydantic import BaseModel, Field
 class ScreeningResult(BaseModel):
-    score: float = Field(description="How much you can contribute to the task. 0 <= score <= 1", ge=0, le=1)
-    message: str = Field(description="Response message that describes how you can contribute to the task.")
-
+    score: float = Field(description="How much you can contribute to the command. 0 <= score <= 1", ge=0, le=1)
+    message: str = Field(description="Response message that describes how you can contribute to the command.")
 
 class Agent(Client):
     def __init__(self, session, id, model, device):

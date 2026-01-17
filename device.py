@@ -61,9 +61,9 @@ class W3CDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_w3c", args_schema=W3CInput)
-        def new_tool(agent_id: str, action: str):
-            """Control the W3C device associated with agent_id. Use this tool only for W3C devices."""
-        return new_tool
+        def control_device_w3c(agent_id: str, action: str):
+            """Send a control request to a W3C device associated with agent_id. Use this tool only for W3C devices."""
+        return control_device_w3c
     
     def validate_input(self, **kwargs):
         if "action" not in kwargs:
@@ -91,9 +91,9 @@ class SmartThingsDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_smartthings", args_schema=SmartThingsInput)
-        def new_tool(agent_id: str, capability: str, command: str):
-            """Control the SmartThings device associated with agent_id. Use this tool only for SmartThings devices."""
-        return new_tool
+        def control_device_smartthings(agent_id: str, capability: str, command: str):
+            """Send a control request to a SmartThings device associated with agent_id. Use this tool only for SmartThings devices."""
+        return control_device_smartthings
         
     def validate_input(self, **kwargs):
         if "capability" not in kwargs:
@@ -138,9 +138,9 @@ class MatterDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_matter", args_schema=MatterInput)
-        def new_tool(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str):
-            """Control the Matter device associated with agent_id. Use this tool only for Matter devices."""
-        return new_tool
+        def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str):
+            """Send a control request to a Matter device associated with agent_id. Use this tool only for Matter devices."""
+        return control_device_matter
 
     def validate_input(self, **kwargs) -> str:
         if "endpoint_id" not in kwargs:

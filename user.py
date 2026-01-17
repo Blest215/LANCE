@@ -10,9 +10,9 @@ class AgentInput(BaseModel):
     agent_id: str = Field(description="the ID of the agent associated with the device to control")
     message: str = Field(description="the instructing message to send to the agent")
 
-@tool("instruct_agent", args_schema=AgentInput)
-def instruct_agent_tool(agent_id: str, message: str):
-    """Instruct other agent to control the associated device."""
+@tool("control_device_agent", args_schema=AgentInput)
+def control_device_agent(agent_id: str, message: str):
+    """Control a device by sending a message to the associated agent."""
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -26,7 +26,7 @@ class UserAgent(Client):
         self.agents = set()
 
         # NATURAL
-        self.natural = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([instruct_agent_tool])
+        self.natural = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([control_device_agent])
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools(control_device_tools)
 
@@ -63,7 +63,7 @@ class UserAgent(Client):
                 self.wait.remove(id)
 
         elif check_topic(topic, MQTT_TOPIC_RECRUIT_TEAM) and id == self.current_team_id:
-            text = f"Agent {sender}: {message}"
+            text = f"{message}"
             self.log(text)
             self.team_messages.append(text)
 
@@ -81,7 +81,7 @@ class UserAgent(Client):
 
         await asyncio.sleep(RECRUIT_TIME_TO_WAIT)
 
-        self.log("Agent recruting end")
+        self.log("Agent recruiting end")
         await self.leave_team()
 
         return "\n".join(self.team_messages)
@@ -95,7 +95,7 @@ class UserAgent(Client):
     # CENTRALIZED methods
 
     async def discovery(self):
-        return await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")
+        return "\n".join(eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")).values())
 
     async def control_device(self, result):
         self.log_result(result)
@@ -107,7 +107,9 @@ class UserAgent(Client):
         if hasattr(result, "content") and result.content:
             self.log(result.content)
         if hasattr(result, "additional_kwargs") and "reasoning_content" in result.additional_kwargs:
-            self.log(f"Reasoning: {result.additional_kwargs['reasoning_content']}")
+            self.log(f"<Reasoning> {result.additional_kwargs['reasoning_content']}")
+        if hasattr(result, "tool_calls"):
+            self.log(f"<Tool calls> {result.tool_calls}")
 
     async def control(self, topic, agent_id, **kwargs):
         return eval(await self.request(topic, agent_id, kwargs))

@@ -17,17 +17,17 @@ SURVEY_PATH = "dataset/survey_result.csv"
 RESULT_PATH = "results/{code}"
 
 SIMULATION_CONCURRENCY_GPU_MAX = 50
-SIMULATION_CONCURRENCY_DELAY = 5
+SIMULATION_CONCURRENCY_DELAY = 7
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_EXPECTATION_RETRY = 3
-TIMEOUT_LIMIT = 5
+TIMEOUT_LIMIT = 10
 TICK = 0.1
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
 
 # LLM
 
-MAX_OUTPUT_TOKENS = 1024
+MAX_OUTPUT_TOKENS = 2048
 MAX_MODEL_LEN = 4096
 GPU_MEMORY_UTILIZATION = 0.8
 DB_PATH = "dataset/db"
@@ -66,10 +66,8 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 COORDINATOR_PROMPT = """
 You are a coordinator who can control devices in the descriptions by using the given tool.
-To accomplish the user's command, instruct the agents or control the devices by using the given tool.
-
-[Rules]
-- **You MUST use at least one tool.**
+Instruct each agent or control each device by using the given tool to accomplish the user's command.
+Remember: **You can accomplish the job, so call the tool with courage.**
 
 [User Command]
 {user_command}
@@ -162,7 +160,7 @@ def get_agent_id(device_description):
     return get_random_device_id()
 
 def get_column_name(name, model, mode):
-    return f"{name}_{model}_{mode}".replace("-", "_").replace(".", "_").replace(":", "_")
+    return f"{name}_{model}_{mode}"
 
 async def save_dataframe(df, path, ensure=False):
     while True:

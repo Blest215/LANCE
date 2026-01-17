@@ -27,7 +27,7 @@ class Model:
 
     @property
     def name(self):
-        return self.model.split("/")[-1]
+        return self.model.split("/")[-1].replace("-", "_").replace(".", "_").replace(":", "_")
 
     def __getitem__(self, key):
         return self.__dict__[key]

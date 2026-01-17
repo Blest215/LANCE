@@ -200,8 +200,7 @@ Convert the given survey answers into a random and realistic scenario to test th
 - The device_descriptions MUST include every device required to accomplish the user_command.
 - The device_descriptions MAY include additional devices to reflect realistic home settings.
 - The user_command MUST be in fluent and short natural language.
-- The user_command MUST be a command that can be accomplished with the devices in the device_descriptions.
-- The user_command MAY not be specific enough and MAY contain indirect needs.
+- The user_command MUST be a specific and valid command for some of the devices in the device_descriptions.
 
 [Where were you?]
 {space}
