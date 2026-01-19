@@ -10,7 +10,6 @@ import json
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 from uuid import UUID, uuid4
-from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -19,7 +18,6 @@ from langchain_community.retrievers import BM25Retriever
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
 from typing import Optional, Literal, Annotated
 from pydantic import BaseModel, Field, PlainSerializer
 from typing import List, Dict, Any, Optional
@@ -45,7 +43,7 @@ class TDAction(BaseModel):
     title: str = Field(description="Title of the action that the device can perform.")
     description: str = Field(description="Description of the action.")
     input: Optional[TDObjectProperty] = Field(description="The input to the action.")
-    output: Optional[TDProperty] = Field(description="The output from the action.")
+    # TODO output: Optional[TDProperty] = Field(description="The output from the action.")
     # TODO forms: list[]
 
 class TDDevice(BaseModel):
@@ -57,33 +55,70 @@ class TDDevice(BaseModel):
 
 # SmartThings
 
+class STArguments(BaseModel):
+    arguments: List[str] = Field(default=[], description="Required arguments for the command.")
+    # TODO optional
+    # TODO schema
+
 class STCapability(BaseModel):
     id: str = Field(description="Name of the capability.")
     version: Literal[1]
+    status: Literal["live"]
+    # TODO attributes
+    commands: Dict[str, STArguments] = Field(description="Available commands to the capability.")
 
 class STComponent(BaseModel):
     id: Literal["main"]
     label: Literal["main"]
+    optional: Literal[False]
     capabilities: List[STCapability] = Field(description="The capabilities that the device can control.")
-    # TODO categories
-    # TODO optional
+    # categories
+    # restrictions
 
 class STDevice(BaseModel):
     format: Literal["SmartThings"]
     deviceId: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
     name: str = Field(description="Name of the device, e.g., light, TV, air_conditioner.")
     label: str = Field(description="User-custom label of the device.")
-    # TODO manufacturerName
-    # TODO presentationId
-    # TODO deviceManufacturerCode
+    # manufacturerName
+    # presentationId
+    # deviceManufacturerCode
+    # locationId
+    # ownerId
+    # roomId
+    # deviceTypeId
+    # deviceTypeName
+    # deviceNetworkType
+    # productId
+    # brandId
     components: List[STComponent] = Field(min_length=1, max_length=1)
-    # TODO profile
-    # TODO ocf
-    # TODO type
-    # TODO restrictionTier
-    # TODO allowed
-    # TODO executionContext
-    # TODO relationships
+    # createTime
+    # parentDeviceId
+    # childDevices
+    # profile
+    # app
+    # ble
+    # bleD2D
+    # dth
+    # lan
+    # zigbee
+    # zwave
+    # matter
+    # hub
+    # edgeChild
+    # ir
+    # irOcf
+    # ocf
+    # viper
+    # group
+    # virtual
+    # mqtt
+    # type
+    # restrictionTier
+    # allowed
+    # indoorMap
+    # executionContext
+    # relationships
 
 # Matter
 
@@ -114,11 +149,15 @@ class MatterRetriever:
                     cluster_xml = ET.fromstring(requests.get(file['download_url']).text)
                     clusters[cluster_xml.get('id')] = {
                         "name": cluster_xml.get('name'),
+                        # TODO attributes
                         "commands": {
                             command.get("id"): {
                                 "name": command.get("name"),
                                 "id": command.get("id"),
                                 "mandatory": command.find("mandatoryConform") is not None,
+                                "fields": [
+                                    {"id": field.get("id"), "name": field.get("name"), "type": field.get("type"), "mandatory": field.find("mandatoryConform") is not None} for field in command.findall(".//field")
+                                ]
                             }
                             for command in cluster_xml.findall(".//command")
                         }
@@ -180,6 +219,7 @@ class MatterRetriever:
                             command_id: {
                                 "command_name": command["name"],
                                 "command_id": command["id"],
+                                "fields": [{"id": field["id"], "name": field["name"], "type": field["type"]} for field in command["fields"] if field["mandatory"]]
                             } for command_id, command in self.clusters[cluster_id]["commands"].items() if command["mandatory"]
                         } if "commands" in self.clusters[cluster_id] else []
                     } for cluster_id, cluster in device_type["clusters"].items() if cluster["mandatory"]
@@ -190,17 +230,14 @@ class MatterRetriever:
         return True
 
 GENERATOR_PROMPT = """
-You are a software engineer creating realistic scenarios to test AI agents that control smart devices.
-The given answers are from the survey of "Use Cases of AI Assistants to Control Smart Home or IoT Devices."
-Convert the given survey answers into a random and realistic scenario to test the behavior of AI agents.
+You are a system designer creating realistic scenarios to test AI agents that control smart devices.
+Convert the given survey answers into a realistic scenario where a user sends a message to various devices.
 
 [Rules]
 - You MUST not reveal the private information.
 - The device_descriptions MUST include the device types in the survey answer.
-- The device_descriptions MUST include every device required to accomplish the user_command.
-- The device_descriptions MAY include additional devices to reflect realistic home settings.
-- The user_command MUST be in fluent and short natural language.
-- The user_command MUST be a specific and valid command for some of the devices in the device_descriptions.
+- The device_descriptions MUST include every device required to accomplish the user_message.
+- The user_message MUST be a unambiguous imperative sentence for controlling some of the devices in the device_descriptions.
 
 [Where were you?]
 {space}
@@ -219,19 +256,17 @@ Convert the given survey answers into a random and realistic scenario to test th
 """
 
 class Expectations(BaseModel):
-    controls: Dict[str, W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's command.")
+    inputs: Dict[str, W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's message.")
 
 PLANNER_PROMPT = """
-You are a secretary who controls smart devices. How would you control the devices upon the following user's command?
+You are a secretary who controls smart devices. 
+Control the devices upon the following user's message.
 
-[Space]
-{space}
+[User message]
+{user_message}
 
 [Device descriptions]
 {device_descriptions}
-
-[User command]
-{user_command}
 
 [Expected behavior]
 {expected_behavior}
@@ -245,26 +280,25 @@ async def generate_expectations(planner, answer_dict, scenario_dict):
         try:
             # Expectation
             expectations = await planner.ainvoke({
-                "space": answer_dict["space"],
                 "device_descriptions": scenario_dict["device_descriptions"],
-                "user_command": scenario_dict["user_command"],
+                "user_message": scenario_dict["user_message"],
                 "expected_behavior": answer_dict["expected_behavior"],
             })
 
             # Validation
-            for agent_id, expectation in expectations.controls.items():
+            for agent_id, expectation in expectations.inputs.items():
                 description = None
                 for d in scenario_dict["device_descriptions"]:
                     if agent_id == (d["deviceId"] if d["format"] == "SmartThings" else d["id"]):
                         description = d
                         break
                 if description is None:
-                    raise Exception # INVALID AGENT ID
+                    raise Exception("INVALID AGENT ID")
                 
                 if instantiate_device("", description).validate_input(**dict(expectation)) != "VALID":
-                    raise Exception # INVALID COMMAND
+                    raise Exception("INVALID COMMAND")
             
-            return expectations.model_dump(exclude_none=True)["controls"]
+            return expectations.model_dump(exclude_none=True)["inputs"]
         except Exception:
             continue
 
@@ -277,10 +311,10 @@ async def generate_scenario(generator, retriever, planner, answer):
             scenario = await generator.ainvoke(answer_dict)
 
             # Matter autocompletion
-            autocompleted_descriptions = [retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]
-            if not all(autocompleted_descriptions):
+            if not all([retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]):
                 continue
 
+            # Expectations
             scenario = scenario.model_dump(exclude_none=True)
             expectations = await generate_expectations(planner, answer_dict, scenario)
             if not expectations:
@@ -305,9 +339,17 @@ async def main(model: Model, iterate: int, reset: bool):
 
     # Synthesize dataset
     df = pd.read_csv(DATASET_PATH) if os.path.exists(DATASET_PATH) and not reset else pd.DataFrame()
-    for answer in tqdm(survey_df.itertuples(), total=len(survey_df), desc="Synthesize"):
-        df = pd.concat([df, pd.DataFrame([await generate_scenario(scenario_generator, retriever, planner, answer)])], ignore_index=True)
-        await save_dataframe(df, DATASET_PATH)
+    with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
+        done = 0
+        for answer in survey_df.itertuples():
+            task = asyncio.create_task(generate_scenario(scenario_generator, retriever, planner, answer))
+            while not task.done():
+                await asyncio.sleep(1)
+                pbar.n = done
+                pbar.refresh()
+            df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
+            await save_dataframe(df, DATASET_PATH)
+            done += 1
 
     # Save dataset
     await save_dataframe(df, DATASET_PATH, ensure=True)
@@ -316,15 +358,17 @@ async def main(model: Model, iterate: int, reset: bool):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--reset", action="store_true")
-    argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss-safeguard:20b", help="LLM to use")
+    argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss:20b", help="LLM to use")
     argument_parser.add_argument("--iterate", type=int, required=False, default=1, help="Number of iterations over the survey result")
+    argument_parser.add_argument("--devices", type=int, required=False, default=5, help="Number of devices for each scenario")
     args = argument_parser.parse_args()
 
-    class Scenario(BaseModel):
-        time: datetime = Field(description="Timestamp of the scenario.")
-        device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=5)
-        user_command: str = Field(description="The command the user gives to the AI agent.")
+    num_devices = 3
 
-    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=1.0, max_output_tokens=4096)
+    class Scenario(BaseModel):
+        device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=num_devices, max_length=num_devices)
+        user_message: str = Field(description="The message the user gives to the AI agent.")
+
+    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=0.3, max_output_tokens=8192)
 
     asyncio.run(main(model=model, iterate=args.iterate, reset=args.reset))

@@ -20,7 +20,7 @@ SIMULATION_CONCURRENCY_GPU_MAX = 50
 SIMULATION_CONCURRENCY_DELAY = 7
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_EXPECTATION_RETRY = 3
-TIMEOUT_LIMIT = 10
+TIMEOUT_LIMIT = None
 TICK = 0.1
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
@@ -66,11 +66,11 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 COORDINATOR_PROMPT = """
 You are a coordinator who can control devices in the descriptions by using the given tool.
-Instruct each agent or control each device by using the given tool to accomplish the user's command.
+Instruct each agent or control each device by using the given tool to accomplish the user's message.
 Remember: **You can accomplish the job, so call the tool with courage.**
 
-[User Command]
-{user_command}
+[User Message]
+{user_message}
 
 [Descriptions]
 {descriptions}
@@ -110,14 +110,11 @@ Control the device according to the given message.
 EVALUATOR_PROMPT = """
 Evaluate the behavior of the agents in the conversation whether the user's task is accomplished or not.
 
-[Time]
-{time}
-
 [Device Descriptions]
 {device_descriptions}
 
-[User Command]
-{user_command}
+[User Message]
+{user_message}
 
 [Evaluation Criteria]
 {evaluation_criteria}

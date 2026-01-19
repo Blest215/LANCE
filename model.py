@@ -23,7 +23,7 @@ class Model:
         self.kwargs = kwargs
 
     def __str__(self):
-        return self.name
+        return f"{self.name}_{self.reasoning}"
 
     @property
     def name(self):

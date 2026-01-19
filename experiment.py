@@ -54,9 +54,9 @@ async def simulate_scenario(model, modes, scenario):
     result = {}
     for mode in modes:
         await user.new_session(get_random_session())
-        conversation, consequences = await user.command(mode, scenario.user_command)
-        result[get_column_name("conversation", model, mode)] = conversation
-        result[get_column_name("consequences", model, mode)] = consequences
+        conversation, consequences = await user.main(mode, scenario.user_message)
+        result[get_column_name("CONVERSATION", model, mode)] = conversation
+        result[get_column_name("CONSEQUENCES", model, mode)] = consequences
 
     # Wrap up
     user_loop.cancel()
@@ -75,18 +75,17 @@ async def simulation(code, models, modes):
         gpu_utilizations.append(get_gpu_utilization())
         pbar.n = sum(1 for t in tasks if t.done())
         pbar.set_postfix({"running": len(tasks) - pbar.n})
-        pbar.refresh()
 
-    done_conversation_columns = [column for column in parse_column(df, "conversation")]
+    done_conversation_columns = [column for column in parse_column(df, "CONVERSATION")]
     for model in models:
-        undone_modes = [mode for mode in modes if get_column_name("conversation", model, mode) not in done_conversation_columns]
+        undone_modes = [mode for mode in modes if get_column_name("CONVERSATION", model, mode) not in done_conversation_columns]
         if not undone_modes or not model.setup():
             continue
 
         tasks = []
         simulation_results = []
         gpu_utilizations = [get_gpu_utilization()]
-        with tqdm(total=len(df), desc=f"Simulation {str(model):30}") as pbar:
+        with tqdm(total=len(df), mininterval=1, desc=f"Simulation {str(model):30}") as pbar:
             for scenario in df.itertuples():
                 while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
                     await wait()
@@ -98,8 +97,8 @@ async def simulation(code, models, modes):
         simulation_results = await asyncio.gather(*tasks)
 
         for mode in undone_modes:
-            df[get_column_name("conversation", model, mode)] = [result[get_column_name("conversation", model, mode)] for result in simulation_results]
-            df[get_column_name("consequences", model, mode)] = [result[get_column_name("consequences", model, mode)] for result in simulation_results]
+            df[get_column_name("CONVERSATION", model, mode)] = [result[get_column_name("CONVERSATION", model, mode)] for result in simulation_results]
+            df[get_column_name("CONSEQUENCES", model, mode)] = [result[get_column_name("CONSEQUENCES", model, mode)] for result in simulation_results]
         model.wrapup()
         await save_dataframe(df, path=result_path)
     await save_dataframe(df, path=result_path, ensure=True)
@@ -111,30 +110,27 @@ class EvaluationResult(BaseModel):
     score: int = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
     reason: str = Field(description="Reasoning for the score")
 
-def evaluate_scenario(scenario, columns):
-    def find_consequence(consequences, agent_id):
-        for consequence in consequences:
-            if consequence["agent_id"] == agent_id:
-                return consequence
-            
-    def compare_consequence(expectation, consequence):
-        if not consequence or not consequence["success"]:
+def compare_consequence(expectation, consequence):
+    if not consequence["success"]:
+        return False
+    if expectation["agent_id"] != consequence["agent_id"]:
+        return False
+    for key in expectation:
+        if key == "agent_id":
+            continue
+        if key not in consequence["request"]:
             return False
-        for key in expectation:
-            if key not in consequence["request"]:
-                return False
-            if expectation[key] != consequence["request"][key]:
-                return False
-        return True
+        if expectation[key] != consequence["request"][key]:
+            return False
+    return True
 
+def evaluate_scenario(scenario, columns):
     result = {}
     evaluation_criteria = eval(scenario.evaluation_criteria)
     for column in columns:
-        correct = 0
         consequences = eval(getattr(scenario, column))
-        for agent_id, expectation in evaluation_criteria.items():
-            correct += 1 if compare_consequence(expectation, find_consequence(consequences, agent_id)) else 0
-        result[column.replace("consequences", "accuracy")] = correct / len(evaluation_criteria) if len(evaluation_criteria) > 0 else None
+        correct = sum([1 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria.values()])
+        result[column.replace("CONSEQUENCES", "ACCURACY")] = correct / len(evaluation_criteria) if len(evaluation_criteria) > 0 else None
     return result
 
 async def scoring_scenario(semaphore, evaluator, scenario, column_name):
@@ -159,9 +155,9 @@ async def evaluation(code, evaluation_model=None):
     df = pd.read_csv(result_path)
 
     # Accuracy
-    columns = parse_column(df, "consequences")
+    columns = parse_column(df, "CONSEQUENCES")
     evaluation_results = [evaluate_scenario(scenario, columns) for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation")]
-    for column in [column.replace("consequences", "accuracy") for column in columns]:
+    for column in [column.replace("CONSEQUENCES", "ACCURACY") for column in columns]:
         df[column] = [result[column] for result in evaluation_results]
     
     await save_dataframe(df, path=result_path, ensure=True)
@@ -174,15 +170,15 @@ async def evaluation(code, evaluation_model=None):
         
         semaphore = asyncio.Semaphore(EVALUATION_CONCURRENCY_MAX)
 
-        columns = parse_column(df, "conversation")
+        columns = parse_column(df, "CONVERSATION")
         for column in columns:
-            df[column.replace("conversation", "score")] = None
-            df[column.replace("conversation", "reason")] = None
+            df[column.replace("CONVERSATION", "SCORE")] = None
+            df[column.replace("CONVERSATION", "REASON")] = None
         for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation"):
             evaluation_results = await asyncio.gather(*[scoring_scenario(semaphore, evaluator, scenario, column) for column in columns])
             for i, column in enumerate(columns):
-                df.loc[scenario.Index, column.replace("conversation", "score")] = evaluation_results[i].score
-                df.loc[scenario.Index, column.replace("conversation", "reason")] = evaluation_results[i].reason
+                df.loc[scenario.Index, column.replace("CONVERSATION", "SCORE")] = evaluation_results[i].score
+                df.loc[scenario.Index, column.replace("CONVERSATION", "REASON")] = evaluation_results[i].reason
             await save_dataframe(df, path=result_path)
         evaluation_model.wrapup()
 
@@ -214,21 +210,23 @@ if __name__ == "__main__":
 
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
     models = [
-        Model("qwen3:0.6b", backend="ollama", temperature=temperature, reasoning=True),
-        Model("qwen3:1.7b", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:0.6b-q8_0", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=temperature, reasoning=True),
+        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=temperature, reasoning=False),
         # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=False),
         # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("granite4:350m", backend="ollama", temperature=temperature),
+        Model("granite4:350m-h-q8_0", backend="ollama", temperature=temperature),
+        Model("granite4:1b-h-q8_0", backend="ollama", temperature=temperature),
         # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
-        # Model("functiongemma:270m", backend="ollama", temperature=temperature),
+        Model("functiongemma:270m-it-q8_0", backend="ollama", temperature=temperature),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("llama3.2:1b", backend="ollama", temperature=temperature),
+        Model("llama3.2:1b-instruct-q8_0", backend="ollama", temperature=temperature),
         # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
         # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
     ]

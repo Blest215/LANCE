@@ -30,18 +30,18 @@ class UserAgent(Client):
         # CENTRALIZED
         self.centralized = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools(control_device_tools)
 
-    async def command(self, mode, user_command):
-        self.log(f"User asked: {user_command}")
+    async def main(self, mode, user_message):
+        self.log(f"User asked: {user_message}")
         
         try:
             if mode == "CENTRALIZED":
-                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "descriptions": await self.discovery()}))
+                await self.control_device(await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
             
             elif mode == "NATURAL":
-                await self.instruct_agent(await self.natural.ainvoke({"user_command": user_command, "descriptions": await self.discovery()}))
+                await self.instruct_agent(await self.natural.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
             
             elif mode == "RECRUIT":
-                await self.control_device(await self.centralized.ainvoke({"user_command": user_command, "descriptions": await self.recruit_team(user_command)}))
+                await self.control_device(await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.recruit_team(user_message)}))
             
             elif mode == "CONVERSATIONAL":
                 pass
@@ -74,10 +74,10 @@ class UserAgent(Client):
 
     # RECRUIT methods
 
-    async def recruit_team(self, user_command):
-        self.log(f"Agent recruiting start for user command: {user_command} ({RECRUIT_TIME_TO_WAIT}s)")
+    async def recruit_team(self, user_message):
+        self.log(f"Agent recruiting start for user message: {user_message} ({RECRUIT_TIME_TO_WAIT}s)")
         await self.join_team(get_random_team_id())
-        await self.publish(MQTT_TOPIC_RECRUIT_CALL, self.current_team_id, f"Can you contribute to the following user command?: {user_command}")
+        await self.publish(MQTT_TOPIC_RECRUIT_CALL, self.current_team_id, f"Can you contribute to the following user message?: {user_message}")
 
         await asyncio.sleep(RECRUIT_TIME_TO_WAIT)
 

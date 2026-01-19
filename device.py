@@ -3,8 +3,10 @@ import os
 import json
 import sys
 
+from typing import Optional
 from pydantic import BaseModel
 from langchain.tools import tool
+from typing import List, Dict, Any, Optional
 
 from abc import ABC, abstractmethod
 
@@ -55,13 +57,13 @@ def instantiate_device(id, description) -> Device:
 class W3CInput(BaseModel):
     agent_id: str = Field(description="the ID of the agent associated with the device to control")
     action: str = Field(description="the action to perform")
-    # TODO arguments
+    inputs: Optional[Dict[str, Any]] = Field(description="the input value dictionary for the action")
 
 class W3CDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_w3c", args_schema=W3CInput)
-        def control_device_w3c(agent_id: str, action: str):
+        def control_device_w3c(agent_id: str, action: str, inputs: Optional[Dict[str, Any]]):
             """Send a control request to a W3C device associated with agent_id. Use this tool only for W3C devices."""
         return control_device_w3c
     
@@ -70,9 +72,11 @@ class W3CDevice(Device):
             return "NO ACTION NAME"
         if kwargs["action"] not in self.dict["actions"]:
             return "INVALID ACTION NAME"
-        if "required" in self.dict["actions"][kwargs["action"]] and self.dict["actions"][kwargs["action"]]["required"] not in kwargs["arguments"]:
-            return "REQUIRED ARGUMENTS MISSING"
-        # TODO ARGUMENTS
+        if "required" in self.dict["actions"][kwargs["action"]]:
+            for required in self.dict["actions"][kwargs["action"]]["required"]:
+                if "inputs" not in kwargs or required not in kwargs["inputs"]:
+                    return f"REQUIRED INPUT {required} MISSING"
+        # TODO SEMANTICS
         return "VALID"
     
     def execute(self, **kwargs):
@@ -85,13 +89,13 @@ class SmartThingsInput(BaseModel):
     agent_id: str = Field(description="the ID of the agent associated with the device to control")
     capability: str = Field(description="the capability of the device to control")
     command: str = Field(description="the command to apply to the capability")
-    # TODO arguments
+    arguments: Optional[Dict[str, Any]] = Field(description="the arguments for the command")
 
 class SmartThingsDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_smartthings", args_schema=SmartThingsInput)
-        def control_device_smartthings(agent_id: str, capability: str, command: str):
+        def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Optional[Dict[str, Any]]):
             """Send a control request to a SmartThings device associated with agent_id. Use this tool only for SmartThings devices."""
         return control_device_smartthings
         
@@ -100,10 +104,17 @@ class SmartThingsDevice(Device):
             return "NO CAPABILITY NAME"
         if "command" not in kwargs:
             return "NO COMMAND NAME"
-        if kwargs["capability"] not in [capability["id"] for capability in self.dict["components"][0]["capabilities"]]:
+        capability = None
+        for c in self.dict["components"][0]["capabilities"]:
+            if kwargs["capability"] == c["id"]:
+                capability = c
+        if not capability:
             return "INVALID CAPABILITY NAME"
-        # TODO INVALID COMMAND NAME
-        # TODO ARGUMENTS
+        if kwargs["command"] not in capability["commands"]:
+            return "INVALID COMMAND NAME"
+        if len(kwargs["arguments"]) != len(capability["commands"][kwargs["command"]]): # TODO optional, schema
+            return "REQUIRED ARGUMENTS MISSING"
+        # TODO SEMANTICS
         return "VALID"
     
     def execute(self, **kwargs):
@@ -132,13 +143,13 @@ class MatterInput(BaseModel):
     endpoint_id: str = Field(description="the hexcode ID of the endpoint to control")
     cluster_id: str = Field(description="the hexcode ID of the cluster to control")
     command_id: str = Field(description="the hexcode ID of the command")
-    # TODO arguments
+    fields: Optional[Dict[str, Any]] = Field(description="the field for the command")
 
 class MatterDevice(Device):
     @staticmethod
     def get_tool():
         @tool("control_device_matter", args_schema=MatterInput)
-        def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str):
+        def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Optional[Dict[str, Any]]):
             """Send a control request to a Matter device associated with agent_id. Use this tool only for Matter devices."""
         return control_device_matter
 
@@ -155,6 +166,9 @@ class MatterDevice(Device):
             return "INVALID CLUSTER ID"
         if kwargs["command_id"] not in self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"][kwargs["cluster_id"]]["commands"]:
             return "INVALID COMMAND ID"
+        if len(kwargs["fields"]) != len(self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"][kwargs["cluster_id"]]["commands"]["fields"]): # TODO optional, schema
+            return "REQUIRED FIELDS MISSING"
+        # TODO SEMANTICS
         return "VALID"
     
     def execute(self, **kwargs):
