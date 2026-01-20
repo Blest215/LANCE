@@ -192,25 +192,25 @@ class MatterRetriever:
             json.dump(device_types, open(MATTER_DEVICE_TYPES_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
         self.device_types = json.load(open(MATTER_DEVICE_TYPES_PATH, 'r', encoding='utf-8'))
 
-        documents = [Document(page_content=f"Device type: {self.device_types[id]['name']} (ID: {id})", metadata={"device_type": self.device_types[id]["name"], "device_type_id": id}) for id in self.device_types]
+        documents = [Document(page_content=f"Device type name: {self.device_types[id]['name']} (device type id: {id})", metadata={"device_type_name": self.device_types[id]["name"], "device_type_id": id}) for id in self.device_types]
         
         self.retriever = BM25Retriever.from_documents(documents)
-        self.retriever.k = 10
+        self.retriever.k = 20
     
     def invoke(self, input, **kwargs):
         return "\n".join(document.page_content for document in self.retriever.invoke(input, **kwargs))
     
     def autocomplete(self, device):
         if device["format"] != "Matter":
-            return False
+            raise Exception("NOT MATTER DEVICE")
         count = 1
         endpoints = {}
         # TODO descriptor cluster
         for endpoint in device["endpoints"].values():
             if not endpoint["device_type_name"] or endpoint["device_type_id"] == "null":
-                continue
+                raise Exception("NO DEVICE_TYPE_NAME OR DEVICE_TYPE_ID")
             if endpoint["device_type_id"] not in self.device_types or self.device_types[endpoint["device_type_id"]]["name"] != endpoint["device_type_name"]:
-                return False
+                raise Exception(f"INVALID DEVICE_TYPE_NAME {endpoint['device_type_name']} or DEVICE_TYPE_ID {endpoint['device_type_id']}")
             device_type = self.device_types[endpoint["device_type_id"]]
             endpoints[str(count)] = {
                 "endpoint_id": str(count),
@@ -234,8 +234,9 @@ class MatterRetriever:
                 } if "clusters" in device_type else {}
             }
             count += 1
+        if not endpoints:
+            raise Exception("EMPTY ENDPOINTS")
         device["endpoints"] = endpoints
-        return True if endpoints else False
 
 GENERATOR_PROMPT = """
 You are a system designer creating realistic scenarios to test AI agents that control smart devices.
@@ -245,7 +246,7 @@ Convert the given survey answers into a realistic scenario where a user sends a 
 - You MUST not reveal the private information.
 - The device_types MUST include every device type required to accomplish the user_message.
 - The device_types MUST include the device types in the survey answer.
-- The user_message MUST be a natural language imperative sentence for controlling some of the devices in the device_descriptions.
+- The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions.
 - The user_message MUST clearly specify the device to control, command, and arguments.
 
 [Where were you?]
@@ -295,7 +296,7 @@ Carefully revise the output according to your previous failure.
 
 async def generate_expectations(device_descriptions, user_message, expected_behavior):
     previous_failure = None
-    for _ in range(SYNTHESIZE_EXPECTATION_RETRY):
+    for _ in range(SYNTHESIZE_RETRY):
         try:
             # Expectation
             expectations = await planner.ainvoke({
@@ -326,10 +327,12 @@ async def generate_expectations(device_descriptions, user_message, expected_beha
             debug(e)
             previous_failure = str(e)
             continue
+    raise Exception("EXPECTATION FAILURE")
 
 async def create_device(device_format, device_type, device_id):
+    debug(f"Create device: {device_format} {device_type} {device_id}")
     if device_format == "W3C":
-        while True:
+        for _ in range(SYNTHESIZE_RETRY):
             try:
                 device = (await w3c_factory.ainvoke({"device_type": device_type})).model_dump(exclude_none=True)
                 device["format"] = "W3C"
@@ -339,7 +342,7 @@ async def create_device(device_format, device_type, device_id):
                 debug(e)
                 continue
     elif device_format == "SmartThings":
-        while True:
+        for _ in range(SYNTHESIZE_RETRY):
             try:
                 device = (await smartthings_factory.ainvoke({"device_type": device_type})).model_dump(exclude_none=True)
                 device["format"] = "SmartThings"
@@ -356,17 +359,17 @@ async def create_device(device_format, device_type, device_id):
                 debug(e)
                 continue
     elif device_format == "Matter":
-        while True:
+        for _ in range(SYNTHESIZE_RETRY):
             try:
                 device = (await matter_factory.ainvoke({"device_type": device_type, "matter_specifications": retriever.invoke(device_type)})).model_dump(exclude_none=True)
                 device["format"] = "Matter"
                 device["id"] = device_id
-                if not retriever.autocomplete(device):
-                    continue
+                retriever.autocomplete(device)
                 return device
             except Exception as e:
                 debug(e)
                 continue
+    raise Exception("DEVICE CREATION FAILURE")
 
 async def generate_scenario(answer, pbar):
     tries = 0
@@ -390,8 +393,6 @@ async def generate_scenario(answer, pbar):
             # Expectations
             pbar.set_postfix({"tries": tries, "progress": "expectations"})
             expectations = await generate_expectations(device_descriptions, scenario.user_message, answer.expected_behavior)
-            if not expectations:
-                continue
             debug(expectations)
 
             # TODO Semantics
@@ -405,14 +406,14 @@ async def generate_scenario(answer, pbar):
             debug(e)
             continue
 
-async def main(iterate: int, reset: bool):
+async def main(path: str, iterate: int, reset: bool):
     # Load survey results
     survey_df = pd.read_csv(SURVEY_PATH)
     survey_df = survey_df.loc[survey_df.index.repeat(iterate)]
     survey_df = survey_df.reset_index(drop=True)
 
     # Synthesize dataset
-    df = pd.read_csv(DATASET_PATH) if os.path.exists(DATASET_PATH) and not reset else pd.DataFrame()
+    df = pd.read_csv(path) if os.path.exists(path) and not reset else pd.DataFrame()
     with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
         done = 0
         for answer in survey_df.itertuples():
@@ -422,11 +423,11 @@ async def main(iterate: int, reset: bool):
                 pbar.n = done
                 pbar.refresh()
             df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
-            await save_dataframe(df, DATASET_PATH)
+            await save_dataframe(df, path)
             done += 1
 
     # Save dataset
-    await save_dataframe(df, DATASET_PATH, ensure=True)
+    await save_dataframe(df, path, ensure=True)
 
 
 if __name__ == "__main__":
@@ -442,6 +443,8 @@ if __name__ == "__main__":
     def debug(*text):
         if args.debug:
             print(*text)
+
+    # Models
 
     device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
     
@@ -459,6 +462,7 @@ if __name__ == "__main__":
         device_types: List[str] = Field(description="The types of the devices in the space.", min_length=args.devices, max_length=args.devices)
         user_message: str = Field(description="The message the user gives to the AI agent.")
 
+    # LLM
 
     model = Model(model=args.model, backend="ollama", reasoning=True, temperature=0.7, max_output_tokens=4096)
 
@@ -477,4 +481,4 @@ if __name__ == "__main__":
     matter_parser = PydanticOutputParser(pydantic_object=MTDevice)
     matter_factory = PromptTemplate.from_template(FACTORY_PROMPT + "\n\n[Matter specifications]\n{matter_specifications}\n").partial(format=matter_parser.get_format_instructions()) | model.instantiate() | matter_parser
 
-    asyncio.run(main(iterate=args.iterate, reset=args.reset))
+    asyncio.run(main(path=f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv", iterate=args.iterate, reset=args.reset))

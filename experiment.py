@@ -66,9 +66,9 @@ async def simulate_scenario(model, modes, scenario):
 
     return result
 
-async def simulation(code, models, modes):
-    result_path = f"{RESULT_PATH.format(code=code)}/result.csv"
-    df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(DATASET_PATH)
+async def simulation(code, dataset_path, models, modes):
+    result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
+    df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
 
     async def wait():
         await asyncio.sleep(1)
@@ -102,6 +102,7 @@ async def simulation(code, models, modes):
         model.wrapup()
         await save_dataframe(df, path=result_path)
     await save_dataframe(df, path=result_path, ensure=True)
+    return result_path
 
 # Evaluation
 
@@ -147,8 +148,7 @@ async def scoring_scenario(semaphore, evaluator, scenario, column_name):
             except OutputParserException as e:
                 continue
 
-async def evaluation(code, evaluation_model=None):
-    result_path = f"{RESULT_PATH.format(code=code)}/result.csv"
+async def evaluation(result_path, evaluation_model=None):
     if not os.path.exists(result_path):
         return
 
@@ -186,8 +186,13 @@ async def evaluation(code, evaluation_model=None):
 
 
 async def main(code, models: list[Model], modes: list[str], evaluation_model: Model):
-    await simulation(code, models, modes)
-    await evaluation(code, evaluation_model)
+    dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)\.csv')
+    
+    datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
+    for dataset_path in datasets:
+        print(dataset_path)
+        result_path = await simulation(code, dataset_path, models, modes)
+        await evaluation(result_path, evaluation_model)
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
@@ -197,14 +202,14 @@ if __name__ == "__main__":
     args = argument_parser.parse_args()
 
     # Remove empty directories
-    for result_code in os.listdir(RESULT_PATH.split("/")[0]):
-        if not os.listdir(RESULT_PATH.format(code=result_code)):
-            os.rmdir(RESULT_PATH.format(code=result_code))
+    for result_code in os.listdir(RESULT_DIR):
+        if not os.listdir(f"{RESULT_DIR}/{result_code}"):
+            os.rmdir(f"{RESULT_DIR}/{result_code}")
 
     # Get experiment code
     code = args.code if args.code else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    if not os.path.exists(RESULT_PATH.format(code=code)):
-        os.mkdir(RESULT_PATH.format(code=code))
+    if not os.path.exists(f"{RESULT_DIR}/{code}"):
+        os.mkdir(f"{RESULT_DIR}/{code}")
 
     temperature = 0.1
 

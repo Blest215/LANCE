@@ -12,14 +12,17 @@ load_dotenv()
 
 VLLM_URL = "http://localhost:8000/v1"
 
-DATASET_PATH = "dataset/dataset_synthetic.csv"
-SURVEY_PATH = "dataset/survey_result.csv"
-RESULT_PATH = "results/{code}"
+DB_PATH = "dataset/db"
+SURVEY_PATH = f"{DB_PATH}/survey_result.csv"
+DATASET_DIR = "dataset"
+RESULT_DIR = "results"
+MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
+MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 
 SIMULATION_CONCURRENCY_GPU_MAX = 50
 SIMULATION_CONCURRENCY_DELAY = 7
 EVALUATION_CONCURRENCY_MAX = 10
-SYNTHESIZE_EXPECTATION_RETRY = 3
+SYNTHESIZE_RETRY = 3
 TIMEOUT_LIMIT = None
 TICK = 0.1
 
@@ -30,9 +33,6 @@ ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
 MAX_OUTPUT_TOKENS = 2048
 MAX_MODEL_LEN = 4096
 GPU_MEMORY_UTILIZATION = 0.8
-DB_PATH = "dataset/db"
-MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
-MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 
 # RECRUIT
 
@@ -179,8 +179,8 @@ def parse_column(df, value=""):
     return matches
 
 def get_last_result():
-    for code in reversed(os.listdir(RESULT_PATH.split("/")[0])):
-        if os.path.exists(f"{RESULT_PATH.format(code=code)}/result.csv"):
+    for code in reversed(os.listdir(RESULT_DIR)):
+        if os.listdir(f"{RESULT_DIR}/{code}"):
             return code
     return ""
 

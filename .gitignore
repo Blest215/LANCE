@@ -209,4 +209,4 @@ __marimo__/
 # LANCE
 example.txt
 results/*
-dataset/survey_result.csv
+dataset/db/survey_result.csv
