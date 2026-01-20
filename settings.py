@@ -67,7 +67,6 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 COORDINATOR_PROMPT = """
 You are a coordinator who can control devices in the descriptions by using the given tool.
 Instruct each agent or control each device by using the given tool to accomplish the user's message.
-Remember: **You can accomplish the job, so call the tool with courage.**
 
 [User Message]
 {user_message}
@@ -84,7 +83,7 @@ You are an AI agent that controls the following device.
 [Device Description]
 {description}
 
-Answer the recruting message with how well you can contribute to the task.
+Answer the recruiting message with how well you can contribute to the task.
 
 [Message]
 {message}

@@ -1,11 +1,11 @@
 import os
 import pandas as pd
 import argparse
-import time
 import asyncio
 import requests
 import xml.etree.ElementTree as ET
 import json
+import random
 
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
@@ -19,7 +19,7 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from typing import Optional, Literal, Annotated
-from pydantic import BaseModel, Field, PlainSerializer
+from pydantic import BaseModel, Field, PlainSerializer, create_model
 from typing import List, Dict, Any, Optional
 
 from settings import *
@@ -43,41 +43,47 @@ class TDAction(BaseModel):
     title: str = Field(description="Title of the action that the device can perform.")
     description: str = Field(description="Description of the action.")
     input: Optional[TDObjectProperty] = Field(description="The input to the action.")
-    # TODO output: Optional[TDProperty] = Field(description="The output from the action.")
-    # TODO forms: list[]
+    # TODO output
+    # TODO forms
 
 class TDDevice(BaseModel):
-    format: Literal["W3C"]
-    id: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
+    # AUTOCOMPLETION format: Literal["W3C"]
+    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
     title: str = Field(description="Title of the device, e.g., light, TV, air_conditioner.")
     # TODO properties
     actions: Dict[str, TDAction] = Field(description="Actions the device can perform with optional arguments.")
 
 # SmartThings
 
-class STArguments(BaseModel):
-    arguments: List[str] = Field(default=[], description="Required arguments for the command.")
-    # TODO optional
-    # TODO schema
+class STSchema(BaseModel):
+    type: Literal["integer", "string"]
+
+class STArgument(BaseModel):
+    name: str = Field(description="Argument name.")
+    optional: bool = Field(description="Whether this argument is optional or mandatory.")
+    schema_: STSchema = Field(description="Schema of the argument.")
+
+class STCommand(BaseModel):
+    arguments: List[STArgument] = Field(default=[], description="Required arguments for the command.")
 
 class STCapability(BaseModel):
     id: str = Field(description="Name of the capability.")
-    version: Literal[1]
-    status: Literal["live"]
+    # AUTOCOMPLETION version: Literal[1]
+    # AUTOCOMPLETION status: Literal["live"]
     # TODO attributes
-    commands: Dict[str, STArguments] = Field(description="Available commands to the capability.")
+    commands: Dict[str, STCommand] = Field(description="Available commands to the capability.")
 
 class STComponent(BaseModel):
-    id: Literal["main"]
-    label: Literal["main"]
-    optional: Literal[False]
+    # AUTOCOMPLETION id: Literal["main"]
+    # AUTOCOMPLETION label: Literal["main"]
+    # AUTOCOMPLETION optional: Literal[False]
     capabilities: List[STCapability] = Field(description="The capabilities that the device can control.")
     # categories
     # restrictions
 
 class STDevice(BaseModel):
-    format: Literal["SmartThings"]
-    deviceId: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
+    # AUTOCOMPLETION format: Literal["SmartThings"]
+    # AUTOCOMPLETION deviceId: Annotated[UUID, PlainSerializer(serialize_id)]
     name: str = Field(description="Name of the device, e.g., light, TV, air_conditioner.")
     label: str = Field(description="User-custom label of the device.")
     # manufacturerName
@@ -126,11 +132,11 @@ class MTEndpoint(BaseModel):
     endpoint_id: str
     device_type_name: str = Field(description="Device type name.")
     device_type_id: str = Field(description="Device type id associated with the name.")
-    clusters: Dict = Field(default={})
+    # AUTOCOMPLETION clusters: Dict
 
 class MTDevice(BaseModel):
-    format: Literal["Matter"]
-    id: Annotated[UUID, PlainSerializer(serialize_id)] = Field(description="Unique identifier for the device.", default_factory=uuid4)
+    # AUTOCOMPLETION format: Literal["Matter"]
+    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
     endpoints: Dict[str, MTEndpoint] = Field(description="Endpoints of the device node.")
 
 class MatterRetriever:
@@ -189,26 +195,28 @@ class MatterRetriever:
         documents = [Document(page_content=f"Device type: {self.device_types[id]['name']} (ID: {id})", metadata={"device_type": self.device_types[id]["name"], "device_type_id": id}) for id in self.device_types]
         
         self.retriever = BM25Retriever.from_documents(documents)
-        self.retriever.k = 5
+        self.retriever.k = 10
     
     def invoke(self, input, **kwargs):
         return "\n".join(document.page_content for document in self.retriever.invoke(input, **kwargs))
     
-    def autocomplete(self, device: MTDevice):
+    def autocomplete(self, device):
+        if device["format"] != "Matter":
+            return False
         count = 1
         endpoints = {}
         # TODO descriptor cluster
-        for endpoint in device.endpoints.values():
-            if not endpoint.device_type_name or endpoint.device_type_id == "null":
+        for endpoint in device["endpoints"].values():
+            if not endpoint["device_type_name"] or endpoint["device_type_id"] == "null":
                 continue
-            if endpoint.device_type_id not in self.device_types or self.device_types[endpoint.device_type_id]["name"] != endpoint.device_type_name:
+            if endpoint["device_type_id"] not in self.device_types or self.device_types[endpoint["device_type_id"]]["name"] != endpoint["device_type_name"]:
                 return False
-            device_type = self.device_types[endpoint.device_type_id]
-            endpoints[str(count)] = MTEndpoint(
-                endpoint_id=str(count),
-                device_type_name=endpoint.device_type_name,
-                device_type_id=endpoint.device_type_id,
-                clusters={
+            device_type = self.device_types[endpoint["device_type_id"]]
+            endpoints[str(count)] = {
+                "endpoint_id": str(count),
+                "device_type_name": endpoint["device_type_name"],
+                "device_type_id": endpoint["device_type_id"],
+                "clusters": {
                     cluster_id: {
                         "cluster_name": cluster["name"],
                         "cluster_id": cluster["id"],
@@ -224,10 +232,10 @@ class MatterRetriever:
                         } if "commands" in self.clusters[cluster_id] else []
                     } for cluster_id, cluster in device_type["clusters"].items() if cluster["mandatory"]
                 } if "clusters" in device_type else {}
-            )
+            }
             count += 1
-        device.endpoints = endpoints
-        return True
+        device["endpoints"] = endpoints
+        return True if endpoints else False
 
 GENERATOR_PROMPT = """
 You are a system designer creating realistic scenarios to test AI agents that control smart devices.
@@ -235,9 +243,10 @@ Convert the given survey answers into a realistic scenario where a user sends a 
 
 [Rules]
 - You MUST not reveal the private information.
-- The device_descriptions MUST include the device types in the survey answer.
-- The device_descriptions MUST include every device required to accomplish the user_message.
-- The user_message MUST be a unambiguous imperative sentence for controlling some of the devices in the device_descriptions.
+- The device_types MUST include every device type required to accomplish the user_message.
+- The device_types MUST include the device types in the survey answer.
+- The user_message MUST be a natural language imperative sentence for controlling some of the devices in the device_descriptions.
+- The user_message MUST clearly specify the device to control, command, and arguments.
 
 [Where were you?]
 {space}
@@ -248,19 +257,25 @@ Convert the given survey answers into a realistic scenario where a user sends a 
 [What did you command the AI assistant?]
 {user_command}
 
-[Matter specifications]
-{matter_specifications}
+[Format]
+{format}
+"""
+
+FACTORY_PROMPT = """
+Generate a device of the given type. 
+If the device type is relevant to the user's message, the device should provide relevant functions.
+
+[Device type]
+{device_type}
 
 [Format]
 {format}
 """
 
-class Expectations(BaseModel):
-    inputs: Dict[str, W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The pairs of device ID and their correct control upon the user's message.")
-
 PLANNER_PROMPT = """
 You are a secretary who controls smart devices. 
 Control the devices upon the following user's message.
+Carefully revise the output according to your previous failure.
 
 [User message]
 {user_message}
@@ -273,65 +288,124 @@ Control the devices upon the following user's message.
 
 [Format]
 {format}
+
+[Previous failure]
+{previous_failure}
 """
 
-async def generate_expectations(planner, answer_dict, scenario_dict):
+async def generate_expectations(device_descriptions, user_message, expected_behavior):
+    previous_failure = None
     for _ in range(SYNTHESIZE_EXPECTATION_RETRY):
         try:
             # Expectation
             expectations = await planner.ainvoke({
-                "device_descriptions": scenario_dict["device_descriptions"],
-                "user_message": scenario_dict["user_message"],
-                "expected_behavior": answer_dict["expected_behavior"],
+                "device_descriptions": device_descriptions,
+                "user_message": user_message,
+                "expected_behavior": expected_behavior,
+                "previous_failure": previous_failure
             })
 
             # Validation
-            for agent_id, expectation in expectations.inputs.items():
+            for expectation in expectations.inputs:
                 description = None
-                for d in scenario_dict["device_descriptions"]:
-                    if agent_id == (d["deviceId"] if d["format"] == "SmartThings" else d["id"]):
+                for d in device_descriptions:
+                    if expectation.agent_id == (d["deviceId"] if d["format"] == "SmartThings" else d["id"]):
                         description = d
                         break
                 if description is None:
+                    debug(expectation, description)
                     raise Exception("INVALID AGENT ID")
                 
-                if instantiate_device("", description).validate_input(**dict(expectation)) != "VALID":
-                    raise Exception("INVALID COMMAND")
+                validation_result = instantiate_device("", description).validate_input(**dict(expectation))
+                if  validation_result != "VALID":
+                    debug(expectation, description)
+                    raise Exception(validation_result)
             
             return expectations.model_dump(exclude_none=True)["inputs"]
-        except Exception:
+        except Exception as e:
+            debug(e)
+            previous_failure = str(e)
             continue
 
-async def generate_scenario(generator, retriever, planner, answer):
+async def create_device(device_format, device_type, device_id):
+    if device_format == "W3C":
+        while True:
+            try:
+                device = (await w3c_factory.ainvoke({"device_type": device_type})).model_dump(exclude_none=True)
+                device["format"] = "W3C"
+                device["id"] = device_id
+                return device
+            except Exception as e:
+                debug(e)
+                continue
+    elif device_format == "SmartThings":
+        while True:
+            try:
+                device = (await smartthings_factory.ainvoke({"device_type": device_type})).model_dump(exclude_none=True)
+                device["format"] = "SmartThings"
+                device["deviceId"] = device_id
+                for component in device["components"]:
+                    component["id"] = "main"
+                    component["label"] = "main"
+                    component["optional"] = False
+                    for capability in component["capabilities"]:
+                        capability["version"] = 1
+                        capability["status"] = "live"
+                return device
+            except Exception as e:
+                debug(e)
+                continue
+    elif device_format == "Matter":
+        while True:
+            try:
+                device = (await matter_factory.ainvoke({"device_type": device_type, "matter_specifications": retriever.invoke(device_type)})).model_dump(exclude_none=True)
+                device["format"] = "Matter"
+                device["id"] = device_id
+                if not retriever.autocomplete(device):
+                    continue
+                return device
+            except Exception as e:
+                debug(e)
+                continue
+
+async def generate_scenario(answer, pbar):
+    tries = 0
     while True:
         try:
-            # Scenario
-            answer_dict = answer._asdict()
-            answer_dict["matter_specifications"] = retriever.invoke(f"{answer_dict['devices']}")
-            scenario = await generator.ainvoke(answer_dict)
+            tries += 1
 
-            # Matter autocompletion
-            if not all([retriever.autocomplete(device) for device in scenario.device_descriptions if isinstance(device, MTDevice)]):
-                continue
+            # Scenario
+            pbar.set_postfix({"tries": tries, "progress": "scenario"})
+            scenario = await generator.ainvoke(answer._asdict())
+            debug(scenario)
+
+            # Create devices
+            pbar.set_postfix({"tries": tries, "progress": "devices"})
+            device_ids = [get_random_device_id() for _ in scenario.device_types]
+            while len(device_ids) != len(set(device_ids)):
+                device_ids = [get_random_device_id() for _ in scenario.device_types]
+            device_descriptions = [await create_device(random.choice(device_formats), device_type, device_ids[i]) for i, device_type in enumerate(scenario.device_types)]
+            debug(device_descriptions)
 
             # Expectations
-            scenario = scenario.model_dump(exclude_none=True)
-            expectations = await generate_expectations(planner, answer_dict, scenario)
+            pbar.set_postfix({"tries": tries, "progress": "expectations"})
+            expectations = await generate_expectations(device_descriptions, scenario.user_message, answer.expected_behavior)
             if not expectations:
                 continue
-            scenario["evaluation_criteria"] = expectations
+            debug(expectations)
 
-            return scenario
-        except Exception:
+            # TODO Semantics
+
+            return {
+                "user_message": scenario.user_message,
+                "device_descriptions": device_descriptions,
+                "evaluation_criteria": expectations
+            }
+        except Exception as e:
+            debug(e)
             continue
 
-async def main(model: Model, iterate: int, reset: bool):
-    parser = PydanticOutputParser(pydantic_object=Scenario)
-    scenario_generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
-    retriever = MatterRetriever()
-    expectation_parser = PydanticOutputParser(pydantic_object=Expectations)
-    planner = PromptTemplate.from_template(PLANNER_PROMPT).partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
-
+async def main(iterate: int, reset: bool):
     # Load survey results
     survey_df = pd.read_csv(SURVEY_PATH)
     survey_df = survey_df.loc[survey_df.index.repeat(iterate)]
@@ -342,7 +416,7 @@ async def main(model: Model, iterate: int, reset: bool):
     with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
         done = 0
         for answer in survey_df.itertuples():
-            task = asyncio.create_task(generate_scenario(scenario_generator, retriever, planner, answer))
+            task = asyncio.create_task(generate_scenario(answer, pbar))
             while not task.done():
                 await asyncio.sleep(1)
                 pbar.n = done
@@ -357,18 +431,50 @@ async def main(model: Model, iterate: int, reset: bool):
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--reset", action="store_true")
     argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss:20b", help="LLM to use")
     argument_parser.add_argument("--iterate", type=int, required=False, default=1, help="Number of iterations over the survey result")
-    argument_parser.add_argument("--devices", type=int, required=False, default=5, help="Number of devices for each scenario")
+    argument_parser.add_argument("--devices", type=int, required=False, default=3, help="Number of devices for each scenario")
+    argument_parser.add_argument("--format", type=str, required=False, default="Full", choices=["W3C", "SmartThings", "Matter", "Full"], help="Device formats")
     args = argument_parser.parse_args()
 
-    num_devices = 3
+    def debug(*text):
+        if args.debug:
+            print(*text)
+
+    device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
+    
+    Expectations = create_model(
+        'Expectations',
+        inputs=(
+            {"W3C": List[W3CInput], "SmartThings": List[SmartThingsInput], "Matter": List[MatterInput]}.get(args.format, List[W3CInput | SmartThingsInput | MatterInput]), 
+            Field(min_length=1, description="The list of the correct control of the devices upon the user's message.")
+        )
+    )
+
+    debug(f"{device_formats} {args.devices} devices")
 
     class Scenario(BaseModel):
-        device_descriptions: List[TDDevice | STDevice | MTDevice] = Field(description="The descriptions of the devices in the space.", min_length=num_devices, max_length=num_devices)
+        device_types: List[str] = Field(description="The types of the devices in the space.", min_length=args.devices, max_length=args.devices)
         user_message: str = Field(description="The message the user gives to the AI agent.")
 
-    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=0.3, max_output_tokens=8192)
 
-    asyncio.run(main(model=model, iterate=args.iterate, reset=args.reset))
+    model = Model(model=args.model, backend="ollama", reasoning=True, temperature=0.7, max_output_tokens=4096)
+
+    scenario_parser = PydanticOutputParser(pydantic_object=Scenario)
+    generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=scenario_parser.get_format_instructions()) | model.instantiate() | scenario_parser
+
+    expectation_parser = PydanticOutputParser(pydantic_object=Expectations)
+    planner = PromptTemplate.from_template(PLANNER_PROMPT).partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
+
+    retriever = MatterRetriever()
+
+    w3c_parser = PydanticOutputParser(pydantic_object=TDDevice)
+    w3c_factory = PromptTemplate.from_template(FACTORY_PROMPT).partial(format=w3c_parser.get_format_instructions()) | model.instantiate() | w3c_parser
+    smartthings_parser = PydanticOutputParser(pydantic_object=STDevice)
+    smartthings_factory = PromptTemplate.from_template(FACTORY_PROMPT).partial(format=smartthings_parser.get_format_instructions()) | model.instantiate() | smartthings_parser
+    matter_parser = PydanticOutputParser(pydantic_object=MTDevice)
+    matter_factory = PromptTemplate.from_template(FACTORY_PROMPT + "\n\n[Matter specifications]\n{matter_specifications}\n").partial(format=matter_parser.get_format_instructions()) | model.instantiate() | matter_parser
+
+    asyncio.run(main(iterate=args.iterate, reset=args.reset))

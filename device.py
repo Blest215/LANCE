@@ -76,7 +76,7 @@ class W3CDevice(Device):
             for required in self.dict["actions"][kwargs["action"]]["required"]:
                 if "inputs" not in kwargs or required not in kwargs["inputs"]:
                     return f"REQUIRED INPUT {required} MISSING"
-        # TODO SEMANTICS
+        # TODO ARGUMENT TYPE
         return "VALID"
     
     def execute(self, **kwargs):
@@ -112,9 +112,10 @@ class SmartThingsDevice(Device):
             return "INVALID CAPABILITY NAME"
         if kwargs["command"] not in capability["commands"]:
             return "INVALID COMMAND NAME"
-        if len(kwargs["arguments"]) != len(capability["commands"][kwargs["command"]]): # TODO optional, schema
-            return "REQUIRED ARGUMENTS MISSING"
-        # TODO SEMANTICS
+        for argument in capability["commands"][kwargs["command"]]["arguments"]:
+            if not argument["optional"] and argument["name"] not in kwargs["arguments"]:
+                return f"REQUIRED ARGUMENT {argument['name']} MISSING"
+        # TODO ARGUMENT TYPE
         return "VALID"
     
     def execute(self, **kwargs):
@@ -162,13 +163,17 @@ class MatterDevice(Device):
             return "NO COMMAND ID"
         if kwargs["endpoint_id"] not in self.dict["endpoints"]:
             return "INVALID ENDPOINT ID"
-        if kwargs["cluster_id"] not in self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"]:
+        endpoint = self.dict["endpoints"][kwargs["endpoint_id"]]
+        if kwargs["cluster_id"] not in endpoint["clusters"]:
             return "INVALID CLUSTER ID"
-        if kwargs["command_id"] not in self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"][kwargs["cluster_id"]]["commands"]:
+        cluster = endpoint["clusters"][kwargs["cluster_id"]]
+        if kwargs["command_id"] not in cluster["commands"]:
             return "INVALID COMMAND ID"
-        if len(kwargs["fields"]) != len(self.dict["endpoints"][kwargs["endpoint_id"]]["clusters"][kwargs["cluster_id"]]["commands"]["fields"]): # TODO optional, schema
-            return "REQUIRED FIELDS MISSING"
-        # TODO SEMANTICS
+        command = cluster["commands"][kwargs["command_id"]]
+        for field in command["fields"]:
+            if field["name"] not in kwargs["fields"]:
+                return f"REQUIRED FIELD {field['name']} MISSING"
+        # TODO ARGUMENT TYPE
         return "VALID"
     
     def execute(self, **kwargs):

@@ -129,8 +129,8 @@ def evaluate_scenario(scenario, columns):
     evaluation_criteria = eval(scenario.evaluation_criteria)
     for column in columns:
         consequences = eval(getattr(scenario, column))
-        correct = sum([1 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria.values()])
-        result[column.replace("CONSEQUENCES", "ACCURACY")] = correct / len(evaluation_criteria) if len(evaluation_criteria) > 0 else None
+        correct = sum([1 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria])
+        result[column.replace("CONSEQUENCES", "ACCURACY")] = (correct / len(evaluation_criteria)) if len(evaluation_criteria) > 0 else None
     return result
 
 async def scoring_scenario(semaphore, evaluator, scenario, column_name):
