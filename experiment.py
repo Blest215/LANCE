@@ -10,7 +10,6 @@ from tqdm.asyncio import tqdm as atqdm
 from datetime import datetime
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
-from langchain_core.prompts import ChatPromptTemplate
 
 from model import Model
 from settings import *
@@ -69,6 +68,8 @@ async def simulate_scenario(model, modes, scenario):
 async def simulation(code, dataset_path, models, modes):
     result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
+    if args.debug:
+        df = df.head()
 
     async def wait():
         await asyncio.sleep(1)
@@ -139,10 +140,9 @@ async def scoring_scenario(semaphore, evaluator, scenario, column_name):
         while True:
             try:
                 return await evaluator.ainvoke({
-                    "time": scenario.time,
                     "device_descriptions": scenario.device_descriptions,
-                    "user_command": scenario.user_command,
-                    "evaluation_criteria": "\n".join([f"Agent {agent_id}: {expectation}" for agent_id, expectation in eval(scenario.evaluation_criteria).items()]),
+                    "user_message": scenario.user_message,
+                    "evaluation_criteria": "\n".join([f"Agent {expectation['agent_id']}: {expectation}" for expectation in eval(scenario.evaluation_criteria)]),
                     "conversation": getattr(scenario, column_name),
                 })
             except OutputParserException as e:
@@ -166,7 +166,7 @@ async def evaluation(result_path, evaluation_model=None):
     if evaluation_model:
         evaluation_model.setup()
         evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
-        evaluator = ChatPromptTemplate([("user", EVALUATOR_PROMPT)]).partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
+        evaluator = EVALUATOR_PROMPT.partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
         
         semaphore = asyncio.Semaphore(EVALUATION_CONCURRENCY_MAX)
 
@@ -182,6 +182,7 @@ async def evaluation(result_path, evaluation_model=None):
             await save_dataframe(df, path=result_path)
         evaluation_model.wrapup()
 
+    print(df.mean(numeric_only=True))
     await save_dataframe(df, path=result_path, ensure=True)
 
 
@@ -189,13 +190,14 @@ async def main(code, models: list[Model], modes: list[str], evaluation_model: Mo
     dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)\.csv')
     
     datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
-    for dataset_path in datasets:
-        print(dataset_path)
-        result_path = await simulation(code, dataset_path, models, modes)
+    for dataset_file in datasets:
+        print(dataset_file)
+        result_path = await simulation(code, dataset_file, models, modes)
         await evaluation(result_path, evaluation_model)
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--resume", action="store_true")
     argument_parser.add_argument("--scoring", action="store_true")
@@ -208,36 +210,36 @@ if __name__ == "__main__":
 
     # Get experiment code
     code = args.code if args.code else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    code = code if not args.debug or "DEBUG" in code else f"{code}-DEBUG"
+    print(code)
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
 
-    temperature = 0.1
-
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
     models = [
-        Model("qwen3:0.6b-q8_0", backend="ollama", temperature=temperature, reasoning=True),
-        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=temperature, reasoning=True),
-        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=temperature, reasoning=False),
-        # Model("qwen3:4b", backend="ollama", temperature=temperature, reasoning=False),
-        # Model("qwen3:8b", backend="ollama", temperature=temperature, reasoning=True),
-        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=temperature, reasoning="high"),
-        # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        Model("granite4:350m-h-q8_0", backend="ollama", temperature=temperature),
-        Model("granite4:1b-h-q8_0", backend="ollama", temperature=temperature),
-        # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=temperature),
-        Model("functiongemma:270m-it-q8_0", backend="ollama", temperature=temperature),
-        # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=temperature),
-        # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=temperature),
-        Model("llama3.2:1b-instruct-q8_0", backend="ollama", temperature=temperature),
-        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=temperature),
-        # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.8, reasoning=True),
+        # Model("qwen3:0.6b-q8_0", backend="ollama", temperature=0.1, reasoning=True),
+        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=0.1, reasoning=True),
+        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=0.1, reasoning=False),
+        # Model("qwen3:4b", backend="ollama", temperature=0.1, reasoning=False),
+        # Model("qwen3:8b", backend="ollama", temperature=0.1, reasoning=True),
+        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.1, reasoning="high"),
+        # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        Model("granite4:350m-h-q8_0", backend="ollama", temperature=0.1),
+        Model("granite4:1b-h-q8_0", backend="ollama", temperature=0.1),
+        # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=0.1),
+        Model("functiongemma:270m-it-q8_0", backend="ollama", temperature=0.1),
+        # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=0.1),
+        # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        Model("llama3.2:1b-instruct-q8_0", backend="ollama", temperature=0.1),
+        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=0.1),
+        # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.1, reasoning=True),
     ]
-    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.3, reasoning=False) if args.scoring else None
+    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.1, reasoning=False) if args.scoring else None
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, models=models, modes=modes, evaluation_model=evaluation_model))
+    asyncio.run(main(code=code, models=models if not args.debug else models[:1], modes=modes, evaluation_model=evaluation_model))

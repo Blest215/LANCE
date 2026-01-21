@@ -5,6 +5,8 @@ import re
 import os
 import subprocess
 
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,7 +25,7 @@ SIMULATION_CONCURRENCY_GPU_MAX = 50
 SIMULATION_CONCURRENCY_DELAY = 7
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_RETRY = 3
-TIMEOUT_LIMIT = None
+TIMEOUT_LIMIT = 60
 TICK = 0.1
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
@@ -64,49 +66,45 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 # User
 
-COORDINATOR_PROMPT = """
-You are a coordinator who can control devices in the descriptions by using the given tool.
-Instruct each agent or control each device by using the given tool to accomplish the user's message.
-
-[User Message]
-{user_message}
-
-[Descriptions]
-{descriptions}
-"""
+COORDINATOR_PROMPT = ChatPromptTemplate.from_messages([
+    ("system","""
+You are a coordinator who controls devices in the descriptions.
+Control the following devices by using the given tool to accomplish the task in the user's message.
+"""),
+    MessagesPlaceholder(variable_name="descriptions"),
+    ("user", "{user_message}"),
+])
 
 # Agents
 
-SCREENER_PROMPT = """
+SCREENER_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
 You are an AI agent that controls the following device.
 
-[Device Description]
-{description}
-
-Answer the recruiting message with how well you can contribute to the task.
-
-[Message]
-{message}
+Score whether you can contribute to the task in the recruiting message or not.
+If you are relevant, reply with how you can contribute using the device.
+If you are not relevant, reply with the reason why you cannot contribute.
 
 [Format]
 {format}
-"""
+"""),
+    ("system", "{description}"),
+    ("user", "{message}"),
+])
 
-CONTROLLER_PROMPT = """
+CONTROLLER_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
 You are an AI agent that controls the following device.
-
-[Device Description]
-{description}
-
 Control the device according to the given message.
-
-[Message]
-{message}
-"""
+"""),
+    ("system", "{description}"),
+    ("user", "message"),
+])
 
 # EVALUATION
 
-EVALUATOR_PROMPT = """
+EVALUATOR_PROMPT = ChatPromptTemplate.from_messages([
+    ("user", """
 Evaluate the behavior of the agents in the conversation whether the user's task is accomplished or not.
 
 [Device Descriptions]
@@ -123,7 +121,8 @@ Evaluate the behavior of the agents in the conversation whether the user's task 
 
 [Format]
 {format}
-"""
+"""),
+])
 
 from pydantic import BaseModel, Field
 class Response(BaseModel):

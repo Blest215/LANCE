@@ -2,8 +2,6 @@ import asyncio
 import sys
 
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
-from langchain_core.prompts import ChatPromptTemplate
 
 from settings import *
 from client import Client
@@ -22,9 +20,9 @@ class Agent(Client):
 
         # RECRUIT
         screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
-        self.screener = ChatPromptTemplate([("user", SCREENER_PROMPT)]).partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
+        self.screener = SCREENER_PROMPT.partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
         # NATURAL
-        self.controller = ChatPromptTemplate.from_template(CONTROLLER_PROMPT) | model.with_tools([device.get_tool()])
+        self.controller = CONTROLLER_PROMPT | model.with_tools([device.get_tool()])
 
     async def connection_handler(self):
         await self.subscribe(MQTT_TOPIC_RECRUIT_CALL, "+")
@@ -49,7 +47,7 @@ class Agent(Client):
     # RECRUIT methods
 
     async def screening(self, team_id, message):
-        screening_result = await self.screener.ainvoke({"message": message["message"] if "message" in message else message, "description": str(self.device)})
+        screening_result = await self.screener.ainvoke({"message": message, "description": str(self.device)})
         if screening_result.score >= RECRUIT_SCREENING_THRESHOLD:
             await self.join_team(team_id)
             await self.publish(MQTT_TOPIC_RECRUIT_TEAM, self.current_team_id, str(self.device))
@@ -57,7 +55,7 @@ class Agent(Client):
     # NATURAL methods
 
     async def controlling(self, message):
-        control_result = await self.controller.ainvoke({"message": message["message"] if "message" in message else message, "description": str(self.device)})
+        control_result = await self.controller.ainvoke({"message": message, "description": str(self.device)})
         return [self.control_device(tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]]
     
     # CENTRALIZED methods

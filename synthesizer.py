@@ -16,7 +16,6 @@ load_dotenv()
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
 
-from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from typing import Optional, Literal, Annotated
 from pydantic import BaseModel, Field, PlainSerializer, create_model
@@ -198,7 +197,7 @@ class MatterRetriever:
         self.retriever.k = 20
     
     def invoke(self, input, **kwargs):
-        return "\n".join(document.page_content for document in self.retriever.invoke(input, **kwargs))
+        return [("system", document.page_content) for document in self.retriever.invoke(input, **kwargs)]
     
     def autocomplete(self, device):
         if device["format"] != "Matter":
@@ -238,7 +237,8 @@ class MatterRetriever:
             raise Exception("EMPTY ENDPOINTS")
         device["endpoints"] = endpoints
 
-GENERATOR_PROMPT = """
+GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
 You are a system designer creating realistic scenarios to test AI agents that control smart devices.
 Convert the given survey answers into a realistic scenario where a user sends a message to various devices.
 
@@ -248,51 +248,38 @@ Convert the given survey answers into a realistic scenario where a user sends a 
 - The device_types MUST include the device types in the survey answer.
 - The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions.
 - The user_message MUST clearly specify the device to control, command, and arguments.
+"""),
+    ("system", "[Format]\n{format}"),
+    ("assistant", "Where were you?"),
+    ("user", "{space}"),
+    ("assistant", "What devices were in the space? (Select all that apply.)"),
+    ("user", "{devices}"),
+    ("assistant", "What did you command the AI assistant?"),
+    ("user", "{user_command}"),
+])
 
-[Where were you?]
-{space}
-
-[What devices were in the space? (Select all that apply.)]
-{devices}
-
-[What did you command the AI assistant?]
-{user_command}
-
-[Format]
-{format}
-"""
-
-FACTORY_PROMPT = """
+FACTORY_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
 Generate a device of the given type. 
 If the device type is relevant to the user's message, the device should provide relevant functions.
+"""),
+    ("system", "[Format]\n{format}"),
+    MessagesPlaceholder(variable_name="matter_specifications"),
+    ("user", "{device_type}"),
+])
 
-[Device type]
-{device_type}
-
-[Format]
-{format}
-"""
-
-PLANNER_PROMPT = """
+PLANNER_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
 You are a secretary who controls smart devices. 
 Control the devices upon the following user's message.
 Carefully revise the output according to your previous failure.
-
-[User message]
-{user_message}
-
-[Device descriptions]
-{device_descriptions}
-
-[Expected behavior]
-{expected_behavior}
-
-[Format]
-{format}
-
-[Previous failure]
-{previous_failure}
-"""
+"""),
+    ("system", "[Format]\n{format}"),
+    MessagesPlaceholder(variable_name="device_descriptions"),
+    ("system", "[Expected behavior]\n{expected_behavior}"),
+    ("system", "[Previous failure]\n{previous_failure}"),
+    ("user", "{user_message}"),
+])
 
 async def generate_expectations(device_descriptions, user_message, expected_behavior):
     previous_failure = None
@@ -300,10 +287,10 @@ async def generate_expectations(device_descriptions, user_message, expected_beha
         try:
             # Expectation
             expectations = await planner.ainvoke({
-                "device_descriptions": device_descriptions,
-                "user_message": user_message,
+                "device_descriptions": [("system", str(device)) for device in device_descriptions],
                 "expected_behavior": expected_behavior,
-                "previous_failure": previous_failure
+                "previous_failure": previous_failure,
+                "user_message": user_message,
             })
 
             # Validation
@@ -425,6 +412,8 @@ async def main(path: str, iterate: int, reset: bool):
             df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
             await save_dataframe(df, path)
             done += 1
+        pbar.n = done
+        pbar.refresh()
 
     # Save dataset
     await save_dataframe(df, path, ensure=True)
@@ -467,18 +456,18 @@ if __name__ == "__main__":
     model = Model(model=args.model, backend="ollama", reasoning=True, temperature=0.7, max_output_tokens=4096)
 
     scenario_parser = PydanticOutputParser(pydantic_object=Scenario)
-    generator = PromptTemplate.from_template(GENERATOR_PROMPT).partial(format=scenario_parser.get_format_instructions()) | model.instantiate() | scenario_parser
+    generator = GENERATOR_PROMPT.partial(format=scenario_parser.get_format_instructions()) | model.instantiate() | scenario_parser
 
     expectation_parser = PydanticOutputParser(pydantic_object=Expectations)
-    planner = PromptTemplate.from_template(PLANNER_PROMPT).partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
+    planner = PLANNER_PROMPT.partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
 
     retriever = MatterRetriever()
 
     w3c_parser = PydanticOutputParser(pydantic_object=TDDevice)
-    w3c_factory = PromptTemplate.from_template(FACTORY_PROMPT).partial(format=w3c_parser.get_format_instructions()) | model.instantiate() | w3c_parser
+    w3c_factory = FACTORY_PROMPT.partial(format=w3c_parser.get_format_instructions(), matter_specifications=[]) | model.instantiate() | w3c_parser
     smartthings_parser = PydanticOutputParser(pydantic_object=STDevice)
-    smartthings_factory = PromptTemplate.from_template(FACTORY_PROMPT).partial(format=smartthings_parser.get_format_instructions()) | model.instantiate() | smartthings_parser
+    smartthings_factory = FACTORY_PROMPT.partial(format=smartthings_parser.get_format_instructions(), matter_specifications=[]) | model.instantiate() | smartthings_parser
     matter_parser = PydanticOutputParser(pydantic_object=MTDevice)
-    matter_factory = PromptTemplate.from_template(FACTORY_PROMPT + "\n\n[Matter specifications]\n{matter_specifications}\n").partial(format=matter_parser.get_format_instructions()) | model.instantiate() | matter_parser
+    matter_factory = FACTORY_PROMPT.partial(format=matter_parser.get_format_instructions()) | model.instantiate() | matter_parser
 
     asyncio.run(main(path=f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv", iterate=args.iterate, reset=args.reset))

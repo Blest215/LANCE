@@ -1,7 +1,5 @@
 import asyncio
 
-from langchain_core.prompts import ChatPromptTemplate
-
 from settings import *
 from client import Client
 from device import *
@@ -12,7 +10,7 @@ class AgentInput(BaseModel):
 
 @tool("control_device_agent", args_schema=AgentInput)
 def control_device_agent(agent_id: str, message: str):
-    """Control a device by sending a message to the associated agent."""
+    """Control a device by sending a request message to the associated agent."""
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -26,9 +24,9 @@ class UserAgent(Client):
         self.agents = set()
 
         # NATURAL
-        self.natural = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools([control_device_agent])
+        self.natural = COORDINATOR_PROMPT | model.with_tools([control_device_agent])
         # CENTRALIZED
-        self.centralized = ChatPromptTemplate.from_template(COORDINATOR_PROMPT) | model.with_tools(control_device_tools)
+        self.centralized = COORDINATOR_PROMPT | model.with_tools(control_device_tools)
 
     async def main(self, mode, user_message):
         self.log(f"User asked: {user_message}")
@@ -84,22 +82,32 @@ class UserAgent(Client):
         self.log("Agent recruiting end")
         await self.leave_team()
 
-        return "\n".join(self.team_messages)
+        return [("system", description) for description in self.team_messages]
 
     # NATURAL methods
 
     async def instruct_agent(self, result):
         self.log_result(result)
-        self.consequences += sum(await asyncio.gather(*[self.control(MQTT_TOPIC_NATURAL_CONTROL, **tool_call["args"]) for tool_call in result.tool_calls]), []) if hasattr(result, "tool_calls") else []
+        if hasattr(result, "tool_calls"):
+            tasks = []
+            for tool_call in result.tool_calls:
+                tasks.append(asyncio.create_task(self.control(MQTT_TOPIC_NATURAL_CONTROL, **tool_call["args"])))
+                await asyncio.sleep(TICK)
+            self.consequences += sum(await asyncio.gather(*tasks), [])
 
     # CENTRALIZED methods
 
     async def discovery(self):
-        return "\n".join(eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")).values())
+        return [("system", description) for description in eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")).values()]
 
     async def control_device(self, result):
         self.log_result(result)
-        self.consequences += sum(await asyncio.gather(*[self.control(MQTT_TOPIC_STRUCTURED_CONTROL, **tool_call["args"]) for tool_call in result.tool_calls]), []) if hasattr(result, "tool_calls") else []
+        if hasattr(result, "tool_calls"):
+            tasks = []
+            for tool_call in result.tool_calls:
+                tasks.append(asyncio.create_task(self.control(MQTT_TOPIC_STRUCTURED_CONTROL, **tool_call["args"])))
+                await asyncio.sleep(TICK)
+            self.consequences += sum(await asyncio.gather(*tasks), [])
     
     # etc
 
@@ -112,7 +120,8 @@ class UserAgent(Client):
             self.log(f"<Tool calls> {result.tool_calls}")
 
     async def control(self, topic, agent_id, **kwargs):
-        return eval(await self.request(topic, agent_id, kwargs))
+        response = await self.request(topic, agent_id, kwargs)
+        return eval(response)
 
     async def wait_for_client(self, client_id):
         self.wait.add(client_id)
