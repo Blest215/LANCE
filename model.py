@@ -23,11 +23,11 @@ class Model:
         self.kwargs = kwargs
 
     def __str__(self):
-        return f"{self.name}_{self.reasoning}_{self.temperature}".replace("-", "_").replace(".", "_").replace(":", "_")
+        return f"{self.name}_T{int(self.temperature * 10)}".replace("-", "_").replace(".", "_").replace(":", "_")
 
     @property
     def name(self):
-        return self.model.split("/")[-1]
+        return self.model.split("/")[-1] + ("_reasoning" if self.reasoning else "")
 
     def __getitem__(self, key):
         return self.__dict__[key]

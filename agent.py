@@ -29,7 +29,7 @@ class Agent(Client):
         await self.subscribe(MQTT_TOPIC_RECRUIT_CALL, "+")
         await self.subscribe(MQTT_TOPIC_NATURAL_CONTROL, self.id)
         await self.subscribe(MQTT_TOPIC_STRUCTURED_CONTROL, self.id)
-        await self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, str(self.device))
+        await self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, self.device.description)
 
     async def message_handler(self, topic, id, sender, message, request_id):
         if not self.busy and check_topic(topic, MQTT_TOPIC_CONVERSATIONAL_CALL):

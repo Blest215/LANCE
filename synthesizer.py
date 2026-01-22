@@ -239,13 +239,11 @@ class MatterRetriever:
 
 GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a system designer creating realistic scenarios to test AI agents that control smart devices."),
-    ("system", """[Rules]
-- You MUST not reveal the private information.
-- The device_types MUST include every device type required to accomplish the user_message.
-- The device_types MAY include the device types in the survey answer.
-- The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions.
-- The user_message MUST clearly specify the device to control, command, and arguments.
-"""),
+    ("system", "You MUST not reveal the private information."),
+    ("system", "The device_types MUST include every device type required to accomplish the user_message."),
+    ("system", "The device_types MAY include the device types in the survey answer."),
+    ("system", "The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions."),
+    ("system", "The user_message MUST clearly specify the device to control, command, and arguments."),
     ("system", "[Format]\n{format}"),
     ("assistant", "Where were you?"),
     ("user", "{space}"),
@@ -258,10 +256,11 @@ GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
 
 FACTORY_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a device developer who is writing a description document."),
-    ("system", "[Rules]\nIf the device type is relevant to the user's message, the device should provide relevant functions."),
+    ("system", "If the device type is relevant to the user's message, the device MUST provide relevant functions."),
+    ("system", "The device may provide irrelevant but realistic functions."),
     ("system", "[Format]\n{format}"),
     MessagesPlaceholder(variable_name="matter_specifications"),
-    ("user", "[User Message]\n{user_message}"),
+    ("system", "[User Message]\n{user_message}"),
     ("user", "Generate a device of the given type: {device_type}"),
 ])
 
@@ -280,90 +279,14 @@ VALIDATOR_PROMPT = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="device_descriptions"),
     ("user", "{user_message}"),
     MessagesPlaceholder(variable_name="device_controls"),
-    ("user", "Did the devices accomplish the user's goal?"),
+    ("user", "Is the user's goal in the message unambiguous? Did the devices accomplish the user's goal?"),
 ])
 
-class ValidationResult(BaseModel):
-    valid: bool
-    reason: str
-
-async def validate_scenario(device_descriptions, user_message, expectations):
-    return await validator.ainvoke({
-        "device_descriptions": [("system", str(device)) for device in device_descriptions],
-        "user_message": user_message,
-        "device_controls": [("assistant", str(dict(expectation))) for expectation in expectations]
-    })
-
-async def generate_expectations(device_descriptions, user_message, expected_behavior):
-    previous_failure = None
-    for _ in range(SYNTHESIZE_RETRY):
-        try:
-            expectations = await planner.ainvoke({
-                "device_descriptions": [("system", str(device)) for device in device_descriptions],
-                "expected_behavior": expected_behavior,
-                "previous_failure": previous_failure,
-                "user_message": user_message,
-            })
-
-            # Syntatic validation
-            for expectation in expectations.inputs:
-                description = None
-                for d in device_descriptions:
-                    if expectation.agent_id == (d["deviceId"] if d["format"] == "SmartThings" else d["id"]):
-                        description = d
-                        break
-                if description is None:
-                    debug(expectation, description)
-                    raise Exception("INVALID AGENT ID")
-                
-                validation_result = instantiate_device("", description).validate_input(**dict(expectation))
-                if  validation_result != "VALID":
-                    debug(expectation, description)
-                    raise Exception(validation_result)
-            
-            # Semantic validation
-            validation_result = await validate_scenario(device_descriptions, user_message, expectations.inputs)
-            if not validation_result.valid:
-                raise Exception(validation_result.reason)
-
-            return expectations.model_dump(exclude_none=True)["inputs"]
-        except Exception as e:
-            debug(e)
-            previous_failure = str(e)
-            continue
-    raise Exception("EXPECTATION FAILURE")
-
-async def create_device(device_format, device_type, device_id, user_message):
-    debug(f"Create device: {device_format} {device_type} {device_id}")
-    for _ in range(SYNTHESIZE_RETRY):
-        try:
-            if device_format == "W3C":
-                device = (await w3c_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
-                device["format"] = "W3C"
-                device["id"] = device_id
-                return device
-            elif device_format == "SmartThings":
-                device = (await smartthings_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
-                device["format"] = "SmartThings"
-                device["deviceId"] = device_id
-                for component in device["components"]:
-                    component["id"] = "main"
-                    component["label"] = "main"
-                    component["optional"] = False
-                    for capability in component["capabilities"]:
-                        capability["version"] = 1
-                        capability["status"] = "live"
-                return device
-            elif device_format == "Matter":
-                device = (await matter_factory.ainvoke({"device_type": device_type, "user_message": user_message, "matter_specifications": retriever.invoke(device_type)})).model_dump(exclude_none=True)
-                device["format"] = "Matter"
-                device["id"] = device_id
-                retriever.autocomplete(device)
-                return device
-        except Exception as e:
-            debug(e)
-            continue
-    raise Exception("DEVICE CREATION FAILURE")
+MUTATOR_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", "You are a software developer who is writing documentation for the device."),
+    ("system", "[Device]\n{description}"),
+    ("user", "Convert the structured description into a human-written README file."),
+])
 
 async def generate_scenario(answer, pbar):
     tries = 0
@@ -398,11 +321,114 @@ async def generate_scenario(answer, pbar):
             debug(e)
             continue
 
+async def create_device(device_format, device_type, device_id, user_message):
+    debug(f"Create device: {device_format} {device_type} {device_id}")
+    for _ in range(SYNTHESIZE_RETRY):
+        try:
+            if device_format == "W3C":
+                device = (await w3c_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
+                device["format"] = "W3C"
+                device["id"] = device_id
+                return {"format": "W3C", "structured": device}
+            elif device_format == "SmartThings":
+                device = (await smartthings_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
+                device["format"] = "SmartThings"
+                device["deviceId"] = device_id
+                for component in device["components"]:
+                    component["id"] = "main"
+                    component["label"] = "main"
+                    component["optional"] = False
+                    for capability in component["capabilities"]:
+                        capability["version"] = 1
+                        capability["status"] = "live"
+                return {"format": "SmartThings", "structured": device}
+            elif device_format == "Matter":
+                device = (await matter_factory.ainvoke({"device_type": device_type, "user_message": user_message, "matter_specifications": retriever.invoke(device_type)})).model_dump(exclude_none=True)
+                device["format"] = "Matter"
+                device["id"] = device_id
+                retriever.autocomplete(device)
+                return {"format": "Matter", "structured": device}
+        except Exception as e:
+            debug(e)
+            continue
+    raise Exception("DEVICE CREATION FAILURE")
+
+async def generate_expectations(device_descriptions, user_message, expected_behavior):
+    previous_failure = []
+    for _ in range(SYNTHESIZE_RETRY):
+        try:
+            expectations = await planner.ainvoke({
+                "device_descriptions": [("system", str(device)) for device in device_descriptions],
+                "expected_behavior": expected_behavior,
+                "previous_failure": previous_failure,
+                "user_message": user_message,
+            })
+
+            # Syntatic validation
+            for expectation in expectations.inputs:
+                description = None
+                for d in device_descriptions:
+                    if expectation.agent_id == (d["structured"]["deviceId"] if d["format"] == "SmartThings" else d["structured"]["id"]):
+                        description = d
+                        break
+                if description is None:
+                    debug(expectation)
+                    raise Exception(f"INVALID AGENT ID: {expectation}")
+                
+                validation_result = instantiate_device("", description).validate_input(**dict(expectation))
+                if  validation_result != "VALID":
+                    debug(expectation)
+                    raise Exception(f"{validation_result}: {expectation}")
+            
+            # Semantic validation
+            await validate_scenario(device_descriptions, user_message, expectations.inputs)            
+
+            return expectations.model_dump(exclude_none=True)["inputs"]
+        except Exception as e:
+            debug(e)
+            previous_failure.append(str(e))
+            continue
+    raise Exception("EXPECTATION FAILURE")
+
+class ValidationResult(BaseModel):
+    valid: bool
+    reason: str
+
+async def validate_scenario(device_descriptions, user_message, expectations):
+    validation_result = await validator.ainvoke({
+        "device_descriptions": [("system", str(description["structured"])) for description in device_descriptions],
+        "user_message": user_message,
+        "device_controls": [("assistant", str(dict(expectation))) for expectation in expectations]
+    })
+    if not validation_result.valid:
+        raise Exception(validation_result.reason)
+
+async def mutate_scenario(scenario, num_mutation):
+    mutated_scenario = scenario._asdict()
+    device_descriptions = eval(mutated_scenario["device_descriptions"])
+
+    for i in random.sample(range(len(device_descriptions)), num_mutation):
+        while True:
+            try:
+                device_descriptions[i] = {
+                    "format": device_descriptions[i]["format"],
+                    "structured": device_descriptions[i]["structured"],
+                    "natural": (await mutator.ainvoke({"description": device_descriptions[i]})).content,
+                }
+                break
+            except Exception as e:
+                debug(e)
+                continue
+
+    mutated_scenario["device_descriptions"] = str(device_descriptions)
+    return mutated_scenario
+
 async def main(path: str, iterate: int, reset: bool):
     # Load survey results
     survey_df = pd.read_csv(SURVEY_PATH)
     survey_df = survey_df.loc[survey_df.index.repeat(iterate)]
     survey_df = survey_df.reset_index(drop=True)
+    survey_df = survey_df.head() if args.debug else survey_df
 
     # Synthesize dataset
     df = pd.read_csv(path) if os.path.exists(path) and not reset else pd.DataFrame()
@@ -419,9 +445,13 @@ async def main(path: str, iterate: int, reset: bool):
             done += 1
         pbar.n = done
         pbar.refresh()
-
-    # Save dataset
     await save_dataframe(df, path, ensure=True)
+
+    # Mutate dataset
+    for num_mutation in [1, args.devices]:
+        original_df = pd.read_csv(path)
+        mutated_scenarios = await atqdm.gather(*[mutate_scenario(scenario, num_mutation) for scenario in original_df.itertuples(index=False)], desc=f"Mutation {num_mutation}")
+        await save_dataframe(pd.DataFrame(mutated_scenarios), path.replace(".csv", f"_M{num_mutation}.csv"), ensure=True)
 
 
 if __name__ == "__main__":
@@ -433,14 +463,12 @@ if __name__ == "__main__":
     argument_parser.add_argument("--devices", type=int, required=False, default=3, help="Number of devices for each scenario")
     argument_parser.add_argument("--format", type=str, required=False, default="Full", choices=["W3C", "SmartThings", "Matter", "Full"], help="Device formats")
     args = argument_parser.parse_args()
-
-    def debug(*text):
-        if args.debug:
-            print(*text)
+    set_debug(args.debug)
 
     # Models
 
     device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
+    debug(f"{device_formats} {args.devices} devices")
     
     Expectations = create_model(
         'Expectations',
@@ -449,8 +477,6 @@ if __name__ == "__main__":
             Field(min_length=1, description="The list of the correct control of the devices upon the user's message.")
         )
     )
-
-    debug(f"{device_formats} {args.devices} devices")
 
     class Scenario(BaseModel):
         device_types: List[str] = Field(description="The types of the devices in the space.", min_length=args.devices, max_length=args.devices)
@@ -477,5 +503,7 @@ if __name__ == "__main__":
 
     validator_parser = PydanticOutputParser(pydantic_object=ValidationResult)
     validator = VALIDATOR_PROMPT.partial(format=validator_parser.get_format_instructions()) | model.instantiate() | validator_parser
+
+    mutator = MUTATOR_PROMPT | model.instantiate()
 
     asyncio.run(main(path=f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv", iterate=args.iterate, reset=args.reset))

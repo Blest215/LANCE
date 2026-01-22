@@ -68,8 +68,7 @@ async def simulate_scenario(model, modes, scenario):
 async def simulation(code, dataset_path, models, modes):
     result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
-    if args.debug:
-        df = df.head()
+    df = df.head() if args.debug else df
 
     async def wait():
         await asyncio.sleep(1)
@@ -131,8 +130,8 @@ def evaluate_scenario(scenario, columns):
     evaluation_criteria = eval(scenario.evaluation_criteria)
     for column in columns:
         consequences = eval(getattr(scenario, column))
-        correct = sum([1 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria])
-        result[column.replace("CONSEQUENCES", "ACCURACY")] = (correct / len(evaluation_criteria)) if len(evaluation_criteria) > 0 else None
+        correct = sum([100 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria])
+        result[column.replace("CONSEQUENCES", "ACCURACY")] = int(correct / len(evaluation_criteria)) if len(evaluation_criteria) > 0 else None
     return result
 
 async def scoring_scenario(semaphore, evaluator, scenario, column_name):
@@ -187,7 +186,7 @@ async def evaluation(result_path, evaluation_model=None):
 
 
 async def main(code, models: list[Model], modes: list[str], evaluation_model: Model):
-    dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)\.csv')
+    dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)(?:_M\d+)?\.csv')
     
     datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
     for dataset_file in datasets:
@@ -202,6 +201,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("--resume", action="store_true")
     argument_parser.add_argument("--scoring", action="store_true")
     args = argument_parser.parse_args()
+    set_debug(args.debug)
 
     # Remove empty directories
     for result_code in os.listdir(RESULT_DIR):
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     
     models = [
         # Larger models
-        Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1, reasoning=None),
+        Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1),
         # Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1, reasoning=None),
         # Model("granite3.1-moe:3b-instruct-q8_0", temperature=0.1, reasoning=None),
         # Model("cogito:3b-v1-preview-llama-q8_0", temperature=0.1, reasoning=None),
@@ -228,10 +228,12 @@ if __name__ == "__main__":
         # Model("nemotron-mini:4b-instruct-q8_0", temperature=0.1, reasoning=None),
         # Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
         # Model("gpt-oss:120b-cloud", temperature=0.1, reasoning=True),
+        # Model("gpt-oss:20b", temperature=0.1, reasoning=False),
 
+        Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=False),
         Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=True),
-        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=True),
         Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=False),
+        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=True),
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.1, reasoning="high"),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
         Model("granite4:350m-h-q8_0", temperature=0.1),

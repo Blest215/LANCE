@@ -15,15 +15,14 @@ from settings import BaseModel
 
 class Device(ABC):
     def __init__(self, agent_id, description):
-        # TODO natural language descriptions
         self.agent_id = agent_id # One-to-one
-        self.description = description
-        self.dict = description
+        self.description = str(description["natural"]) if "natural" in description else str(description["structured"])
+        self.dict = description["structured"]
         # TODO experiment control
         self.experiment = True
 
     def __str__(self):
-        return str(self.description)
+        return self.description
     
     def control(self, **kwargs) -> Response:
         try:

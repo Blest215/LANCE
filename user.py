@@ -5,8 +5,8 @@ from client import Client
 from device import *
 
 class MessageInput(BaseModel):
-    agent_id: str = Field(description="the ID of the agent associated with the device to control")
-    order: str = Field(description="the natural language message to order the device control")
+    agent_id: str = Field(description="The ID of the agent associated with the device to control.")
+    order: str = Field(description="An imperative sentence to order the device control.")
 
 @tool("control_device", args_schema=MessageInput)
 def control_device(agent_id: str, order: str):
