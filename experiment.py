@@ -86,7 +86,7 @@ async def simulation(code, dataset_path, models, modes):
         tasks = []
         simulation_results = []
         gpu_utilizations = [get_gpu_utilization()]
-        with tqdm(total=len(df), mininterval=1, desc=f"Simulation {str(model):30}") as pbar:
+        with tqdm(total=len(df), mininterval=1, desc=f"Simulation {str(model):40}") as pbar:
             for scenario in df.itertuples():
                 while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
                     await wait()
@@ -215,31 +215,43 @@ if __name__ == "__main__":
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
 
-    modes = ["CENTRALIZED", "NATURAL", "RECRUIT"]
+    modes = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
+    
     models = [
-        # Model("qwen3:0.6b-q8_0", backend="ollama", temperature=0.1, reasoning=True),
-        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=0.1, reasoning=True),
-        Model("qwen3:1.7b-q8_0", backend="ollama", temperature=0.1, reasoning=False),
-        # Model("qwen3:4b", backend="ollama", temperature=0.1, reasoning=False),
-        # Model("qwen3:8b", backend="ollama", temperature=0.1, reasoning=True),
+        # Larger models
+        Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1, reasoning=None),
+        # Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1, reasoning=None),
+        # Model("granite3.1-moe:3b-instruct-q8_0", temperature=0.1, reasoning=None),
+        # Model("cogito:3b-v1-preview-llama-q8_0", temperature=0.1, reasoning=None),
+        # Model("phi4-mini:3.8b-q8_0", temperature=0.1, reasoning=None),
+        # Model("hermes3:3b-llama3.2-q8_0", temperature=0.1, reasoning=None),
+        # Model("nemotron-mini:4b-instruct-q8_0", temperature=0.1, reasoning=None),
+        # Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
+        # Model("gpt-oss:120b-cloud", temperature=0.1, reasoning=True),
+
+        Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=True),
+        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=True),
+        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=False),
         # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.1, reasoning="high"),
         # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        Model("granite4:350m-h-q8_0", backend="ollama", temperature=0.1),
-        Model("granite4:1b-h-q8_0", backend="ollama", temperature=0.1),
+        Model("granite4:350m-h-q8_0", temperature=0.1),
+        Model("granite4:1b-h-q8_0", temperature=0.1),
         # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
         # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=0.1),
-        Model("functiongemma:270m-it-q8_0", backend="ollama", temperature=0.1),
+        Model("functiongemma:270m-it-q8_0", temperature=0.1),
         # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=0.1),
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        # Model("smollm2:135m-instruct-q8_0", temperature=0.1),
+        # Model("smollm2:360m-instruct-q8_0", temperature=0.1),
+        # Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        Model("llama3.2:1b-instruct-q8_0", backend="ollama", temperature=0.1),
+        # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
+        Model("llama3.2:1b-instruct-q8_0", temperature=0.1),
         # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=0.1),
-        # Model("gpt-oss:120b-cloud", backend="ollama", temperature=0.1, reasoning=True),
     ]
-    evaluation_model = Model("gpt-oss:20b", backend="ollama", temperature=0.1, reasoning=False) if args.scoring else None
+    evaluation_model = Model("gpt-oss:20b", temperature=0.1, reasoning=False) if args.scoring else None
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, models=models if not args.debug else models[:1], modes=modes, evaluation_model=evaluation_model))
+    asyncio.run(main(code=code, models=models if not args.debug else models[:2], modes=modes, evaluation_model=evaluation_model))

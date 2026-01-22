@@ -39,12 +39,9 @@ class Client(ABC):
         await self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
 
     async def on_message(self, topic, id, sender, message, request_id=""):
-        try:
-            if check_topic(topic, MQTT_TOPIC_RESET):
-                await self.reset(message)
-            await self.message_handler(topic, id, sender, message, request_id)
-        except Exception as e:
-            self.log(type(e).__name__)
+        if check_topic(topic, MQTT_TOPIC_RESET):
+            await self.reset(message)
+        await self.message_handler(topic, id, sender, message, request_id)
 
     async def loop(self):
         self.client = aiomqtt.Client(MQTT_BROKER_ADDRESS)

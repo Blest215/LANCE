@@ -64,7 +64,7 @@ class W3CDevice(Device):
     def get_tool():
         @tool("control_device_w3c", args_schema=W3CInput)
         def control_device_w3c(agent_id: str, action: str, inputs: Optional[Dict[str, Any]]):
-            """Send a control request to a W3C device associated with agent_id. Use this tool only for W3C devices."""
+            """Send a control request to a W3C device associated with agent_id. Use this tool to control only W3C devices."""
         return control_device_w3c
     
     def validate_input(self, **kwargs):
@@ -96,7 +96,7 @@ class SmartThingsDevice(Device):
     def get_tool():
         @tool("control_device_smartthings", args_schema=SmartThingsInput)
         def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Optional[Dict[str, Any]]):
-            """Send a control request to a SmartThings device associated with agent_id. Use this tool only for SmartThings devices."""
+            """Send a control request to a SmartThings device associated with agent_id. Use this tool to control only SmartThings devices."""
         return control_device_smartthings
         
     def validate_input(self, **kwargs):
@@ -151,7 +151,7 @@ class MatterDevice(Device):
     def get_tool():
         @tool("control_device_matter", args_schema=MatterInput)
         def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Optional[Dict[str, Any]]):
-            """Send a control request to a Matter device associated with agent_id. Use this tool only for Matter devices."""
+            """Send a control request to a Matter device associated with agent_id. Use this tool to control only Matter devices."""
         return control_device_matter
 
     def validate_input(self, **kwargs) -> str:

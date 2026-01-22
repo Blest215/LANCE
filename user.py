@@ -4,13 +4,13 @@ from settings import *
 from client import Client
 from device import *
 
-class AgentInput(BaseModel):
+class MessageInput(BaseModel):
     agent_id: str = Field(description="the ID of the agent associated with the device to control")
-    message: str = Field(description="the instructing message to send to the agent")
+    order: str = Field(description="the natural language message to order the device control")
 
-@tool("control_device_agent", args_schema=AgentInput)
-def control_device_agent(agent_id: str, message: str):
-    """Control a device by sending a request message to the associated agent."""
+@tool("control_device", args_schema=MessageInput)
+def control_device(agent_id: str, order: str):
+    """Send an order to control a device associated with agent_id. Use this tool to control devices regardless of the formats."""
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -24,7 +24,7 @@ class UserAgent(Client):
         self.agents = set()
 
         # NATURAL
-        self.natural = COORDINATOR_PROMPT | model.with_tools([control_device_agent])
+        self.natural = COORDINATOR_PROMPT | model.with_tools([control_device])
         # CENTRALIZED
         self.centralized = COORDINATOR_PROMPT | model.with_tools(control_device_tools)
 
@@ -33,16 +33,16 @@ class UserAgent(Client):
         
         try:
             if mode == "CENTRALIZED":
-                await self.control_device(await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
+                await self.control_device(MQTT_TOPIC_STRUCTURED_CONTROL, await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
             
             elif mode == "NATURAL":
-                await self.instruct_agent(await self.natural.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
+                await self.control_device(MQTT_TOPIC_NATURAL_CONTROL, await self.natural.ainvoke({"user_message": user_message, "descriptions": await self.discovery()}))
             
             elif mode == "RECRUIT":
-                await self.control_device(await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.recruit_team(user_message)}))
+                await self.control_device(MQTT_TOPIC_STRUCTURED_CONTROL, await self.centralized.ainvoke({"user_message": user_message, "descriptions": await self.recruit(user_message, False)}))
             
             elif mode == "CONVERSATIONAL":
-                pass
+                await self.control_device(MQTT_TOPIC_NATURAL_CONTROL, await self.natural.ainvoke({"user_message": user_message, "descriptions": await self.recruit(user_message, True)}))
         
         except Exception as e:
             self.log(e)
@@ -72,10 +72,10 @@ class UserAgent(Client):
 
     # RECRUIT methods
 
-    async def recruit_team(self, user_message):
+    async def recruit(self, user_message, conversational):
         self.log(f"Agent recruiting start for user message: {user_message} ({RECRUIT_TIME_TO_WAIT}s)")
         await self.join_team(get_random_team_id())
-        await self.publish(MQTT_TOPIC_RECRUIT_CALL, self.current_team_id, f"Can you contribute to the following user message?: {user_message}")
+        await self.publish(MQTT_TOPIC_CONVERSATIONAL_CALL if conversational else MQTT_TOPIC_RECRUIT_CALL, self.current_team_id, f"Can you contribute to the following user message?: {user_message}")
 
         await asyncio.sleep(RECRUIT_TIME_TO_WAIT)
 
@@ -84,30 +84,10 @@ class UserAgent(Client):
 
         return [("system", description) for description in self.team_messages]
 
-    # NATURAL methods
-
-    async def instruct_agent(self, result):
-        self.log_result(result)
-        if hasattr(result, "tool_calls"):
-            tasks = []
-            for tool_call in result.tool_calls:
-                tasks.append(asyncio.create_task(self.control(MQTT_TOPIC_NATURAL_CONTROL, **tool_call["args"])))
-                await asyncio.sleep(TICK)
-            self.consequences += sum(await asyncio.gather(*tasks), [])
-
     # CENTRALIZED methods
 
     async def discovery(self):
         return [("system", description) for description in eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")).values()]
-
-    async def control_device(self, result):
-        self.log_result(result)
-        if hasattr(result, "tool_calls"):
-            tasks = []
-            for tool_call in result.tool_calls:
-                tasks.append(asyncio.create_task(self.control(MQTT_TOPIC_STRUCTURED_CONTROL, **tool_call["args"])))
-                await asyncio.sleep(TICK)
-            self.consequences += sum(await asyncio.gather(*tasks), [])
     
     # etc
 
@@ -118,6 +98,18 @@ class UserAgent(Client):
             self.log(f"<Reasoning> {result.additional_kwargs['reasoning_content']}")
         if hasattr(result, "tool_calls"):
             self.log(f"<Tool calls> {result.tool_calls}")
+
+    async def control_device(self, topic, result):
+        self.log_result(result)
+        if hasattr(result, "tool_calls"):
+            tasks = []
+            for tool_call in result.tool_calls:
+                if "agent_id" not in tool_call["args"]:
+                    self.consequences.append(dict(Response(agent_id=id, request=tool_call["args"], success=False, message="NO AGENT ID")))
+                    continue
+                tasks.append(asyncio.create_task(self.control(topic, **tool_call["args"])))
+                await asyncio.sleep(TICK)
+            self.consequences += sum(await asyncio.gather(*tasks), [])
 
     async def control(self, topic, agent_id, **kwargs):
         response = await self.request(topic, agent_id, kwargs)

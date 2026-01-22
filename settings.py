@@ -25,7 +25,7 @@ SIMULATION_CONCURRENCY_GPU_MAX = 50
 SIMULATION_CONCURRENCY_DELAY = 7
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_RETRY = 3
-TIMEOUT_LIMIT = 60
+TIMEOUT_LIMIT = 600
 TICK = 0.1
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
@@ -48,8 +48,10 @@ MQTT_BROKER_ADDRESS = "localhost"
 MQTT_TOPIC_ALIVE = "alive"
 MQTT_TOPIC_RESET = "reset"
 MQTT_TOPIC_RESPONSE = "response"
+# mode CONVERSATIONAL topics
+MQTT_TOPIC_CONVERSATIONAL_CALL = "call"
 # mode RECRUIT topics
-MQTT_TOPIC_RECRUIT_CALL = "call"
+MQTT_TOPIC_RECRUIT_CALL = "recruit"
 MQTT_TOPIC_RECRUIT_TEAM = "team"
 # mode NATURAL topics
 MQTT_TOPIC_NATURAL_CONTROL = "natural"
@@ -67,10 +69,7 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 # User
 
 COORDINATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system","""
-You are a coordinator who controls devices in the descriptions.
-Control the following devices by using the given tool to accomplish the task in the user's message.
-"""),
+    ("system","""You are an operator who controls the devices. Using the given tool, control the devices to complete the task as specified in the user's message. Available devices are described below."""),
     MessagesPlaceholder(variable_name="descriptions"),
     ("user", "{user_message}"),
 ])
@@ -78,27 +77,16 @@ Control the following devices by using the given tool to accomplish the task in 
 # Agents
 
 SCREENER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """
-You are an AI agent that controls the following device.
-
-Score whether you can contribute to the task in the recruiting message or not.
-If you are relevant, reply with how you can contribute using the device.
-If you are not relevant, reply with the reason why you cannot contribute.
-
-[Format]
-{format}
-"""),
-    ("system", "{description}"),
+    ("system", """You are an operator who controls the following device. Score whether you can contribute to the task in the message or not."""),
+    ("system", "[Format]\n{format}"),
+    ("system", "[Device]\n{description}"),
     ("user", "{message}"),
 ])
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """
-You are an AI agent that controls the following device.
-Control the device according to the given message.
-"""),
-    ("system", "{description}"),
-    ("user", "message"),
+    ("system", """You are an operator who controls the following device. Control the device to complete the given order."""),
+    ("system", "[Device]\n{description}"),
+    ("user", "{message}"),
 ])
 
 # EVALUATION
