@@ -1,9 +1,9 @@
 import asyncio
-import multiprocessing
 import pandas as pd
 import os
 import argparse
 import sys
+import time
 
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
@@ -13,55 +13,49 @@ from langchain_core.exceptions import OutputParserException
 
 from model import Model
 from settings import *
-from registry import run_registry_process
-from agent import run_agent_process
+from registry import Registry
+from agent import Agent
 from user import UserAgent
 
 # Simulation
 
-async def setup_agent(session, user, agent_id, agent_configuration, device_description):
-    p = multiprocessing.Process(target=run_agent_process, args=(session, agent_id, agent_configuration, device_description))
-    p.start()
-    await user.wait_for_client(agent_id)
-    return p
-
 async def simulate_scenario(model, modes, scenario):
-    session = get_random_session()
     user_id = "COORDINATOR"
-    user = UserAgent(session, id=user_id, model=model)
+    user = UserAgent(id=user_id, model=model)
     user_loop = asyncio.create_task(user.loop())
     while not user.is_connected:
         await asyncio.sleep(TICK)
     
     # Set the registry
-    registry_id = "REGISTRY"
-    registry = multiprocessing.Process(target=run_registry_process, args=(session, registry_id))
-    registry.start()
-    await user.wait_for_client(registry_id)
+    registry = Registry()
+    registry_task = asyncio.create_task(registry.loop())
+    while not registry.is_connected:
+        await asyncio.sleep(TICK)
 
     # Set the device agents
-    processes = await asyncio.gather(*[setup_agent(
-        session=session,
-        user=user,
-        agent_id=get_agent_id(device_description),
-        agent_configuration=model,
-        device_description=device_description
-    ) for device_description in eval(scenario.device_descriptions)])   
-
-    assert not user.wait
+    agents = [Agent(get_agent_id(device_description), model, device_description) for device_description in eval(scenario.device_descriptions)]
+    agent_tasks = [asyncio.create_task(agent.loop()) for agent in agents]
+    while not all(agent.is_connected for agent in agents):
+        await asyncio.sleep(TICK)
 
     result = {}
     for mode in modes:
-        await user.new_session(get_random_session())
+        new_session = get_random_session()
+        await user.reset(new_session)
+        await registry.reset(new_session)
+        for agent in agents:
+            await agent.reset(new_session)
+        user.set_agents([agent.id for agent in agents])
+
         conversation, consequences = await user.main(mode, scenario.user_message)
         result[get_column_name("CONVERSATION", model, mode)] = conversation
         result[get_column_name("CONSEQUENCES", model, mode)] = consequences
 
     # Wrap up
     user_loop.cancel()
-    registry.terminate()
-    for p in processes:
-        p.terminate()
+    registry_task.cancel()
+    for agent_task in agent_tasks:
+        agent_task.cancel()
 
     return result
 
@@ -70,31 +64,13 @@ async def simulation(code, dataset_path, models, modes):
     df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
     df = df.head() if args.debug else df
 
-    async def wait():
-        await asyncio.sleep(1)
-        gpu_utilizations.append(get_gpu_utilization())
-        pbar.n = sum(1 for t in tasks if t.done())
-        pbar.set_postfix({"running": len(tasks) - pbar.n})
-
     done_conversation_columns = [column for column in parse_column(df, "CONVERSATION")]
     for model in models:
         undone_modes = [mode for mode in modes if get_column_name("CONVERSATION", model, mode) not in done_conversation_columns]
         if not undone_modes or not model.setup():
             continue
 
-        tasks = []
-        simulation_results = []
-        gpu_utilizations = [get_gpu_utilization()]
-        with tqdm(total=len(df), mininterval=1, desc=f"Simulation {str(model):40}") as pbar:
-            for scenario in df.itertuples():
-                while moving_average(gpu_utilizations, SIMULATION_CONCURRENCY_DELAY) > SIMULATION_CONCURRENCY_GPU_MAX:
-                    await wait()
-                tasks.append(asyncio.create_task(simulate_scenario(model, undone_modes, scenario)))
-                for _ in range(SIMULATION_CONCURRENCY_DELAY):
-                    await wait()
-            while not all(t.done() for t in tasks):
-                await wait()
-        simulation_results = await asyncio.gather(*tasks)
+        simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(df.itertuples(), total=len(df), maxinterval=1, desc=f"Simulation {str(model):40}")]
 
         for mode in undone_modes:
             df[get_column_name("CONVERSATION", model, mode)] = [result[get_column_name("CONVERSATION", model, mode)] for result in simulation_results]

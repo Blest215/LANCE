@@ -13,16 +13,16 @@ class ScreeningResult(BaseModel):
     message: str = Field(description="Response message that describes how you can contribute to the command or why you cannot contribute.")
 
 class Agent(Client):
-    def __init__(self, session, id, model, device):
-        super().__init__(session, id)
+    def __init__(self, id, model, device_description):
+        super().__init__(id)
         self.configuration = model
-        self.device = device
+        self.device = instantiate_device(id, device_description)
 
         # RECRUIT
         screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
         self.screener = SCREENER_PROMPT.partial(format=screener_parser.get_format_instructions()) | model.instantiate() | screener_parser
         # NATURAL
-        self.controller = CONTROLLER_PROMPT | model.with_tools([device.get_tool()])
+        self.controller = CONTROLLER_PROMPT | model.with_tools([self.device.get_tool()])
 
     async def connection_handler(self):
         await self.subscribe(MQTT_TOPIC_CONVERSATIONAL_CALL, self.id)
@@ -62,9 +62,3 @@ class Agent(Client):
 
     def control_device(self, arguments):
         return dict(self.device.control(**arguments))
-
-def run_agent_process(session, id, model, device_description):
-    if sys.platform.lower() == "win32" or os.name.lower() == "nt":
-        from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
-        set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(Agent(session, id, model, instantiate_device(id, device_description)).loop())

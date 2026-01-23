@@ -16,17 +16,19 @@ control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), Matt
 
 
 class UserAgent(Client):
-    def __init__(self, session, id, model):
-        super().__init__(session, id)
+    def __init__(self, id, model):
+        super().__init__(id)
         # TODO multi user situation
         self.configuration = model
-        self.wait = set()
         self.agents = set()
 
         # NATURAL
         self.natural = COORDINATOR_PROMPT | model.with_tools([control_device])
         # CENTRALIZED
         self.centralized = COORDINATOR_PROMPT | model.with_tools(control_device_tools)
+
+    def set_agents(self, agents):
+        self.agents = set(agents)
 
     async def main(self, mode, user_message):
         self.log(f"User asked: {user_message}")
@@ -51,19 +53,10 @@ class UserAgent(Client):
             return "\n".join(self.logs), self.consequences
 
     async def connection_handler(self):
-        await self.subscribe(MQTT_TOPIC_ALIVE, "+")
+        pass
 
     async def message_handler(self, topic, id, sender, message, request_id):
-        if check_topic(topic, MQTT_TOPIC_ALIVE):
-            if id in self.wait:
-                if id != "REGISTRY":
-                    self.agents.add(id)
-                self.wait.remove(id)
-
-        elif check_topic(topic, MQTT_TOPIC_RESPONSE):
-            if request_id and request_id in self.requests:
-                self.requests[request_id]["status"] = "done"
-                self.requests[request_id]["response"] = message
+        pass
 
     # RECRUIT methods
 
@@ -86,7 +79,7 @@ class UserAgent(Client):
     # CENTRALIZED methods
 
     async def discovery(self):
-        return [("system", description) for description in eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, "REGISTRY", "")).values()]
+        return [("system", description) for description in eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, REGISTRY_ID, "")).values()]
     
     # etc
 
@@ -113,19 +106,3 @@ class UserAgent(Client):
     async def control(self, topic, agent_id, **kwargs):
         response = await self.request(topic, agent_id, kwargs)
         return eval(response)
-
-    async def wait_for_client(self, client_id):
-        self.wait.add(client_id)
-        while client_id in self.wait:
-            await asyncio.sleep(TICK)
-
-    async def new_session(self, new_session):
-        old_session = self.session
-        await self.reset(new_session)
-        await self.client.publish(f"{old_session}/{MQTT_TOPIC_RESET}/{'REGISTRY'}", json.dumps({"sender": self.id, "message": new_session}))
-        await self.wait_for_client("REGISTRY")
-        agents = self.agents
-        for agent_id in agents:
-            await self.client.publish(f"{old_session}/{MQTT_TOPIC_RESET}/{agent_id}", json.dumps({"sender": self.id, "message": new_session}))
-            await self.wait_for_client(agent_id)
-        self.agents = agents

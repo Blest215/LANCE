@@ -9,8 +9,8 @@ from settings import *
 
 
 class Client(ABC):
-    def __init__(self, session, id):
-        self.session = session
+    def __init__(self, id):
+        self.session = None
         self.id = id
         self.requests = {}
         self.logs = []
@@ -32,11 +32,16 @@ class Client(ABC):
         await self.connection_handler()
         await self.subscribe(MQTT_TOPIC_RESPONSE, self.id)
         await self.subscribe(MQTT_TOPIC_RESET, self.id)
-        await self.publish(MQTT_TOPIC_ALIVE, self.id, "ALIVE")
 
     async def on_message(self, topic, id, sender, message, request_id=""):
         if check_topic(topic, MQTT_TOPIC_RESET):
             await self.reset(message)
+        
+        elif check_topic(topic, MQTT_TOPIC_RESPONSE):
+            if request_id and request_id in self.requests:
+                self.requests[request_id]["status"] = "done"
+                self.requests[request_id]["response"] = message
+        
         await self.message_handler(topic, id, sender, message, request_id)
 
     async def loop(self):
@@ -45,9 +50,6 @@ class Client(ABC):
             try:
                 async with self.client:
                     self.is_connected = True
-                    
-                    # Connection
-                    await self.on_connection()
                     
                     # Message
                     async for message in self.client.messages:

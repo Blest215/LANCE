@@ -5,8 +5,8 @@ from client import Client
 
 
 class Registry(Client):
-    def __init__(self, session, id):
-        super().__init__(session, id)
+    def __init__(self):
+        super().__init__(id=REGISTRY_ID)
         self.registry = {}
 
     async def connection_handler(self):
@@ -29,9 +29,3 @@ class Registry(Client):
         elif check_topic(topic, MQTT_TOPIC_NATURAL_CONTROL) or check_topic(topic, MQTT_TOPIC_STRUCTURED_CONTROL):
             if id not in self.registry:
                 await self.response(sender, request_id, str([dict(Response(agent_id=id, request=message, success=False, message="INVALID AGENT ID"))]))
-
-def run_registry_process(session, id):
-    if sys.platform.lower() == "win32" or os.name.lower() == "nt":
-        from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
-        set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(Registry(session, id).loop())
