@@ -189,6 +189,7 @@ async def main(code, models: list[Model], modes: list[str], evaluation_model: Mo
     dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)(?:_M\d+)?\.csv')
     
     datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
+    datasets = datasets if not args.debug else datasets[:1]
     for dataset_file in datasets:
         print(dataset_file)
         result_path = await simulation(code, dataset_file, models, modes)
@@ -220,12 +221,12 @@ if __name__ == "__main__":
     models = [
         # Larger models
         Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1),
-        # Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1, reasoning=None),
-        # Model("granite3.1-moe:3b-instruct-q8_0", temperature=0.1, reasoning=None),
-        # Model("cogito:3b-v1-preview-llama-q8_0", temperature=0.1, reasoning=None),
-        # Model("phi4-mini:3.8b-q8_0", temperature=0.1, reasoning=None),
-        # Model("hermes3:3b-llama3.2-q8_0", temperature=0.1, reasoning=None),
-        # Model("nemotron-mini:4b-instruct-q8_0", temperature=0.1, reasoning=None),
+        # Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1),
+        # Model("granite3.1-moe:3b-instruct-q8_0", temperature=0.1),
+        # Model("cogito:3b-v1-preview-llama-q8_0", temperature=0.1),
+        # Model("phi4-mini:3.8b-q8_0", temperature=0.1),
+        # Model("hermes3:3b-llama3.2-q8_0", temperature=0.1),
+        # Model("nemotron-mini:4b-instruct-q8_0", temperature=0.1),
         # Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
         # Model("gpt-oss:120b-cloud", temperature=0.1, reasoning=True),
         # Model("gpt-oss:20b", temperature=0.1, reasoning=False),
@@ -245,7 +246,7 @@ if __name__ == "__main__":
         # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
         # Model("smollm2:135m-instruct-q8_0", temperature=0.1),
         # Model("smollm2:360m-instruct-q8_0", temperature=0.1),
-        # Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
+        Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
         # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
         # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
         Model("llama3.2:1b-instruct-q8_0", temperature=0.1),

@@ -243,7 +243,7 @@ GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "The device_types MUST include every device type required to accomplish the user_message."),
     ("system", "The device_types MAY include the device types in the survey answer."),
     ("system", "The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions."),
-    ("system", "The user_message MUST clearly specify the device to control, command, and arguments."),
+    ("system", "The user_message MUST unambiguously specify the device to control, command, and arguments."),
     ("system", "[Format]\n{format}"),
     ("assistant", "Where were you?"),
     ("user", "{space}"),
@@ -279,7 +279,7 @@ VALIDATOR_PROMPT = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="device_descriptions"),
     ("user", "{user_message}"),
     MessagesPlaceholder(variable_name="device_controls"),
-    ("user", "Is the user's goal in the message unambiguous? Did the devices accomplish the user's goal?"),
+    ("user", "Did the devices accomplish the user's goal?"),
 ])
 
 MUTATOR_PROMPT = ChatPromptTemplate.from_messages([
@@ -469,6 +469,7 @@ if __name__ == "__main__":
 
     device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
     debug(f"{device_formats} {args.devices} devices")
+    path = f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv"
     
     Expectations = create_model(
         'Expectations',
@@ -506,4 +507,4 @@ if __name__ == "__main__":
 
     mutator = MUTATOR_PROMPT | model.instantiate()
 
-    asyncio.run(main(path=f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv", iterate=args.iterate, reset=args.reset))
+    asyncio.run(main(path=path if not args.debug else path.replace(".csv", "_DEBUG.csv"), iterate=args.iterate, reset=args.reset))

@@ -60,11 +60,6 @@ class UserAgent(Client):
                     self.agents.add(id)
                 self.wait.remove(id)
 
-        elif check_topic(topic, MQTT_TOPIC_RECRUIT_TEAM) and id == self.current_team_id:
-            text = f"{message}"
-            self.log(text)
-            self.team_messages.append(text)
-
         elif check_topic(topic, MQTT_TOPIC_RESPONSE):
             if request_id and request_id in self.requests:
                 self.requests[request_id]["status"] = "done"
@@ -73,16 +68,20 @@ class UserAgent(Client):
     # RECRUIT methods
 
     async def recruit(self, user_message, conversational):
-        self.log(f"Agent recruiting start for user message: {user_message} ({RECRUIT_TIME_TO_WAIT}s)")
-        await self.join_team(get_random_team_id())
-        await self.publish(MQTT_TOPIC_CONVERSATIONAL_CALL if conversational else MQTT_TOPIC_RECRUIT_CALL, self.current_team_id, f"Can you contribute to the following user message?: {user_message}")
+        self.log(f"Agent recruiting start for user message: {user_message}")
 
-        await asyncio.sleep(RECRUIT_TIME_TO_WAIT)
+        tasks = []
+        for agent_id in self.agents:
+            tasks.append(asyncio.create_task(self.call_for_proposal(MQTT_TOPIC_CONVERSATIONAL_CALL if conversational else MQTT_TOPIC_RECRUIT_CALL, agent_id, user_message)))
+            await asyncio.sleep(TICK)
+        proposals = await asyncio.gather(*tasks)
 
-        self.log("Agent recruiting end")
-        await self.leave_team()
+        self.log(f"Agent recruiting end")
 
-        return [("system", description) for description in self.team_messages]
+        return [("system", proposal) for proposal in proposals]
+
+    async def call_for_proposal(self, topic, agent_id, user_message):
+        return await self.request(topic, agent_id, f"Can you contribute to the following user message?: {user_message}")
 
     # CENTRALIZED methods
 
@@ -105,7 +104,7 @@ class UserAgent(Client):
             tasks = []
             for tool_call in result.tool_calls:
                 if "agent_id" not in tool_call["args"]:
-                    self.consequences.append(dict(Response(agent_id=id, request=tool_call["args"], success=False, message="NO AGENT ID")))
+                    self.consequences.append(dict(Response(agent_id="", request=tool_call["args"], success=False, message="NO AGENT ID")))
                     continue
                 tasks.append(asyncio.create_task(self.control(topic, **tool_call["args"])))
                 await asyncio.sleep(TICK)

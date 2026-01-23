@@ -21,8 +21,8 @@ RESULT_DIR = "results"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 
-SIMULATION_CONCURRENCY_GPU_MAX = 50
-SIMULATION_CONCURRENCY_DELAY = 7
+SIMULATION_CONCURRENCY_GPU_MAX = 70
+SIMULATION_CONCURRENCY_DELAY = 5
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_RETRY = 3
 TIMEOUT_LIMIT = 600
@@ -41,7 +41,6 @@ GPU_MEMORY_UTILIZATION = 0.8
 # RECRUIT
 
 RECRUIT_SCREENING_THRESHOLD = 0.3
-RECRUIT_TIME_TO_WAIT = 20
 
 # MQTT
 
@@ -54,7 +53,6 @@ MQTT_TOPIC_RESPONSE = "response"
 MQTT_TOPIC_CONVERSATIONAL_CALL = "call"
 # mode RECRUIT topics
 MQTT_TOPIC_RECRUIT_CALL = "recruit"
-MQTT_TOPIC_RECRUIT_TEAM = "team"
 # mode NATURAL topics
 MQTT_TOPIC_NATURAL_CONTROL = "natural"
 # mode CENTRALIZED topics
@@ -123,9 +121,6 @@ class Response(BaseModel):
 
 def get_random_device_id():
     return str(uuid.uuid4())
-
-def get_random_team_id():
-    return secrets.token_hex(8)
 
 def get_random_request_id():
     return uuid.uuid4().hex

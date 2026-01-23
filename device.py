@@ -21,8 +21,9 @@ class Device(ABC):
         # TODO experiment control
         self.experiment = True
 
-    def __str__(self):
-        return self.description
+    @property
+    def structured(self):
+        return str(self.dict)
     
     def control(self, **kwargs) -> Response:
         try:

@@ -25,41 +25,35 @@ class Agent(Client):
         self.controller = CONTROLLER_PROMPT | model.with_tools([device.get_tool()])
 
     async def connection_handler(self):
-        await self.subscribe(MQTT_TOPIC_CONVERSATIONAL_CALL, "+")
-        await self.subscribe(MQTT_TOPIC_RECRUIT_CALL, "+")
+        await self.subscribe(MQTT_TOPIC_CONVERSATIONAL_CALL, self.id)
+        await self.subscribe(MQTT_TOPIC_RECRUIT_CALL, self.id)
         await self.subscribe(MQTT_TOPIC_NATURAL_CONTROL, self.id)
         await self.subscribe(MQTT_TOPIC_STRUCTURED_CONTROL, self.id)
         await self.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, self.id, self.device.description)
 
     async def message_handler(self, topic, id, sender, message, request_id):
-        if not self.busy and check_topic(topic, MQTT_TOPIC_CONVERSATIONAL_CALL):
-            await self.screening(id, message, True)
+        if check_topic(topic, MQTT_TOPIC_CONVERSATIONAL_CALL):
+            await self.response(sender, request_id, await self.screening(message, True))
 
-        if not self.busy and check_topic(topic, MQTT_TOPIC_RECRUIT_CALL):
-            await self.screening(id, message, False)
+        if check_topic(topic, MQTT_TOPIC_RECRUIT_CALL):
+            await self.response(sender, request_id, await self.screening(message, False))
 
         elif check_topic(topic, MQTT_TOPIC_NATURAL_CONTROL):
             await self.response(sender, request_id, await self.controlling(message))
 
         elif check_topic(topic, MQTT_TOPIC_STRUCTURED_CONTROL):
             await self.response(sender, request_id, [self.control_device(message)])
-
-    @property
-    def busy(self):
-        return self.current_team_id is not None
     
     # RECRUIT methods
 
-    async def screening(self, team_id, message, conversational):
-        screening_result = await self.screener.ainvoke({"message": message, "description": str(self.device)})
-        if screening_result.score >= RECRUIT_SCREENING_THRESHOLD:
-            await self.join_team(team_id)
-            await self.publish(MQTT_TOPIC_RECRUIT_TEAM, self.current_team_id, f"{self.id}: {screening_result.message if conversational else str(self.device)}")
+    async def screening(self, message, conversational):
+        screening_result = await self.screener.ainvoke({"message": message, "description": self.device.structured})
+        return f"Device {self.id}: {(screening_result.message if conversational else self.device.description) if screening_result.score >= RECRUIT_SCREENING_THRESHOLD else screening_result.message}"
 
     # NATURAL methods
 
     async def controlling(self, message):
-        control_result = await self.controller.ainvoke({"message": message["order"], "description": str(self.device)})
+        control_result = await self.controller.ainvoke({"message": message["order"], "description": self.device.structured})
         if not control_result.tool_calls:
             return [dict(Response(agent_id=self.id, request=message, success=False, message=control_result.content))]
         return [self.control_device(tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]]

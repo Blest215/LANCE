@@ -17,10 +17,6 @@ class Client(ABC):
         self.consequences = []
         self.is_connected = False
         self.subscriptions = []
-        
-        # RECRUIT
-        self.current_team_id = None
-        self.team_messages = []
 
         self.client = None
 
@@ -73,14 +69,6 @@ class Client(ABC):
     def log(self, text, agent_id=None):
         self.logs.append(f"[{datetime.now().strftime('%Y%m%d_%H%M%S')}] {f'Agent {agent_id} ' if agent_id else ''}{text}")
 
-    async def join_team(self, team_id):
-        self.current_team_id = team_id
-        await self.subscribe(MQTT_TOPIC_RECRUIT_TEAM, team_id)
-
-    async def leave_team(self):
-        await self.unsubscribe(self.build_topic(MQTT_TOPIC_RECRUIT_TEAM, self.current_team_id))
-        self.current_team_id = None
-
     async def request(self, topic, agent_id, message):
         new_request_id = get_random_request_id()
         self.log(f"New request to agent {agent_id} {message}")
@@ -121,8 +109,6 @@ class Client(ABC):
         self.requests = {}
         self.logs = []
         self.consequences = []
-        self.current_team_id = None
-        self.team_messages = []
         for topic in self.subscriptions:
             await self.unsubscribe(topic)
         await self.on_connection()
