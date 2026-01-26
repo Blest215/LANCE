@@ -9,8 +9,8 @@ from device import instantiate_device
 
 from pydantic import BaseModel, Field
 class ScreeningResult(BaseModel):
-    score: float = Field(description="How much you can contribute to the command. 0 <= score <= 1", ge=0, le=1)
-    message: str = Field(description="Response message that describes how you can contribute to the command or why you cannot contribute.")
+    score: float = Field(description="How much you can contribute to the task. 0 <= score <= 1", ge=0, le=1)
+    message: str = Field(description="Response message that describes what you can contribute to the task. Do not mention what you cannot do.")
 
 class Agent(Client):
     def __init__(self, id, model, device_description):
@@ -35,7 +35,7 @@ class Agent(Client):
         if check_topic(topic, MQTT_TOPIC_CONVERSATIONAL_CALL):
             await self.response(sender, request_id, await self.screening(message, True))
 
-        if check_topic(topic, MQTT_TOPIC_RECRUIT_CALL):
+        elif check_topic(topic, MQTT_TOPIC_RECRUIT_CALL):
             await self.response(sender, request_id, await self.screening(message, False))
 
         elif check_topic(topic, MQTT_TOPIC_NATURAL_CONTROL):
@@ -48,12 +48,12 @@ class Agent(Client):
 
     async def screening(self, message, conversational):
         screening_result = await self.screener.ainvoke({"message": message, "description": self.device.structured})
-        return f"Device {self.id}: {(screening_result.message if conversational else self.device.description) if screening_result.score >= RECRUIT_SCREENING_THRESHOLD else screening_result.message}"
+        return f"Device {self.id}: {screening_result.message if conversational else self.device.description}" if screening_result.score > RECRUIT_SCREENING_THRESHOLD else ""
 
     # NATURAL methods
 
     async def controlling(self, message):
-        control_result = await self.controller.ainvoke({"message": message["order"], "description": self.device.structured})
+        control_result = await self.controller.ainvoke({"message": message["instruction"], "description": self.device.structured})
         if not control_result.tool_calls:
             return [dict(Response(agent_id=self.id, request=message, success=False, message=control_result.content))]
         return [self.control_device(tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]]

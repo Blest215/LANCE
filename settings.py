@@ -70,23 +70,27 @@ SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 # User
 
 COORDINATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system","""You are an operator who controls the devices. Using the given tool, control the devices to complete the task as specified in the user's message. Available devices are described below."""),
-    MessagesPlaceholder(variable_name="descriptions"),
+    ("system", "You are an orchestrator who controls multiple devices to accomplish a user's task."),
+    ("system", "[Available Devices]\n{descriptions}"),
+    ("system", "(1) Analyze the user task and identify relevant devices."),
+    ("system", "(2) Control each relevant device using the appropriate tool."),
     ("user", "{user_message}"),
 ])
 
 # Agents
 
 SCREENER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are an operator who controls the following device. Score whether you can contribute to the task in the message or not."""),
+    ("system", "You are a screener who determines if this device can contribute to completing the following task based on the following specification."),
+    ("system", "[Device Specification]\n{description}"),
     ("system", "[Format]\n{format}"),
-    ("system", "[Device]\n{description}"),
+    ("system", "Can you contribute to the following user message?"),
     ("user", "{message}"),
 ])
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are an operator who controls the following device. Control the device to complete the given order."""),
-    ("system", "[Device]\n{description}"),
+    ("system", "You are an orchestrator who controls this device to accomplish a user's task based on the following specification."),
+    ("system", "[Device Specification]\n{description}"),
+    ("system", "Control the device according to its specification using the appropriate tool."),
     ("user", "{message}"),
 ])
 

@@ -5,12 +5,12 @@ from client import Client
 from device import *
 
 class MessageInput(BaseModel):
-    agent_id: str = Field(description="The ID of the agent associated with the device to control.")
-    order: str = Field(description="An imperative sentence to order the device control.")
+    agent_id: str = Field(description="The unique ID of the agent associated with the device to control")
+    instruction: str = Field(description="A natural language instruction describing the task or action to perform on the device")
 
 @tool("control_device", args_schema=MessageInput)
-def control_device(agent_id: str, order: str):
-    """Send an order to control a device associated with agent_id. Use this tool to control devices regardless of the formats."""
+def control_device(agent_id: str, instruction: str):
+    """Send an instruction to an agent to control its device. Use this tool to control devices."""
 
 control_device_tools = [W3CDevice.get_tool(), SmartThingsDevice.get_tool(), MatterDevice.get_tool()]
 
@@ -71,15 +71,15 @@ class UserAgent(Client):
 
         self.log(f"Agent recruiting end")
 
-        return [("system", proposal) for proposal in proposals]
+        return "\n".join(proposals)
 
     async def call_for_proposal(self, topic, agent_id, user_message):
-        return await self.request(topic, agent_id, f"Can you contribute to the following user message?: {user_message}")
+        return await self.request(topic, agent_id, user_message)
 
     # CENTRALIZED methods
 
     async def discovery(self):
-        return [("system", description) for description in eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, REGISTRY_ID, "")).values()]
+        return "\n".join(eval(await self.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, REGISTRY_ID, "")).values())
     
     # etc
 

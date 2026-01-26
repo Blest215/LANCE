@@ -55,16 +55,17 @@ def instantiate_device(id, description) -> Device:
     return getattr(sys.modules[__name__], f"{description['format']}Device")(id, description)
 
 class W3CInput(BaseModel):
-    agent_id: str = Field(description="the ID of the agent associated with the device to control")
-    action: str = Field(description="the action to perform")
-    inputs: Optional[Dict[str, Any]] = Field(description="the input value dictionary for the action")
+    agent_id: str = Field(description="The unique ID of the agent associated with the W3C device")
+    action: str = Field(description="The action name to execute on the device (must be one of the device's available actions)")
+    inputs: Optional[Dict[str, Any]] = Field(description="Optional dictionary of input parameters required for the action")
+
+@tool("control_device_w3c", args_schema=W3CInput)
+def control_device_w3c(agent_id: str, action: str, inputs: Optional[Dict[str, Any]]):
+    """Control a W3C-format device by executing an action with optional inputs. Use this tool only for W3C-format devices."""
 
 class W3CDevice(Device):
     @staticmethod
     def get_tool():
-        @tool("control_device_w3c", args_schema=W3CInput)
-        def control_device_w3c(agent_id: str, action: str, inputs: Optional[Dict[str, Any]]):
-            """Send a control request to a W3C device associated with agent_id. Use this tool to control only W3C devices."""
         return control_device_w3c
     
     def validate_input(self, **kwargs):
@@ -86,17 +87,18 @@ class W3CDevice(Device):
         pass
 
 class SmartThingsInput(BaseModel):
-    agent_id: str = Field(description="the ID of the agent associated with the device to control")
-    capability: str = Field(description="the capability of the device to control")
-    command: str = Field(description="the command to apply to the capability")
-    arguments: Optional[Dict[str, Any]] = Field(description="the arguments for the command")
+    agent_id: str = Field(description="The unique ID of the agent associated with the SmartThings device")
+    capability: str = Field(description="The capability ID to target (e.g., 'switch', 'temperatureMeasurement')")
+    command: str = Field(description="The command name to execute within the capability")
+    arguments: Optional[Dict[str, Any]] = Field(description="Optional dictionary of arguments required for the command")
+
+@tool("control_device_smartthings", args_schema=SmartThingsInput)
+def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Optional[Dict[str, Any]]):
+    """Control a SmartThings device by executing a command within a specific capability. Use this tool only for SmartThings devices."""
 
 class SmartThingsDevice(Device):
     @staticmethod
     def get_tool():
-        @tool("control_device_smartthings", args_schema=SmartThingsInput)
-        def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Optional[Dict[str, Any]]):
-            """Send a control request to a SmartThings device associated with agent_id. Use this tool to control only SmartThings devices."""
         return control_device_smartthings
         
     def validate_input(self, **kwargs):
@@ -140,18 +142,19 @@ class SmartThingsDevice(Device):
             return Response(agent_id=self.agent_id, request=kwargs, success=False, message=str(e))
 
 class MatterInput(BaseModel):
-    agent_id: str = Field(description="the ID of the agent associated with the device to control")
-    endpoint_id: str = Field(description="the hexcode ID of the endpoint to control")
-    cluster_id: str = Field(description="the hexcode ID of the cluster to control")
-    command_id: str = Field(description="the hexcode ID of the command")
-    fields: Optional[Dict[str, Any]] = Field(description="the field for the command")
+    agent_id: str = Field(description="The unique ID of the agent associated with the Matter device")
+    endpoint_id: str = Field(description="The hexcode ID of the endpoint to control")
+    cluster_id: str = Field(description="The hexcode ID of the cluster within the endpoint")
+    command_id: str = Field(description="The hexcode ID of the command to execute")
+    fields: Optional[Dict[str, Any]] = Field(description="Optional dictionary of field values required for the command")
+
+@tool("control_device_matter", args_schema=MatterInput)
+def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Optional[Dict[str, Any]]):
+    """Control a Matter device by executing a command on a specific cluster within an endpoint. Use this tool only for Matter-protocol devices."""
 
 class MatterDevice(Device):
     @staticmethod
     def get_tool():
-        @tool("control_device_matter", args_schema=MatterInput)
-        def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Optional[Dict[str, Any]]):
-            """Send a control request to a Matter device associated with agent_id. Use this tool to control only Matter devices."""
         return control_device_matter
 
     def validate_input(self, **kwargs) -> str:
