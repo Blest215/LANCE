@@ -22,6 +22,11 @@ class Model:
         self.max_output_tokens = max_output_tokens
         self.kwargs = kwargs
 
+        if self.backend == "ollama":
+            self.instance = ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, **self.kwargs)
+        else:
+            self.instance = ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
+
     def __str__(self):
         return f"{self.name}_T{int(self.temperature * 10)}".replace("-", "_").replace(".", "_").replace(":", "_")
 
@@ -33,9 +38,7 @@ class Model:
         return self.__dict__[key]
 
     def instantiate(self):
-        if self.backend == "ollama":
-            return ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, **self.kwargs)
-        return ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
+        return self.instance
     
     def with_tools(self, tools: list):
         return self.instantiate().bind_tools(tools)
