@@ -82,22 +82,15 @@ async def simulation(code, dataset_path, models, modes):
 
 # Evaluation
 
-from pydantic import BaseModel, Field
-class EvaluationResult(BaseModel):
-    score: int = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
-    reason: str = Field(description="Reasoning for the score")
-
 def compare_consequence(expectation, consequence):
     if not consequence["success"]:
         return False
     if expectation["agent_id"] != consequence["agent_id"]:
         return False
-    for key in expectation:
+    for key, value in expectation.items():
         if key == "agent_id":
             continue
-        if key not in consequence["request"]:
-            return False
-        if expectation[key] != consequence["request"][key]:
+        if value and (key not in consequence["request"] or value != consequence["request"][key]):
             return False
     return True
 
@@ -109,6 +102,11 @@ def evaluate_scenario(scenario, columns):
         correct = sum([100 if any(compare_consequence(expectation, consequence) for consequence in consequences) else 0 for expectation in evaluation_criteria])
         result[column.replace("CONSEQUENCES", "ACCURACY")] = int(correct / len(evaluation_criteria)) if len(evaluation_criteria) > 0 else None
     return result
+
+from pydantic import BaseModel, Field
+class EvaluationResult(BaseModel):
+    score: int = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
+    reason: str = Field(description="Reasoning for the score")
 
 async def scoring_scenario(semaphore, evaluator, scenario, column_name):
     async with semaphore:
@@ -182,7 +180,11 @@ if __name__ == "__main__":
 
     # Remove empty directories
     for result_code in os.listdir(RESULT_DIR):
-        if not os.listdir(f"{RESULT_DIR}/{result_code}"):
+        files = os.listdir(f"{RESULT_DIR}/{result_code}")
+        if len(files) == 1 and files[0] == "settings.txt":
+            os.remove(SETTING_PATH.format(code=result_code))
+            os.rmdir(f"{RESULT_DIR}/{result_code}")
+        elif not files:            
             os.rmdir(f"{RESULT_DIR}/{result_code}")
 
     # Get experiment code
@@ -191,6 +193,8 @@ if __name__ == "__main__":
     print(code)
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
+
+    save_settings(code)
 
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
     

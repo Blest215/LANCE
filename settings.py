@@ -4,6 +4,7 @@ import asyncio
 import re
 import os
 import subprocess
+import json
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
@@ -20,6 +21,7 @@ DATASET_DIR = "dataset"
 RESULT_DIR = "results"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
+SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
 
 EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_RETRY = 3
@@ -117,6 +119,18 @@ class Response(BaseModel):
     request: dict
     success: bool
     message: str
+
+def save_settings(code):
+    with open(SETTING_PATH.format(code=code), "w") as f:
+        f.write(json.dumps({
+            "COORDINATOR_PROMPT": [str(message) for message in COORDINATOR_PROMPT.messages],
+            "SCREENER_PROMPT": [str(message) for message in SCREENER_PROMPT.messages],
+            "CONTROLLER_PROMPT": [str(message) for message in CONTROLLER_PROMPT.messages],
+            "RECRUIT_SCREENING_THRESHOLD": RECRUIT_SCREENING_THRESHOLD,
+            "MAX_OUTPUT_TOKENS": MAX_OUTPUT_TOKENS,
+            "MAX_MODEL_LEN": MAX_MODEL_LEN,
+            "GPU_MEMORY_UTILIZATION": GPU_MEMORY_UTILIZATION,
+        }, indent=4))
 
 def get_random_device_id():
     return str(uuid.uuid4())
