@@ -3,12 +3,11 @@ import asyncio
 import aiomqtt
 
 from datetime import datetime
-from abc import ABC, abstractmethod
 
 from settings import *
 
 
-class Client(ABC):
+class Client:
     def __init__(self, id):
         self.session = None
         self.id = id
@@ -20,11 +19,9 @@ class Client(ABC):
 
         self.client = None
 
-    @abstractmethod
     async def connection_handler(self):
         pass
 
-    @abstractmethod
     async def message_handler(self, topic, id, sender, message, request_id):
         pass
 

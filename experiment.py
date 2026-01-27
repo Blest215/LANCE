@@ -47,9 +47,12 @@ async def simulate_scenario(model, modes, scenario):
             await agent.reset(new_session)
         user.set_agents([agent.id for agent in agents])
 
-        conversation, consequences = await user.main(mode, scenario.user_message)
-        result["CONVERSATION"] = conversation
-        result["CONSEQUENCES"] = consequences
+        conversation, consequences, time_log = await user.main(mode, scenario.user_message)
+        result[mode] = {
+            "CONVERSATION": conversation,
+            "CONSEQUENCES": consequences,
+            "TIME": time_log,
+        }
 
     # Wrap up
     user_loop.cancel()
@@ -64,16 +67,17 @@ async def simulation(code, dataset_path, models, modes):
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
     result_df = result_df.head() if args.debug else result_df
 
-    done_conversation_columns = [column for column in parse_column(result_df, "CONVERSATION")]
+    done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
     for model in models:
-        undone_modes = [mode for mode in modes if get_column_name("CONVERSATION", model, mode) not in done_conversation_columns]
+        undone_modes = [mode for mode in modes if get_column_name("CONSEQUENCES", model, mode) not in done_columns]
         if not undone_modes or not model.setup():
             continue
 
         simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(result_df.itertuples(), total=len(result_df), maxinterval=1, desc=f"Simulation {str(model):40}")]
 
         for mode in undone_modes:
-            result_df[get_column_name("CONSEQUENCES", model, mode)] = [result["CONSEQUENCES"] for result in simulation_results]
+            result_df[get_column_name("CONSEQUENCES", model, mode)] = [result[mode]["CONSEQUENCES"] for result in simulation_results]
+            result_df[get_column_name("TIME", model, mode)] = [result[mode]["TIME"] for result in simulation_results]
         model.wrapup()
         await save_dataframe(result_df, path=result_path)
     await save_dataframe(result_df, path=result_path, ensure=True)
