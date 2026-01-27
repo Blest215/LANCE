@@ -23,7 +23,6 @@ MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
 
-EVALUATION_CONCURRENCY_MAX = 10
 SYNTHESIZE_RETRY = 3
 TIMEOUT_LIMIT = 600
 TICK = 0.1
@@ -92,29 +91,6 @@ CONTROLLER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "[Device Specification]\n{description}"),
     ("system", "Control the device according to its specification using the appropriate tool."),
     ("user", "{message}"),
-])
-
-# EVALUATION
-
-EVALUATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("user", """
-Evaluate the behavior of the agents in the conversation whether the user's task is accomplished or not.
-
-[Device Descriptions]
-{device_descriptions}
-
-[User Message]
-{user_message}
-
-[Evaluation Criteria]
-{evaluation_criteria}
-
-[Conversation]
-{conversation}
-
-[Format]
-{format}
-"""),
 ])
 
 from pydantic import BaseModel, Field

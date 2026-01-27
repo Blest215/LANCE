@@ -48,8 +48,8 @@ async def simulate_scenario(model, modes, scenario):
         user.set_agents([agent.id for agent in agents])
 
         conversation, consequences = await user.main(mode, scenario.user_message)
-        result[get_column_name("CONVERSATION", model, mode)] = conversation
-        result[get_column_name("CONSEQUENCES", model, mode)] = consequences
+        result["CONVERSATION"] = conversation
+        result["CONSEQUENCES"] = consequences
 
     # Wrap up
     user_loop.cancel()
@@ -61,23 +61,22 @@ async def simulate_scenario(model, modes, scenario):
 
 async def simulation(code, dataset_path, models, modes):
     result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
-    df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
-    df = df.head() if args.debug else df
+    result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
+    result_df = result_df.head() if args.debug else result_df
 
-    done_conversation_columns = [column for column in parse_column(df, "CONVERSATION")]
+    done_conversation_columns = [column for column in parse_column(result_df, "CONVERSATION")]
     for model in models:
         undone_modes = [mode for mode in modes if get_column_name("CONVERSATION", model, mode) not in done_conversation_columns]
         if not undone_modes or not model.setup():
             continue
 
-        simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(df.itertuples(), total=len(df), maxinterval=1, desc=f"Simulation {str(model):40}")]
+        simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(result_df.itertuples(), total=len(result_df), maxinterval=1, desc=f"Simulation {str(model):40}")]
 
         for mode in undone_modes:
-            df[get_column_name("CONVERSATION", model, mode)] = [result[get_column_name("CONVERSATION", model, mode)] for result in simulation_results]
-            df[get_column_name("CONSEQUENCES", model, mode)] = [result[get_column_name("CONSEQUENCES", model, mode)] for result in simulation_results]
+            result_df[get_column_name("CONSEQUENCES", model, mode)] = [result["CONSEQUENCES"] for result in simulation_results]
         model.wrapup()
-        await save_dataframe(df, path=result_path)
-    await save_dataframe(df, path=result_path, ensure=True)
+        await save_dataframe(result_df, path=result_path)
+    await save_dataframe(result_df, path=result_path, ensure=True)
     return result_path
 
 # Evaluation
@@ -103,25 +102,7 @@ def evaluate_scenario(scenario, columns):
         result[column.replace("CONSEQUENCES", "ACCURACY")] = int(correct / len(evaluation_criteria)) if len(evaluation_criteria) > 0 else None
     return result
 
-from pydantic import BaseModel, Field
-class EvaluationResult(BaseModel):
-    score: int = Field(description="How the agents behaved well upon user's command. 0 <= score <= 100", ge=0, le=100)
-    reason: str = Field(description="Reasoning for the score")
-
-async def scoring_scenario(semaphore, evaluator, scenario, column_name):
-    async with semaphore:
-        while True:
-            try:
-                return await evaluator.ainvoke({
-                    "device_descriptions": scenario.device_descriptions,
-                    "user_message": scenario.user_message,
-                    "evaluation_criteria": "\n".join([f"Agent {expectation['agent_id']}: {expectation}" for expectation in eval(scenario.evaluation_criteria)]),
-                    "conversation": getattr(scenario, column_name),
-                })
-            except OutputParserException as e:
-                continue
-
-async def evaluation(result_path, evaluation_model=None):
+async def evaluation(result_path):
     if not os.path.exists(result_path):
         return
 
@@ -132,34 +113,12 @@ async def evaluation(result_path, evaluation_model=None):
     evaluation_results = [evaluate_scenario(scenario, columns) for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation")]
     for column in [column.replace("CONSEQUENCES", "ACCURACY") for column in columns]:
         df[column] = [result[column] for result in evaluation_results]
-    
-    await save_dataframe(df, path=result_path, ensure=True)
-
-    # Score
-    if evaluation_model:
-        evaluation_model.setup()
-        evaluator_parser = PydanticOutputParser(pydantic_object=EvaluationResult)
-        evaluator = EVALUATOR_PROMPT.partial(format=evaluator_parser.get_format_instructions()) | evaluation_model.instantiate() | evaluator_parser
-        
-        semaphore = asyncio.Semaphore(EVALUATION_CONCURRENCY_MAX)
-
-        columns = parse_column(df, "CONVERSATION")
-        for column in columns:
-            df[column.replace("CONVERSATION", "SCORE")] = None
-            df[column.replace("CONVERSATION", "REASON")] = None
-        for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation"):
-            evaluation_results = await asyncio.gather(*[scoring_scenario(semaphore, evaluator, scenario, column) for column in columns])
-            for i, column in enumerate(columns):
-                df.loc[scenario.Index, column.replace("CONVERSATION", "SCORE")] = evaluation_results[i].score
-                df.loc[scenario.Index, column.replace("CONVERSATION", "REASON")] = evaluation_results[i].reason
-            await save_dataframe(df, path=result_path)
-        evaluation_model.wrapup()
 
     print(df.mean(numeric_only=True))
     await save_dataframe(df, path=result_path, ensure=True)
 
 
-async def main(code, models: list[Model], modes: list[str], evaluation_model: Model):
+async def main(code, models: list[Model], modes: list[str]):
     dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)(?:_M\d+)?\.csv')
     
     datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
@@ -167,15 +126,15 @@ async def main(code, models: list[Model], modes: list[str], evaluation_model: Mo
     for dataset_file in datasets:
         print(dataset_file)
         result_path = await simulation(code, dataset_file, models, modes)
-        await evaluation(result_path, evaluation_model)
+        await evaluation(result_path)
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--resume", action="store_true")
-    argument_parser.add_argument("--scoring", action="store_true")
     args = argument_parser.parse_args()
+    assert not (args.debug and args.resume)
     set_debug(args.debug)
 
     # Remove empty directories
@@ -232,9 +191,8 @@ if __name__ == "__main__":
         Model("llama3.2:1b-instruct-q8_0", temperature=0.1),
         # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=0.1),
     ]
-    evaluation_model = Model("gpt-oss:20b", temperature=0.1, reasoning=False) if args.scoring else None
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, models=models if not args.debug else models[:2], modes=modes, evaluation_model=evaluation_model))
+    asyncio.run(main(code=code, models=models if not args.debug else models[:2], modes=modes))
