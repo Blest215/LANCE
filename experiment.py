@@ -3,13 +3,10 @@ import pandas as pd
 import os
 import argparse
 import sys
-import time
 
 from tqdm import tqdm
-from tqdm.asyncio import tqdm as atqdm
 from datetime import datetime
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
+from typing import List, Dict, Any, Optional
 
 from model import Model
 from settings import *
@@ -67,6 +64,9 @@ async def simulation(code, dataset_path, models, modes):
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
     result_df = result_df.head() if args.debug else result_df
 
+    log_df = pd.DataFrame()
+    log_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'log')}"
+
     done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
     for model in models:
         undone_modes = [mode for mode in modes if get_column_name("CONSEQUENCES", model, mode) not in done_columns]
@@ -76,11 +76,15 @@ async def simulation(code, dataset_path, models, modes):
         simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(result_df.itertuples(), total=len(result_df), maxinterval=1, desc=f"Simulation {str(model):40}")]
 
         for mode in undone_modes:
-            result_df[get_column_name("CONSEQUENCES", model, mode)] = [result[mode]["CONSEQUENCES"] for result in simulation_results]
-            result_df[get_column_name("TIME", model, mode)] = [result[mode]["TIME"] for result in simulation_results]
+            log_df = pd.concat([log_df, pd.DataFrame({get_column_name("CONVERSATION", model, mode): [result[mode]["CONVERSATION"] for result in simulation_results]})], axis=1)
+            result_df = pd.concat([result_df, pd.DataFrame({get_column_name("CONSEQUENCES", model, mode): [result[mode]["CONSEQUENCES"] for result in simulation_results]})], axis=1)
+            result_df = pd.concat([result_df, pd.DataFrame({get_column_name("TIME", model, mode): [result[mode]["TIME"] for result in simulation_results]})], axis=1)
         model.wrapup()
         await save_dataframe(result_df, path=result_path)
+        await save_dataframe(log_df, path=log_path)
+    
     await save_dataframe(result_df, path=result_path, ensure=True)
+    await save_dataframe(log_df, path=log_path, ensure=True)
     return result_path
 
 # Evaluation
@@ -116,21 +120,20 @@ async def evaluation(result_path):
     columns = parse_column(df, "CONSEQUENCES")
     evaluation_results = [evaluate_scenario(scenario, columns) for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation")]
     for column in [column.replace("CONSEQUENCES", "ACCURACY") for column in columns]:
-        df[column] = [result[column] for result in evaluation_results]
+        df = pd.concat([df, pd.DataFrame({column: [result[column] for result in evaluation_results]})], axis=1)
 
     print(df.mean(numeric_only=True))
     await save_dataframe(df, path=result_path, ensure=True)
 
 
-async def main(code, models: list[Model], modes: list[str]):
+async def main(code, configurations: List[Dict[str, Model]], modes: list[str]):
     dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)(?:_M\d+)?\.csv')
     
-    datasets = [file for file in os.listdir(DATASET_DIR) if dataset_pattern.match(file)]
-    datasets = datasets if not args.debug else datasets[:1]
-    for dataset_file in datasets:
-        print(dataset_file)
-        result_path = await simulation(code, dataset_file, models, modes)
-        await evaluation(result_path)
+    for configuration in configurations:
+        for dataset_file, models in configuration.items():
+            if dataset_pattern.match(dataset_file) and os.path.exists(f"{DATASET_DIR}/{dataset_file}"):
+                print(dataset_file)
+                await evaluation(await simulation(code, dataset_file, models[:2] if args.debug else models, modes))
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
@@ -161,42 +164,24 @@ if __name__ == "__main__":
 
     modes = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
     
-    models = [
-        # Larger models
-        Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1),
-        # Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1),
-        # Model("granite3.1-moe:3b-instruct-q8_0", temperature=0.1),
-        # Model("cogito:3b-v1-preview-llama-q8_0", temperature=0.1),
-        # Model("phi4-mini:3.8b-q8_0", temperature=0.1),
-        # Model("hermes3:3b-llama3.2-q8_0", temperature=0.1),
-        # Model("nemotron-mini:4b-instruct-q8_0", temperature=0.1),
-        # Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
-        # Model("gpt-oss:120b-cloud", temperature=0.1, reasoning=True),
-        # Model("gpt-oss:20b", temperature=0.1, reasoning=False),
-
-        Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=False),
-        Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=True),
-        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=False),
-        Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=True),
-        # Model("Qwen/Qwen3-0.6B", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3", temperature=0.1, reasoning="high"),
-        # Model("Qwen/Qwen2.5-Coder-0.5B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        Model("granite4:350m-h-q8_0", temperature=0.1),
-        Model("granite4:1b-h-q8_0", temperature=0.1),
-        # Model("ibm-granite/granite-4.0-350m", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        # Model("ibm-granite/granite-3.0-1b-a400m-instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser granite --chat-template examples/tool_chat_template_granite.jinja", temperature=0.1),
-        Model("functiongemma:270m-it-q8_0", temperature=0.1),
-        # Model("google/functiongemma-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser functiongemma --chat-template examples/tool_chat_template_functiongemma.jinja", temperature=0.1),
-        # Model("google/gemma-3-270m-it", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        # Model("smollm2:135m-instruct-q8_0", temperature=0.1),
-        # Model("smollm2:360m-instruct-q8_0", temperature=0.1),
-        Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
-        # Model("HuggingFaceTB/SmolLM2-135M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        # Model("HuggingFaceTB/SmolLM2-360M-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser hermes", temperature=0.1),
-        Model("llama3.2:1b-instruct-q8_0", temperature=0.1),
-        # Model("meta-llama/Llama-3.2-1B-Instruct", backend="vllm", options="--enable-auto-tool-choice --tool-call-parser llama3_json --chat-template examples/tool_chat_template_llama3.2_json.jinja", temperature=0.1),
+    configurations = [
+        {"dataset_Full_5.csv": [
+            Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1),
+            Model("functiongemma:270m-it-q8_0", temperature=0.1),
+            Model("granite4:350m-h-q8_0", temperature=0.1),
+            Model("granite4:1b-h-q8_0", temperature=0.1),
+            Model("gpt-oss:20b", temperature=0.1, reasoning=False),
+            Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1),
+            Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=False),
+            Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=False),
+            Model("phi4-mini:3.8b-q8_0", temperature=0.1),
+            Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
+            Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
+            Model("llama3.2:1b-instruct-q8_0", temperature=0.1),
+        ]},
     ]
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, models=models if not args.debug else models[:2], modes=modes))
+    asyncio.run(main(code=code, configurations=configurations[:1] if args.debug else configurations, modes=modes))

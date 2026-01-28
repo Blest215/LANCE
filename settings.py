@@ -15,10 +15,10 @@ load_dotenv()
 
 VLLM_URL = "http://localhost:8000/v1"
 
-DB_PATH = "dataset/db"
-SURVEY_PATH = f"{DB_PATH}/survey_result.csv"
 DATASET_DIR = "dataset"
+DB_PATH = f"{DATASET_DIR}/db"
 RESULT_DIR = "results"
+SURVEY_PATH = f"{DB_PATH}/survey_result.csv"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
