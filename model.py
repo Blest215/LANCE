@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from settings import *
 
 class Model:
-    def __init__(self, model, backend="ollama", options="", temperature=0.8, reasoning=None, base_url=None, max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs):
+    def __init__(self, model, backend="ollama", options="", temperature=0.1, reasoning=None, base_url=None, max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs):
         assert backend in ["ollama", "vllm"]
         self.model = model
         self.backend = backend

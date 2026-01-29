@@ -64,8 +64,8 @@ async def simulation(code, dataset_path, models, modes):
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
     result_df = result_df.head() if args.debug else result_df
 
-    log_df = pd.DataFrame()
     log_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'log')}"
+    log_df = pd.read_csv(log_path) if os.path.exists(log_path) else pd.DataFrame()
 
     done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
     for model in models:
@@ -141,7 +141,6 @@ if __name__ == "__main__":
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--resume", action="store_true")
     args = argument_parser.parse_args()
-    assert not (args.debug and args.resume)
     set_debug(args.debug)
 
     # Remove empty directories
@@ -162,26 +161,32 @@ if __name__ == "__main__":
 
     save_settings(code)
 
-    modes = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
-    
     configurations = [
         {"dataset_Full_5.csv": [
-            Model("ministral-3:3b-instruct-2512-q8_0", temperature=0.1),
-            Model("functiongemma:270m-it-q8_0", temperature=0.1),
-            Model("granite4:350m-h-q8_0", temperature=0.1),
-            Model("granite4:1b-h-q8_0", temperature=0.1),
-            Model("gpt-oss:20b", temperature=0.1, reasoning=False),
-            Model("qwen3:4b-instruct-2507-q8_0", temperature=0.1),
-            Model("qwen3:0.6b-q8_0", temperature=0.1, reasoning=False),
-            Model("qwen3:1.7b-q8_0", temperature=0.1, reasoning=False),
-            Model("phi4-mini:3.8b-q8_0", temperature=0.1),
-            Model("smollm2:1.7b-instruct-q8_0", temperature=0.1),
-            Model("llama3.2:3b-instruct-q8_0", temperature=0.1),
-            Model("llama3.2:1b-instruct-q8_0", temperature=0.1),
+            Model("ministral-3:3b-instruct-2512-q8_0"),
+            Model("functiongemma:270m-it-q8_0"),
+            Model("granite4:350m-h-q8_0"),
+            Model("granite4:1b-h-q8_0"),
+            Model("gpt-oss:20b", reasoning=False),
+            Model("qwen3:4b-instruct-2507-q8_0"),
+            Model("qwen3:0.6b-q8_0", reasoning=False),
+            Model("qwen3:1.7b-q8_0", reasoning=False),
+            Model("phi4-mini:3.8b-q8_0"),
+            Model("smollm2:1.7b-instruct-q8_0"),
+            Model("llama3.2:3b-instruct-q8_0"),
+            Model("llama3.2:1b-instruct-q8_0"),
         ]},
+        {"dataset_Full_3.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_3_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_3_M3.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_4.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_4_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_4_M4.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_5_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_Full_5_M5.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
     ]
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, configurations=configurations[:1] if args.debug else configurations, modes=modes))
+    asyncio.run(main(code=code, configurations=configurations[:1] if args.debug else configurations, modes=ALLOWED_MODES))
