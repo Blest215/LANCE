@@ -257,9 +257,8 @@ GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
 FACTORY_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a device developer who is writing a description document."),
     ("system", "If the device type is relevant to the user's message, the device MUST provide relevant functions."),
-    ("system", "The device may provide irrelevant but realistic functions."),
     ("system", "[Format]\n{format}"),
-    MessagesPlaceholder(variable_name="matter_specifications"),
+    ("system", "[Matter Specification Document]\n{matter_specifications}"),
     ("system", "[User Message]\n{user_message}"),
     ("user", "Generate a device of the given type: {device_type}"),
 ])
@@ -267,25 +266,25 @@ FACTORY_PROMPT = ChatPromptTemplate.from_messages([
 PLANNER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a secretary who controls smart devices. Control the devices upon the following user's message. Carefully revise the output according to your previous failure."),
     ("system", "[Format]\n{format}"),
-    MessagesPlaceholder(variable_name="device_descriptions"),
-    ("system", "[Expected behavior]\n{expected_behavior}"),
-    ("system", "[Previous failure]\n{previous_failure}"),
+    ("system", "[Available Devices]\n{device_descriptions}"),
+    ("system", "[Expected Behavior]\n{expected_behavior}"),
+    ("system", "[Previous Failure]\n{previous_failure}"),
     ("user", "{user_message}"),
 ])
 
 VALIDATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a validator who evaluates whether the device control orders accomplish the user's goal."),
     ("system", "[Format]\n{format}"),
-    MessagesPlaceholder(variable_name="device_descriptions"),
+    ("system", "[Available Devices]\n{device_descriptions}"),
     ("user", "{user_message}"),
-    MessagesPlaceholder(variable_name="device_controls"),
+    ("assistant", "[Device Behaviors]\n{device_controls}"),
     ("user", "Did the devices accomplish the user's goal?"),
 ])
 
 MUTATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a software developer who is writing documentation for the device."),
-    ("system", "[Device]\n{description}"),
-    ("user", "Convert the structured description into a human-written README file."),
+    ("system", "[Device Sepcification]\n{description}"),
+    ("user", "Convert the structured description into a short human-written README file."),
 ])
 
 async def generate_scenario(answer, pbar):
@@ -358,7 +357,7 @@ async def generate_expectations(device_descriptions, user_message, expected_beha
     for _ in range(SYNTHESIZE_RETRY):
         try:
             expectations = await planner.ainvoke({
-                "device_descriptions": [("system", str(device)) for device in device_descriptions],
+                "device_descriptions": "\n".join([str(description["structured"]) for description in device_descriptions]),
                 "expected_behavior": expected_behavior,
                 "previous_failure": previous_failure,
                 "user_message": user_message,
@@ -396,9 +395,9 @@ class ValidationResult(BaseModel):
 
 async def validate_scenario(device_descriptions, user_message, expectations):
     validation_result = await validator.ainvoke({
-        "device_descriptions": [("system", str(description["structured"])) for description in device_descriptions],
+        "device_descriptions": "\n".join([str(description["structured"]) for description in device_descriptions]),
         "user_message": user_message,
-        "device_controls": [("assistant", str(dict(expectation))) for expectation in expectations]
+        "device_controls": "\n".join([str(dict(expectation)) for expectation in expectations]),
     })
     if not validation_result.valid:
         raise Exception(validation_result.reason)
@@ -423,44 +422,45 @@ async def mutate_scenario(scenario, num_mutation):
     mutated_scenario["device_descriptions"] = str(device_descriptions)
     return mutated_scenario
 
-async def main(path: str, iterate: int, reset: bool):
-    # Load survey results
-    survey_df = pd.read_csv(SURVEY_PATH)
-    survey_df = survey_df.loc[survey_df.index.repeat(iterate)]
-    survey_df = survey_df.reset_index(drop=True)
-    survey_df = survey_df.head() if args.debug else survey_df
+async def main(path: str, mutation: bool):
+    if not os.path.exists(path):
+        # Load survey results
+        survey_df = pd.read_csv(SURVEY_PATH)
+        survey_df = survey_df.reset_index(drop=True)
+        survey_df = survey_df[survey_df['class'] == 'Control']
+        survey_df = survey_df.head() if args.debug else survey_df
 
-    # Synthesize dataset
-    df = pd.read_csv(path) if os.path.exists(path) and not reset else pd.DataFrame()
-    with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
-        done = 0
-        for answer in survey_df.itertuples():
-            task = asyncio.create_task(generate_scenario(answer, pbar))
-            while not task.done():
-                await asyncio.sleep(1)
-                pbar.n = done
-                pbar.refresh()
-            df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
-            await save_dataframe(df, path)
-            done += 1
-        pbar.n = done
-        pbar.refresh()
-    await save_dataframe(df, path, ensure=True)
+        # Synthesize dataset
+        df = pd.DataFrame()
+        with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
+            done = 0
+            for answer in survey_df.itertuples():
+                task = asyncio.create_task(generate_scenario(answer, pbar))
+                while not task.done():
+                    await asyncio.sleep(1)
+                    pbar.n = done
+                    pbar.refresh()
+                df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
+                await save_dataframe(df, path)
+                done += 1
+            pbar.n = done
+            pbar.refresh()
+        await save_dataframe(df, path, ensure=True)
 
-    # Mutate dataset
-    for num_mutation in [1, args.devices]:
+    if mutation:
         original_df = pd.read_csv(path)
-        mutated_scenarios = await atqdm.gather(*[mutate_scenario(scenario, num_mutation) for scenario in original_df.itertuples(index=False)], desc=f"Mutation {num_mutation}")
-        await save_dataframe(pd.DataFrame(mutated_scenarios), path.replace(".csv", f"_M{num_mutation}.csv"), ensure=True)
+        # Mutate dataset
+        for num_mutation in range(1, args.devices +1):
+            mutated_scenarios = [await mutate_scenario(scenario, num_mutation) for scenario in tqdm(original_df.itertuples(index=False), total=len(original_df), desc=f"Mutation {num_mutation}")]
+            await save_dataframe(pd.DataFrame(mutated_scenarios), path.replace("_M0", f"_M{num_mutation}"), ensure=True)
 
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
-    argument_parser.add_argument("--reset", action="store_true")
     argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss:20b", help="LLM to use")
-    argument_parser.add_argument("--iterate", type=int, required=False, default=1, help="Number of iterations over the survey result")
     argument_parser.add_argument("--devices", type=int, required=False, default=3, help="Number of devices for each scenario")
+    argument_parser.add_argument("--mutation", action="store_true")
     argument_parser.add_argument("--format", type=str, required=False, default="Full", choices=["W3C", "SmartThings", "Matter", "Full"], help="Device formats")
     args = argument_parser.parse_args()
     set_debug(args.debug)
@@ -469,7 +469,7 @@ if __name__ == "__main__":
 
     device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
     debug(f"{device_formats} {args.devices} devices")
-    path = f"{DATASET_DIR}/dataset_{args.format}_{args.devices}.csv"
+    path = f"{DATASET_DIR}/dataset_{args.format}_{args.devices}_M0.csv"
     
     Expectations = create_model(
         'Expectations',
@@ -507,4 +507,4 @@ if __name__ == "__main__":
 
     mutator = MUTATOR_PROMPT | model.instantiate()
 
-    asyncio.run(main(path=path if not args.debug else path.replace(".csv", "_DEBUG.csv"), iterate=args.iterate, reset=args.reset))
+    asyncio.run(main(path=path if not args.debug else path.replace(".csv", "_DEBUG.csv"), mutation=args.mutation))

@@ -57,11 +57,11 @@ def instantiate_device(id, description) -> Device:
 class W3CInput(BaseModel):
     agent_id: str = Field(description="The unique ID of the agent associated with the W3C device")
     action: str = Field(description="The action name to execute on the device (must be one of the device's available actions)")
-    inputs: Optional[Dict[str, Any]] = Field(description="Optional dictionary of input parameters required for the action")
+    inputs: Dict[str, Any] = Field(default={}, description="Kwarg dictionary of input parameters required for the action")
 
 @tool("control_device_w3c", args_schema=W3CInput)
-def control_device_w3c(agent_id: str, action: str, inputs: Optional[Dict[str, Any]]):
-    """Control a W3C-format device by executing an action with optional inputs. Use this tool only for W3C-format devices."""
+def control_device_w3c(agent_id: str, action: str, inputs: Dict[str, Any]):
+    """Control a W3C-format device by executing an action. Use this tool only for W3C-format devices."""
 
 class W3CDevice(Device):
     @staticmethod
@@ -76,7 +76,7 @@ class W3CDevice(Device):
         if "required" in self.dict["actions"][kwargs["action"]]:
             for required in self.dict["actions"][kwargs["action"]]["required"]:
                 if "inputs" not in kwargs or required not in kwargs["inputs"]:
-                    return f"REQUIRED INPUT {required} MISSING"
+                    return "REQUIREMENT MISSING"
         # TODO ARGUMENT TYPE
         return "VALID"
     
@@ -90,10 +90,10 @@ class SmartThingsInput(BaseModel):
     agent_id: str = Field(description="The unique ID of the agent associated with the SmartThings device")
     capability: str = Field(description="The capability ID to target (e.g., 'switch', 'temperatureMeasurement')")
     command: str = Field(description="The command name to execute within the capability")
-    arguments: Optional[Dict[str, Any]] = Field(description="Optional dictionary of arguments required for the command")
+    arguments: Dict[str, Any] = Field(default={}, description="Kwarg dictionary of arguments required for the command")
 
 @tool("control_device_smartthings", args_schema=SmartThingsInput)
-def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Optional[Dict[str, Any]]):
+def control_device_smartthings(agent_id: str, capability: str, command: str, arguments: Dict[str, Any]):
     """Control a SmartThings device by executing a command within a specific capability. Use this tool only for SmartThings devices."""
 
 class SmartThingsDevice(Device):
@@ -116,7 +116,7 @@ class SmartThingsDevice(Device):
             return "INVALID COMMAND NAME"
         for argument in capability["commands"][kwargs["command"]]["arguments"]:
             if not argument["optional"] and argument["name"] not in kwargs["arguments"]:
-                return f"REQUIRED ARGUMENT {argument['name']} MISSING"
+                return "REQUIREMENT MISSING"
         # TODO ARGUMENT TYPE
         return "VALID"
     
@@ -146,10 +146,10 @@ class MatterInput(BaseModel):
     endpoint_id: str = Field(description="The hexcode ID of the endpoint to control")
     cluster_id: str = Field(description="The hexcode ID of the cluster within the endpoint")
     command_id: str = Field(description="The hexcode ID of the command to execute")
-    fields: Optional[Dict[str, Any]] = Field(description="Optional dictionary of field values required for the command")
+    fields: Dict[str, Any] = Field(default={}, description="Kwarg dictionary of field values required for the command")
 
 @tool("control_device_matter", args_schema=MatterInput)
-def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Optional[Dict[str, Any]]):
+def control_device_matter(agent_id: str, endpoint_id: str, cluster_id: str, command_id: str, fields: Dict[str, Any]):
     """Control a Matter device by executing a command on a specific cluster within an endpoint. Use this tool only for Matter-protocol devices."""
 
 class MatterDevice(Device):
@@ -175,7 +175,7 @@ class MatterDevice(Device):
         command = cluster["commands"][kwargs["command_id"]]
         for field in command["fields"]:
             if field["name"] not in kwargs["fields"]:
-                return f"REQUIRED FIELD {field['name']} MISSING"
+                return "REQUIREMENT MISSING"
         # TODO ARGUMENT TYPE
         return "VALID"
     
