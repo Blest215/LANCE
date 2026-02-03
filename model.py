@@ -57,9 +57,7 @@ class Model:
 
     def setup(self) -> bool:
         if self.backend == "ollama":
-            response = self.instance.invoke("Hello")
-            print(response)
-            return True
+            return self.instance.invoke("Hello, are you alive?").response_metadata["done"]
 
         print(f"Startup vLLM container for {self.name}", end="")
 

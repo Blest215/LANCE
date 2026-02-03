@@ -13,6 +13,9 @@ load_dotenv()
 
 # Settings
 
+DATASET_FILENAME_PATTERN = r'^dataset_D(\d+)_M(\d+)\.csv$' 
+RESULT_FILENAME_PATTERN = r'^result_D(\d+)_M(\d+)\.csv$'
+
 VLLM_URL = "http://localhost:8000/v1"
 
 DATASET_DIR = "dataset"

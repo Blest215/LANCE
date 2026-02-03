@@ -126,7 +126,7 @@ async def evaluation(result_path):
 
 
 async def main(code, configurations: List[Dict[str, Model]], modes: list[str]):
-    dataset_pattern = re.compile(r'dataset_D(\d+)_M(\d+)\.csv')
+    dataset_pattern = re.compile(DATASET_FILENAME_PATTERN)
     
     for configuration in configurations:
         for dataset_file, models in configuration.items():
