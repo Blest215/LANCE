@@ -64,6 +64,8 @@ MQTT_TOPIC_CENTRALIZED_REGISTER = "register"
 
 # Devices
 
+DEVICE_FORMATS = ["W3C", "SmartThings", "Matter"]
+
 SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
 # User

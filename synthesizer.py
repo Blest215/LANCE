@@ -8,25 +8,20 @@ import json
 import random
 
 from tqdm import tqdm
-from tqdm.asyncio import tqdm as atqdm
-from uuid import UUID, uuid4
 from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
 
-from langchain_core.output_parsers import PydanticOutputParser
-from typing import Optional, Literal, Annotated
-from pydantic import BaseModel, Field, PlainSerializer, create_model
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
+from typing import Optional, Literal
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
 from settings import *
 from device import *
 from model import Model
-
-def serialize_id(id: UUID) -> str:
-    return str(id)
 
 # W3C WoT TD
 
@@ -281,6 +276,10 @@ VALIDATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("user", "Did the devices accomplish the user's goal?"),
 ])
 
+SCALER_PROMPT = ChatPromptTemplate.from_messages([
+    ("user", "Give me one name of the smart home device types that is not included in: {device_descriptions}"),
+])
+
 MUTATOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "You are a software developer who is writing documentation for the device."),
     ("system", "[Device Sepcification]\n{description}"),
@@ -300,10 +299,7 @@ async def generate_scenario(answer, pbar):
 
             # Create devices
             pbar.set_postfix({"tries": tries, "progress": "devices"})
-            device_ids = [get_random_device_id() for _ in scenario.device_types]
-            while len(device_ids) != len(set(device_ids)):
-                device_ids = [get_random_device_id() for _ in scenario.device_types]
-            device_descriptions = [await create_device(random.choice(device_formats), device_type, device_ids[i], scenario.user_message) for i, device_type in enumerate(scenario.device_types)]
+            device_descriptions = [await create_device(device_type, scenario.user_message) for device_type in scenario.device_types]
             debug(device_descriptions)
 
             # Expectations
@@ -320,7 +316,9 @@ async def generate_scenario(answer, pbar):
             debug(e)
             continue
 
-async def create_device(device_format, device_type, device_id, user_message):
+async def create_device(device_type, user_message):
+    device_format = random.choice(DEVICE_FORMATS)
+    device_id = get_random_device_id()
     debug(f"Create device: {device_format} {device_type} {device_id}")
     for _ in range(SYNTHESIZE_RETRY):
         try:
@@ -351,6 +349,9 @@ async def create_device(device_format, device_type, device_id, user_message):
             debug(e)
             continue
     raise Exception("DEVICE CREATION FAILURE")
+
+class Expectations(BaseModel):
+    inputs: List[W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The list of the correct control of the devices upon the user's message.")
 
 async def generate_expectations(device_descriptions, user_message, expected_behavior):
     previous_failure = []
@@ -402,39 +403,53 @@ async def validate_scenario(device_descriptions, user_message, expectations):
     if not validation_result.valid:
         raise Exception(validation_result.reason)
 
-async def mutate_scenario(scenario, num_mutation):
+async def scale_scenario(scenario, num_devices):
+    scaled_scenario = scenario._asdict()
+    device_descriptions = eval(scaled_scenario["device_descriptions"])
+
+    while len(device_descriptions) < num_devices:
+        try:
+            device_descriptions.append(await create_device(await scaler.ainvoke({"device_descriptions": str(device_descriptions)}), ""))
+        except Exception as e:
+            debug(e)
+            continue
+    
+    random.shuffle(device_descriptions)
+    scaled_scenario["device_descriptions"] = str(device_descriptions)
+    return scaled_scenario
+
+async def mutate_scenario(scenario, mutation_ratio):
     mutated_scenario = scenario._asdict()
     device_descriptions = eval(mutated_scenario["device_descriptions"])
 
-    for i in random.sample(range(len(device_descriptions)), num_mutation):
-        while True:
-            try:
-                device_descriptions[i] = {
-                    "format": device_descriptions[i]["format"],
-                    "structured": device_descriptions[i]["structured"],
-                    "natural": (await mutator.ainvoke({"description": device_descriptions[i]})).content,
-                }
-                break
-            except Exception as e:
-                debug(e)
-                continue
+    while sum(100 if "natural" in device else 0 for device in device_descriptions) / len(device_descriptions) < mutation_ratio:
+        try:
+            target = random.choice([i for i, device in enumerate(device_descriptions) if "natural" not in device])
+            device_descriptions[target] = {
+                "format": device_descriptions[target]["format"],
+                "structured": device_descriptions[target]["structured"],
+                "natural": await mutator.ainvoke({"description": device_descriptions[target]["structured"]}),
+            }
+        except Exception as e:
+            debug(e)
+            continue
 
     mutated_scenario["device_descriptions"] = str(device_descriptions)
     return mutated_scenario
 
-async def main(path: str, mutation: bool):
-    if not os.path.exists(path):
-        # Load survey results
-        survey_df = pd.read_csv(SURVEY_PATH)
-        survey_df = survey_df.reset_index(drop=True)
-        survey_df = survey_df[survey_df['class'] == 'Control']
-        survey_df = survey_df.head() if args.debug else survey_df
+async def synthesize_dataset(path):
+    survey_df = pd.read_csv(SURVEY_PATH)
+    survey_df = survey_df.reset_index(drop=True)
+    survey_df = survey_df[survey_df['class'] == 'Control']
+    survey_df = survey_df.head() if args.debug else survey_df
 
-        # Synthesize dataset
-        df = pd.DataFrame()
-        with tqdm(total=len(survey_df), desc="Synthesize") as pbar:
+    df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
+
+    if len(survey_df) > len(df):
+        synthesize_df = survey_df[len(df):]
+        with tqdm(total=len(synthesize_df), desc="Synthesize") as pbar:
             done = 0
-            for answer in survey_df.itertuples():
+            for answer in synthesize_df.itertuples():
                 task = asyncio.create_task(generate_scenario(answer, pbar))
                 while not task.done():
                     await asyncio.sleep(1)
@@ -447,37 +462,55 @@ async def main(path: str, mutation: bool):
             pbar.refresh()
         await save_dataframe(df, path, ensure=True)
 
+def get_scale_target(path, num_devices):
+    for i in reversed(range(1, num_devices)):
+        smaller_path = path.replace(f"D{num_devices}", f"D{i}")
+        if os.path.exists(smaller_path):
+            print(f"Scaling target found: {i}")
+            return pd.read_csv(smaller_path)
+
+async def scale_dataset(path, num_devices):
+    scaled_df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
+    scaling_df = get_scale_target(path, num_devices)[len(scaled_df):]
+    for scenario in tqdm(scaling_df.itertuples(index=False), total=len(scaling_df), desc=f"Scaling {num_devices} devices"):
+        scaled_df = pd.concat([scaled_df, pd.DataFrame([await scale_scenario(scenario, num_devices)])], ignore_index=True)
+        await save_dataframe(scaled_df, path)
+    await save_dataframe(scaled_df, path, ensure=True)
+
+async def mutate_dataset(path, num_devices):
+    for mutation_ratio in [20, 40, 60, 80, 100]:
+        mutated_path = path.replace("_M0", f"_M{mutation_ratio}")
+        mutated_df = pd.read_csv(mutated_path) if os.path.exists(mutated_path) else pd.DataFrame()
+        previous_df = pd.read_csv(path.replace("_M0", f"_M{mutation_ratio - 20}"))[len(mutated_df):]
+        for scenario in tqdm(previous_df.itertuples(index=False), total=len(previous_df), desc=f"Mutation {mutation_ratio}"):
+            mutated_df = pd.concat([mutated_df, pd.DataFrame([await mutate_scenario(scenario, mutation_ratio)])], ignore_index=True)
+            await save_dataframe(mutated_df, mutated_path)
+        await save_dataframe(mutated_df, mutated_path, ensure=True)
+
+async def main(path: str, num_devices: int, scale: bool, mutation: bool):
+    if scale:
+        await scale_dataset(path, num_devices)
+
+    await synthesize_dataset(path)
+
     if mutation:
-        original_df = pd.read_csv(path)
-        # Mutate dataset
-        for num_mutation in range(1, args.devices +1):
-            mutated_scenarios = [await mutate_scenario(scenario, num_mutation) for scenario in tqdm(original_df.itertuples(index=False), total=len(original_df), desc=f"Mutation {num_mutation}")]
-            await save_dataframe(pd.DataFrame(mutated_scenarios), path.replace("_M0", f"_M{num_mutation}"), ensure=True)
+        await mutate_dataset(path, num_devices)
 
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss:20b", help="LLM to use")
-    argument_parser.add_argument("--devices", type=int, required=False, default=3, help="Number of devices for each scenario")
+    argument_parser.add_argument("--devices", type=int, required=False, default=5, help="Number of devices for each scenario")
     argument_parser.add_argument("--mutation", action="store_true")
-    argument_parser.add_argument("--format", type=str, required=False, default="Full", choices=["W3C", "SmartThings", "Matter", "Full"], help="Device formats")
+    argument_parser.add_argument("--scale", action="store_true", help="Scale from less devices dataset")
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
     # Models
 
-    device_formats = ["W3C", "SmartThings", "Matter"] if args.format == "Full" else [args.format]
-    debug(f"{device_formats} {args.devices} devices")
-    path = f"{DATASET_DIR}/dataset_{args.format}_{args.devices}_M0.csv"
-    
-    Expectations = create_model(
-        'Expectations',
-        inputs=(
-            {"W3C": List[W3CInput], "SmartThings": List[SmartThingsInput], "Matter": List[MatterInput]}.get(args.format, List[W3CInput | SmartThingsInput | MatterInput]), 
-            Field(min_length=1, description="The list of the correct control of the devices upon the user's message.")
-        )
-    )
+    debug(f"{DEVICE_FORMATS} {args.devices} devices")
+    path = f"{DATASET_DIR}/dataset_D{args.devices}_M0.csv"
 
     class Scenario(BaseModel):
         device_types: List[str] = Field(description="The types of the devices in the space.", min_length=args.devices, max_length=args.devices)
@@ -505,6 +538,8 @@ if __name__ == "__main__":
     validator_parser = PydanticOutputParser(pydantic_object=ValidationResult)
     validator = VALIDATOR_PROMPT.partial(format=validator_parser.get_format_instructions()) | model.instantiate() | validator_parser
 
-    mutator = MUTATOR_PROMPT | model.instantiate()
+    scaler = SCALER_PROMPT | model.instantiate() | StrOutputParser()
 
-    asyncio.run(main(path=path if not args.debug else path.replace(".csv", "_DEBUG.csv"), mutation=args.mutation))
+    mutator = MUTATOR_PROMPT | model.instantiate() | StrOutputParser()
+
+    asyncio.run(main(path=path, num_devices=args.devices, scale=args.scale, mutation=args.mutation))

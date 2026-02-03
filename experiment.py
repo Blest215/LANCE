@@ -113,21 +113,20 @@ def evaluate_scenario(scenario, columns):
 async def evaluation(result_path):
     if not os.path.exists(result_path):
         return
-
     df = pd.read_csv(result_path)
 
     # Accuracy
     columns = parse_column(df, "CONSEQUENCES")
     evaluation_results = [evaluate_scenario(scenario, columns) for scenario in tqdm(df.itertuples(), total=len(df), desc="Evaluation")]
     for column in [column.replace("CONSEQUENCES", "ACCURACY") for column in columns]:
-        df = pd.concat([df, pd.DataFrame({column: [result[column] for result in evaluation_results]})], axis=1)
+        df[column] = [result[column] for result in evaluation_results]
 
     print(df.mean(numeric_only=True))
     await save_dataframe(df, path=result_path, ensure=True)
 
 
 async def main(code, configurations: List[Dict[str, Model]], modes: list[str]):
-    dataset_pattern = re.compile(r'dataset_(\w+)_(\d+)(?:_M\d+)?\.csv')
+    dataset_pattern = re.compile(r'dataset_D(\d+)_M(\d+)\.csv')
     
     for configuration in configurations:
         for dataset_file, models in configuration.items():
@@ -162,28 +161,37 @@ if __name__ == "__main__":
     save_settings(code)
 
     configurations = [
-        {"dataset_Full_5.csv": [
+        {"dataset_D5_M0.csv": [
             Model("ministral-3:3b-instruct-2512-q8_0"),
-            Model("functiongemma:270m-it-q8_0"),
-            Model("granite4:350m-h-q8_0"),
-            Model("granite4:1b-h-q8_0"),
             Model("gpt-oss:20b", reasoning=False),
             Model("qwen3:4b-instruct-2507-q8_0"),
-            Model("qwen3:0.6b-q8_0", reasoning=False),
-            Model("qwen3:1.7b-q8_0", reasoning=False),
+            Model("cogito:3b-v1-preview-llama-q8_0"),
             Model("phi4-mini:3.8b-q8_0"),
-            Model("smollm2:1.7b-instruct-q8_0"),
+            Model("granite3.1-moe:3b-instruct-q8_0"),
+            Model("nemotron-mini:4b-instruct-q8_0"),
+            Model("hermes3:3b-llama3.2-q8_0"),
             Model("llama3.2:3b-instruct-q8_0"),
+
+            Model("functiongemma:270m-it-q8_0"),
+            Model("granite4:1b-h-q8_0"),
+            Model("granite4:350m-h-q8_0"),
+            Model("qwen3:1.7b-q8_0", reasoning=False),
+            Model("qwen3:0.6b-q8_0", reasoning=False),
+            Model("deepseek-r1:1.5b-qwen-distill-q8_0"),
+            Model("smollm2:1.7b-instruct-q8_0"),
+            Model("granite3.1-moe:1b-instruct-q8_0"),
+            Model("granite3.1-dense:2b-instruct-q8_0"),
             Model("llama3.2:1b-instruct-q8_0"),
         ]},
-        {"dataset_Full_3.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_3_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_3_M3.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_4.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_4_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_4_M4.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_5_M1.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
-        {"dataset_Full_5_M5.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        # Mutations
+        {"dataset_D5_M20.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D5_M40.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D5_M60.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D5_M80.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D5_M100.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        # Devices
+        {"dataset_D10_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D15_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
     ]
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":

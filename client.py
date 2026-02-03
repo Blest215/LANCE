@@ -58,7 +58,7 @@ class Client:
                                 await self.on_message(topic, id, sender, message, request_id)
                         except Exception as e:
                             if payload.get("request_id", ""):
-                                await self.response(sender, request_id, type(e).__name__)
+                                await self.response(sender, request_id, str([dict(Response(agent_id=self.id, request={"message": message}, success=False, message=type(e).__name__))]))
             
             # Connection lost
             except aiomqtt.MqttError:

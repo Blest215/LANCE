@@ -50,6 +50,7 @@ class UserAgent(Client):
                 await self.control(MQTT_TOPIC_NATURAL_CONTROL, await self.plan(self.natural, user_message, await self.recruit(user_message, True)))
         
         except Exception as e:
+            self.consequences.append(dict(Response(agent_id="", request={}, success=False, message=type(e).__name__)))
             self.log(e)
         
         finally:

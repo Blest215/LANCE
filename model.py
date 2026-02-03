@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from settings import *
 
 class Model:
-    def __init__(self, model, backend="ollama", options="", temperature=0.1, reasoning=None, base_url=None, max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs):
+    def __init__(self, model, backend="ollama", options="", temperature=0.0, reasoning=None, base_url=None, max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs):
         assert backend in ["ollama", "vllm"]
         self.model = model
         self.backend = backend
@@ -23,7 +23,7 @@ class Model:
         self.kwargs = kwargs
 
         if self.backend == "ollama":
-            self.instance = ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, **self.kwargs)
+            self.instance = ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, validate_model_on_init=True, **self.kwargs)
         else:
             self.instance = ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
 
@@ -57,6 +57,8 @@ class Model:
 
     def setup(self) -> bool:
         if self.backend == "ollama":
+            response = self.instance.invoke("Hello")
+            print(response)
             return True
 
         print(f"Startup vLLM container for {self.name}", end="")
