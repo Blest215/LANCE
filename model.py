@@ -28,7 +28,7 @@ class Model:
             self.instance = ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
 
     def __str__(self):
-        return f"{self.name}_T{int(self.temperature * 10)}".replace("-", "_").replace(".", "_").replace(":", "_")
+        return f"{self.name}".replace("-", "_").replace(".", "_").replace(":", "_")
 
     @property
     def name(self):
@@ -57,7 +57,10 @@ class Model:
 
     def setup(self) -> bool:
         if self.backend == "ollama":
-            return self.instance.invoke("Hello, are you alive?").response_metadata["done"]
+            try:
+                return self.instance.invoke("Hello, are you alive?").response_metadata["done"]
+            except Exception:
+                return False
 
         print(f"Startup vLLM container for {self.name}", end="")
 

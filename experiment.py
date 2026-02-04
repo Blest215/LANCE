@@ -62,7 +62,7 @@ async def simulate_scenario(model, modes, scenario):
 async def simulation(code, dataset_path, models, modes):
     result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
-    result_df = result_df.head() if args.debug else result_df
+    result_df = result_df.head() if args.debug else (result_df.head(args.head) if args.head else result_df)
 
     log_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'log')}"
     log_df = pd.read_csv(log_path) if os.path.exists(log_path) else pd.DataFrame()
@@ -138,20 +138,14 @@ if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--code", type=str, required=False, default="")
+    argument_parser.add_argument("--edge", action="store_true")
     argument_parser.add_argument("--resume", action="store_true")
+    argument_parser.add_argument("--head", type=int, required=False)
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
-    # Remove empty directories
-    for result_code in os.listdir(RESULT_DIR):
-        files = os.listdir(f"{RESULT_DIR}/{result_code}")
-        if len(files) == 1 and files[0] == "settings.txt":
-            os.remove(SETTING_PATH.format(code=result_code))
-            os.rmdir(f"{RESULT_DIR}/{result_code}")
-        elif not files:            
-            os.rmdir(f"{RESULT_DIR}/{result_code}")
-
     # Get experiment code
+    remove_empty_results()
     code = args.code if args.code else get_last_result() if args.resume else datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     code = code if not args.debug or "DEBUG" in code else f"{code}-DEBUG"
     print(code)
@@ -161,27 +155,40 @@ if __name__ == "__main__":
     save_settings(code)
 
     configurations = [
+        {"dataset_D5_M0.csv":[
+            Model("qwen3:8b-q4_K_M", reasoning=False),
+            Model("qwen3:4b-instruct-2507-q4_K_M"),
+            Model("qwen3:0.6b-q4_K_M", reasoning=False),
+        ]}
+    ] if args.edge else [
         {"dataset_D5_M0.csv": [
+            # Mid-size <=8b
+            Model("ministral-3:8b-instruct-2512-q4_K_M"),
+            Model("qwen3:8b-q4_K_M", reasoning=False),
+            Model("llama3.1:8b-instruct-q4_K_M"),
+            # Small-size <=4b
             Model("ministral-3:3b-instruct-2512-q8_0"),
-            Model("gpt-oss:20b", reasoning=False),
             Model("qwen3:4b-instruct-2507-q8_0"),
-            Model("cogito:3b-v1-preview-llama-q8_0"),
-            Model("phi4-mini:3.8b-q8_0"),
-            Model("granite3.1-moe:3b-instruct-q8_0"),
-            Model("nemotron-mini:4b-instruct-q8_0"),
-            Model("hermes3:3b-llama3.2-q8_0"),
             Model("llama3.2:3b-instruct-q8_0"),
-
-            Model("functiongemma:270m-it-q8_0"),
+            # Tiny-size <=1b
             Model("granite4:1b-h-q8_0"),
-            Model("granite4:350m-h-q8_0"),
-            Model("qwen3:1.7b-q8_0", reasoning=False),
             Model("qwen3:0.6b-q8_0", reasoning=False),
-            Model("deepseek-r1:1.5b-qwen-distill-q8_0"),
-            Model("smollm2:1.7b-instruct-q8_0"),
-            Model("granite3.1-moe:1b-instruct-q8_0"),
-            Model("granite3.1-dense:2b-instruct-q8_0"),
             Model("llama3.2:1b-instruct-q8_0"),
+            # Settings
+            Model("qwen3:0.6b-q4_K_M", reasoning=False),
+            Model("qwen3:0.6b-q8_0", reasoning=True),
+            Model("qwen3:4b-instruct-2507-q4_K_M"),
+            Model("qwen3:4b-thinking-2507-q4_K_M"),
+            Model("qwen3:8b-q8_0", reasoning=False),
+            Model("qwen3:8b-q8_0", reasoning=True),
+            # Etc
+            Model("functiongemma:270m-it-q8_0"),
+            Model("granite4:350m-h-q8_0"),
+            Model("granite4:3b-h"),
+            Model("rnj-1:8b-instruct-q4_K_M"),
+            Model("qwen3:1.7b-q4_K_M", reasoning=False),
+            Model("qwen3:1.7b-q8_0", reasoning=False),
+            Model("qwen3:1.7b-q8_0", reasoning=True),
         ]},
         # Mutations
         {"dataset_D5_M20.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},

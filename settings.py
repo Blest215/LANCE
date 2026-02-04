@@ -185,3 +185,12 @@ def debug(*text):
 def set_debug(debug):
     global DEBUG
     DEBUG = debug
+
+def remove_empty_results():
+    for result_code in os.listdir(RESULT_DIR):
+        files = os.listdir(f"{RESULT_DIR}/{result_code}")
+        if len(files) == 1 and files[0] == "settings.txt":
+            os.remove(SETTING_PATH.format(code=result_code))
+            os.rmdir(f"{RESULT_DIR}/{result_code}")
+        elif not files:            
+            os.rmdir(f"{RESULT_DIR}/{result_code}")
