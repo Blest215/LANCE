@@ -187,6 +187,8 @@ def set_debug(debug):
     DEBUG = debug
 
 def remove_empty_results():
+    if not os.path.exists(RESULT_DIR):
+        os.mkdir(RESULT_DIR)
     for result_code in os.listdir(RESULT_DIR):
         files = os.listdir(f"{RESULT_DIR}/{result_code}")
         if len(files) == 1 and files[0] == "settings.txt":

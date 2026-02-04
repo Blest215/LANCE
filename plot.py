@@ -14,6 +14,7 @@ stages = {"discovery": "#FF6B6B", "plan": "#3498DB", "control": "#2ECC71"}
 stage_labels = ["Discovery", "Plan", "Control"]
 
 model_names = [
+    "ministral-3:8b-instruct-2512",
     "ministral-3:3b-instruct-2512",
     "functiongemma:270m-it",
     "granite4:3b-h",
@@ -29,6 +30,8 @@ model_names = [
     "phi4-mini:3.8b",
     "cogito:3b-v1-preview-llama",
     "smollm2:1.7b-instruct",
+    "rnj-1:8b-instruct",
+    "llama3.1:8b-instruct",
     "llama3.2:3b-instruct",
     "llama3.2:1b-instruct",
 ]
@@ -37,8 +40,8 @@ def get_model_name(model_name):
     for key in model_names:
         underbar = key.replace("-", "_").replace(".", "_").replace(":", "_")
         if underbar in model_name:
-            return f"{key}{model_name.replace(f'{underbar}_', '-').replace('_T0', '').replace('-T0', '')}"
-    return model_name.replace('_T0', '')
+            return f"{key}{model_name.replace(f'{underbar}_', '-').replace(f'{underbar}', '')}"
+    return model_name
 
 
 def prepare_plot_data(df, models_or_labels=None, is_model_list=True):
@@ -92,13 +95,13 @@ def plot_by_models(path, selected_models=None, name="models"):
     n_cols = 3
     n_models_per_col = (len(models) + n_cols - 1) // n_cols
     
-    xlabels = [m.replace(":", "\n").replace("-q8_0", "") for m in models]
-    col_titles = ["Mid-size (<8b)", "Small-size (<4b)", "Tiny-size (<2b)"]
+    xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in models]
+    col_titles = ["Mid-size (<=8b)", "Small-size (<=4b)", "Tiny-size (<=2b)"]
     
     fig_width = n_cols * 5
-    fig, axes = plt.subplots(3, n_cols, figsize=(fig_width, 9), squeeze=False, sharey='row')
+    fig, axes = plt.subplots(3, n_cols, figsize=(fig_width, 9), squeeze=False, sharey="row")
     
-    bw = 0.18
+    bw = 0.2
     rows_data = [
         (data["acc"], "Accuracy", False, mode_labels),
         (data["times"], "Time (seconds)", True, stage_labels),
@@ -195,8 +198,6 @@ def plot_by_mutation(directory_path, selected_model, devices):
     plt.close()
 
 
-
-
 def plot_by_devices(directory_path, selected_model):
     """Plot accuracy for different device counts where mutation value == 0.
     Expects filenames matching RESULT_FILENAME_PATTERN which capture device count and optional mutation.
@@ -264,17 +265,16 @@ if __name__ == "__main__":
 
     result_files = [f"{RESULT_DIR}/{code}/{filename}" for filename in os.listdir(f"{RESULT_DIR}/{code}") if re.match(RESULT_FILENAME_PATTERN, filename)]
 
-    # Plot by models (3 rows, 3 columns)
     plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", selected_models=[
+        "rnj-1:8b-instruct-q4_K_M",
         "ministral-3:8b-instruct-2512-q4_K_M",
         "qwen3:8b-q4_K_M",
-        "llama3.1:8b-instruct-q4_K_M",
         "ministral-3:3b-instruct-2512-q8_0",
+        "granite4:3b-h",
         "qwen3:4b-instruct-2507-q8_0",
-        "llama3.2:3b-instruct-q8_0",
+        "functiongemma:270m-it-q8_0",
         "granite4:1b-h-q8_0",
         "qwen3:0.6b-q8_0",
-        "llama3.2:1b-instruct-q8_0",
     ], name="models")
     plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", selected_models=[
         "qwen3:8b-q4_K_M",
@@ -282,13 +282,12 @@ if __name__ == "__main__":
         "qwen3:8b-q8_0_reasoning",
         "qwen3:4b-instruct-2507-q4_K_M",
         "qwen3:4b-instruct-2507-q8_0",
-        "qwen3:4b-thinking-2507-q4_M",
+        "qwen3:4b-thinking-2507-q4_K_M",
         "qwen3:0.6b-q4_K_M",
         "qwen3:0.6b-q8_0",
         "qwen3:0.6b-q8_0_reasoning",
     ], name="settings")
     
-    # Plot by mutation and devices (accuracy only)
     plot_by_mutation(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0", devices=5)
     plot_by_devices(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0")
 
