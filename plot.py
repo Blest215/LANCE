@@ -96,7 +96,7 @@ def plot_by_models(path, selected_models=None, name="models"):
     n_models_per_col = (len(models) + n_cols - 1) // n_cols
     
     xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in models]
-    col_titles = ["Mid-size (<=8b)", "Small-size (<=4b)", "Tiny-size (<=2b)"]
+    col_titles = ["Mid-size (<=8b)", "Small-size (<=4b)", "Tiny-size (<=1b)"]
     
     fig_width = n_cols * 5
     fig, axes = plt.subplots(3, n_cols, figsize=(fig_width, 9), squeeze=False, sharey="row")
@@ -188,7 +188,7 @@ def plot_by_mutation(directory_path, selected_model, devices):
     ax.set_xticklabels([f"{c}% mutations" for c in sorted_configs])
     ax.set_ylim(0, 100)
     ax.set_ylabel("Accuracy")
-    ax.legend(loc="upper right")
+    ax.legend(mode_labels, loc="upper right")
     ax.grid(axis="y", alpha=0.3)
     
     plot_path = f"{directory_path}/result_by_mutation.png"
@@ -240,7 +240,7 @@ def plot_by_devices(directory_path, selected_model):
     ax.set_xticklabels([f"{d} devices" for d in sorted_devices])
     ax.set_ylim(0, 100)
     ax.set_ylabel("Accuracy")
-    ax.legend(loc="upper right")
+    ax.legend(mode_labels, loc="upper right")
     ax.grid(axis="y", alpha=0.3)
 
     plot_path = f"{directory_path}/result_by_devices.png"
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         "qwen3:8b-q8_0_reasoning",
         "qwen3:4b-instruct-2507-q4_K_M",
         "qwen3:4b-instruct-2507-q8_0",
-        "qwen3:4b-thinking-2507-q4_K_M",
+        "qwen3:4b-thinking-2507-q8_0",
         "qwen3:0.6b-q4_K_M",
         "qwen3:0.6b-q8_0",
         "qwen3:0.6b-q8_0_reasoning",

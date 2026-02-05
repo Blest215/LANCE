@@ -139,7 +139,7 @@ def get_column_name(name, model, mode):
     return f"{name}_{model}_{mode}"
 
 async def save_dataframe(df, path, ensure=False):
-    if len(df) == 0:
+    if df is None or len(df) == 0:
         return
     while True:
         try:

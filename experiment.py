@@ -65,7 +65,7 @@ async def simulation(code, dataset_path, models, modes):
     result_df = result_df.head() if args.debug else (result_df.head(args.head) if args.head else result_df)
 
     log_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'log')}"
-    log_df = pd.read_csv(log_path) if os.path.exists(log_path) else pd.DataFrame()
+    log_df = (pd.read_csv(log_path) if os.path.exists(log_path) else pd.DataFrame()) if args.log else None
 
     done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
     for model in models:
@@ -76,7 +76,7 @@ async def simulation(code, dataset_path, models, modes):
         simulation_results = [await simulate_scenario(model, undone_modes, scenario) for scenario in tqdm(result_df.itertuples(), total=len(result_df), maxinterval=1, desc=f"Simulation {str(model):40}")]
 
         for mode in undone_modes:
-            log_df = pd.concat([log_df, pd.DataFrame({get_column_name("CONVERSATION", model, mode): [result[mode]["CONVERSATION"] for result in simulation_results]})], axis=1)
+            log_df = pd.concat([log_df, pd.DataFrame({get_column_name("CONVERSATION", model, mode): [result[mode]["CONVERSATION"] for result in simulation_results]})], axis=1) if args.log else None
             result_df = pd.concat([result_df, pd.DataFrame({get_column_name("CONSEQUENCES", model, mode): [result[mode]["CONSEQUENCES"] for result in simulation_results]})], axis=1)
             result_df = pd.concat([result_df, pd.DataFrame({get_column_name("TIME", model, mode): [result[mode]["TIME"] for result in simulation_results]})], axis=1)
         model.wrapup()
@@ -140,6 +140,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--edge", action="store_true")
     argument_parser.add_argument("--resume", action="store_true")
+    argument_parser.add_argument("--log", action="store_true")
     argument_parser.add_argument("--head", type=int, required=False)
     args = argument_parser.parse_args()
     set_debug(args.debug)
