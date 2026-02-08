@@ -175,7 +175,9 @@ if __name__ == "__main__":
             Model("functiongemma:270m-it-q8_0"),
             Model("granite4:1b-h-q8_0"),
             Model("qwen3:0.6b-q8_0", reasoning=False),
-            # Settings
+        ]},
+        # Settings
+        {"dataset_D5_M0.csv": [
             Model("qwen3:0.6b-q4_K_M", reasoning=False),
             Model("qwen3:0.6b-q8_0", reasoning=True),
             Model("qwen3:4b-instruct-2507-q4_K_M"),
@@ -194,7 +196,6 @@ if __name__ == "__main__":
         {"dataset_D15_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
         # etc
         {"dataset_D5_M0.csv": [
-            Model("functiongemma:270m-it-q8_0"),
             Model("granite4:350m-h-q8_0"),
             Model("llama3.1:8b-instruct-q8_0"),
             Model("llama3.2:3b-instruct-q8_0"),
