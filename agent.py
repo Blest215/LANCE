@@ -55,7 +55,7 @@ class Agent(Client):
     async def controlling(self, message):
         control_result = await self.controller.ainvoke({"message": message["instruction"], "description": self.device.structured})
         if not control_result.tool_calls:
-            return [dict(Response(agent_id=self.id, request=message, success=False, message="NO TOOL CALL BY AGENT"))]
+            return [dict(Response(agent_id=self.id, request=message, success=False, message="NO TOOL CALL BY AGENTS"))]
         return [self.control_device(tool_call["args"]) for tool_call in control_result.tool_calls if "control_device" in tool_call["name"]]
     
     # CENTRALIZED methods

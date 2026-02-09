@@ -9,7 +9,7 @@ import re
 
 from settings import *
 
-plt.rcParams['font.size'] = 12
+plt.rcParams['font.size'] = 13
 
 figure_width = 15
 accuracy_label = "Accuracy Score"
@@ -28,6 +28,9 @@ model_names = [
     "ministral-3:8b-instruct-2512",
     "ministral-3:3b-instruct-2512",
     "functiongemma:270m-it",
+    "granite4:tiny-h",
+    "granite4:7b-a1b-h",
+    "granite4:micro-h",
     "granite4:3b-h",
     "granite4:1b-h",
     "granite4:350m-h",
@@ -49,7 +52,7 @@ model_names = [
 
 def get_model_name(model_name):
     for key in model_names:
-        underbar = key.replace("-", "_").replace(".", "_").replace(":", "_")
+        underbar = key.lower().replace("-", "_").replace(".", "_").replace(":", "_")
         if underbar in model_name:
             return f"{key}{model_name.replace(f'{underbar}_', '-').replace(f'{underbar}', '')}"
     return model_name
@@ -102,7 +105,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
     n_cols = 3
     n_models_per_col = (len(models) + n_cols - 1) // n_cols
     
-    xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in models] if not xlabels else xlabels
+    xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "").replace("tiny", "7b-a1b").replace("micro", "3b") for m in models] if not xlabels else xlabels
     
     rows_data = [
         (data["accuracy"], accuracy_label, False, mode_labels),
@@ -164,27 +167,39 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
     
     if isinstance(devices, list) and isinstance(mutations, int):
         name = "devices"
-        x_pos = np.arange(len(devices))
+        x_pos = np.arange(len(modes)) * 1.5
         configs = [(device, mutations) for device in devices]
-        xticklabels = [f"{d} devices" for d in devices]
+        config_labels = [f"{d} devices" for d in devices]
+        cmap = plt.cm.YlOrRd
     elif isinstance(devices, int) and isinstance(mutations, list):
         name = "mutations"
-        x_pos = np.arange(len(mutations))
+        x_pos = np.arange(len(modes)) * 1.5
         configs = [(devices, mutation) for mutation in mutations]
-        xticklabels = [f"{m}% mutations" for m in mutations]
+        config_labels = [f"{m}% mutation" for m in mutations]
+        cmap = plt.cm.Blues
     else:
         return
     
-    fig, ax = plt.subplots(figsize=(figure_width if len(x_pos) > 3 else figure_width // 2, 5))
+    fig, ax = plt.subplots(figsize=(figure_width if len(configs) > 3 else (1 + figure_width // 2), 4))
+    colors = cmap(np.linspace(0.4, 1.0, len(configs)))
 
-    for mode_idx, mode in enumerate(modes):
-        ax.bar(x_pos + (mode_idx - 1.5) * (bar_width + gap), [data[config]['accuracy'][selected_model][mode] for config in configs], bar_width, label=mode)
-    
+    group_width = 1.2
+    per_bar_width = group_width / len(configs)
+
+    inner_gap_frac = 0.08
+    inner_gap = per_bar_width * inner_gap_frac
+    actual_bar_width = per_bar_width - inner_gap
+
+    offsets = (np.arange(len(configs)) - (len(configs) - 1) / 2) * per_bar_width
+
+    for config_idx, config in enumerate(configs):
+        ax.bar(x_pos + offsets[config_idx], [data[config]['accuracy'][selected_model][mode] for mode in modes], actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
+
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(xticklabels)
+    ax.set_xticklabels(mode_labels)
     ax.set_ylim(0, 100)
     ax.set_ylabel(accuracy_label)
-    ax.legend(mode_labels, loc="upper right")
+    ax.legend(loc="upper right", ncol=len(configs))
     ax.grid(axis="y", alpha=0.3)
     
     plot_path = f"{directory_path}/result_by_{name}.png"
@@ -242,31 +257,29 @@ def plot_by_hardwares(result_path, selected_models):
     plt.close()
 
 
-def plot_failure(result_path):
+def plot_failure(result_path, selected_models=None):
     df = pd.read_csv(result_path)
     
     consequence_columns = [col for col in df.columns if col.startswith("CONSEQUENCES_")]
     
     failure_messages = {}
-    
     for col in consequence_columns:
+        model_name, mode = col.replace("CONSEQUENCES_", "").rsplit("_", 1)
+        model_name = get_model_name(model_name)
+        if selected_models is not None and model_name not in selected_models:
+            continue
         for consequence_str in df[col]:
-            try:
-                consequences = ast.literal_eval(consequence_str)
-                if len(consequences) <= 0:
-                    failure_messages["NO CONSEQUENCES"] = failure_messages.get("NO CONSEQUENCES", 0) + 1
-                for item in consequences:
-                    if isinstance(item, dict) and item.get('success') is False:
-                        message = item.get('message', 'Unknown Error')
-                        if not message or message.strip() == '':
-                            message = 'Unknown Error'
-                        if len(message) > 30:
-                            message = 'NO TOOL CALL BY AGENT'
-                        failure_messages[message] = failure_messages.get(message, 0) + 1
-            except (ValueError, SyntaxError):
-                pass
-    
-    fig, ax = plt.subplots(figsize=(figure_width // 2, 8))
+            consequences = ast.literal_eval(consequence_str)
+            if len(consequences) <= 0:
+                failure_messages["NO CONSEQUENCES"] = failure_messages.get("NO CONSEQUENCES", 0) + 1
+            for item in consequences:
+                if isinstance(item, dict) and item.get('success') is False:
+                    message = item.get('message', 'Unknown Error')
+                    if not message or message.strip() == '':
+                        message = 'Unknown Error'
+                    if len(message) > 30:
+                        message = 'NO TOOL CALL BY AGENTS'
+                    failure_messages[message] = failure_messages.get(message, 0) + 1
     
     sorted_messages = sorted(failure_messages.items(), key=lambda x: x[1], reverse=True)
     
@@ -283,22 +296,6 @@ def plot_failure(result_path):
 
     for failure, count in display_messages:
         print(f"{failure} & {(count / total)*100:.2f}\\% &  \\\\")
-    
-    colors = plt.cm.Set3(np.linspace(0, 1, len(display_messages)))
-    wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
-    
-    for text in texts:
-        text.set_fontsize(9)
-    for autotext in autotexts:
-        autotext.set_color('white')
-        autotext.set_fontsize(8)
-        autotext.set_weight('bold')
-    
-    output_path = result_path.replace('.csv', '_failure.png')
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
-    print(f"Saved plot to {output_path}")
-    plt.close()
 
 
 if __name__ == "__main__":
@@ -314,32 +311,32 @@ if __name__ == "__main__":
         if image_file.endswith(".png"):
             os.remove(f"{RESULT_DIR}/{code}/{image_file}")
 
-    result_files = [f"{RESULT_DIR}/{code}/{filename}" for filename in os.listdir(f"{RESULT_DIR}/{code}") if re.match(RESULT_FILENAME_PATTERN, filename)]
-
-    plot_failure(f"{RESULT_DIR}/{code}/result_D5_M0.csv")
-
-    plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", col_titles=["Mid-size (<=8b)", "Small-size (<=4b)", "Tiny-size (<=1b)"], selected_models=[
-        "rnj-1:8b-instruct-q8_0",
+    main_models = [
         "ministral-3:8b-instruct-2512-q8_0",
+        "granite4:tiny-h-q8_0",
         "qwen3:8b-q8_0",
         "ministral-3:3b-instruct-2512-q8_0",
-        "granite4:3b-h",
+        "granite4:micro-h-q8_0",
         "qwen3:4b-instruct-2507-q8_0",
         "functiongemma:270m-it-q8_0",
         "granite4:1b-h-q8_0",
-        "qwen3:0.6b-q8_0",
-    ], name="models")
-    plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", col_titles=["Mid-size (qwen3:8b)", "Small-size (qwen3:4b-instruct)", "Tiny-size (qwen3:0.6b)"], selected_models=[
+        "qwen3:1.7b-q8_0",
+    ]
+
+    plot_failure(f"{RESULT_DIR}/{code}/result_D5_M0.csv", selected_models=main_models)
+
+    plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", col_titles=["Small-size (<=8b)", "Tiny-size (<=4b)", "Micro-size (<=2b)"], selected_models=main_models, name="models")
+    plot_by_models(f"{RESULT_DIR}/{code}/result_D5_M0.csv", col_titles=["Small-size (qwen3:8b)", "Tiny-size (qwen3:4b-instruct)", "Micro-size (qwen3:1.7b)"], selected_models=[
         "qwen3:8b-q8_0_reasoning",
         "qwen3:8b-q8_0",
         "qwen3:8b-q4_K_M",
         "qwen3:4b-thinking-2507-q8_0",
         "qwen3:4b-instruct-2507-q8_0",
         "qwen3:4b-instruct-2507-q4_K_M",
-        "qwen3:0.6b-q8_0_reasoning",
-        "qwen3:0.6b-q8_0",
-        "qwen3:0.6b-q4_K_M",
-    ], name="settings", xlabels=["q8_0 (thinking)", "q8_0", "q4_K_M"] * 3)
+        "qwen3:1.7b-q8_0_reasoning",
+        "qwen3:1.7b-q8_0",
+        "qwen3:1.7b-q4_K_M",
+    ], name="settings", xlabels=["q8_0 (reasoning)", "q8_0", "q4_K_M"] * 3)
     
     plot_by_hardwares(f"{RESULT_DIR}/{code}/result_D5_M0.csv", ["qwen3:8b-q4_K_M", "qwen3:4b-instruct-2507-q4_K_M", "qwen3:0.6b-q4_K_M"])
     

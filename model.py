@@ -23,7 +23,7 @@ class Model:
         self.kwargs = kwargs
 
         if self.backend == "ollama":
-            self.instance = ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, validate_model_on_init=True, **self.kwargs)
+            self.instance = ChatOllama(model=self.model, temperature=self.temperature, reasoning=self.reasoning, base_url=self.base_url if self.base_url else None, num_predict=self.max_output_tokens, validate_model_on_init=True, keep_alive="1h", **self.kwargs)
         else:
             self.instance = ChatOpenAI(model=self.model, temperature=self.temperature, reasoning_effort=self.reasoning, base_url=self.base_url if self.base_url else VLLM_URL, max_completion_tokens=self.max_output_tokens, **self.kwargs)
 
