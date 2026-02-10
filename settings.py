@@ -161,7 +161,7 @@ def parse_column(df, value=""):
     return matches
 
 def get_last_result():
-    for code in reversed(os.listdir(RESULT_DIR)):
+    for code in sorted(os.listdir(RESULT_DIR), reverse=True):
         if os.listdir(f"{RESULT_DIR}/{code}"):
             return code
     return ""

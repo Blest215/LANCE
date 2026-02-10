@@ -269,8 +269,6 @@ def plot_failure(result_path, selected_models=None):
                     message = item.get('message', 'Unknown Error')
                     if not message or message.strip() == '':
                         message = 'Unknown Error'
-                    if len(message) > 30:
-                        message = 'NO TOOL CALL BY AGENTS'
                     failure_messages[message] = failure_messages.get(message, 0) + 1
     
     sorted_messages = sorted(failure_messages.items(), key=lambda x: x[1], reverse=True)
