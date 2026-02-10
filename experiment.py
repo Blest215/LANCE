@@ -159,6 +159,7 @@ if __name__ == "__main__":
         {"dataset_D5_M0.csv":[
             Model("qwen3:8b-q4_K_M", reasoning=False),
             Model("qwen3:4b-instruct-2507-q4_K_M"),
+            Model("qwen3:1.7b-q4_K_M", reasoning=False),
             Model("qwen3:0.6b-q4_K_M", reasoning=False),
         ]}
     ] if args.edge else [
@@ -174,7 +175,7 @@ if __name__ == "__main__":
             # Tiny-size <=1b
             Model("functiongemma:270m-it-q8_0"),
             Model("granite4:1b-h-q8_0"),
-            Model("qwen3:0.6b-q8_0", reasoning=False),
+            Model("qwen3:1.7b-q8_0", reasoning=False),
         ]},
         # Mutations
         {"dataset_D5_M20.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
@@ -187,10 +188,10 @@ if __name__ == "__main__":
         {"dataset_D15_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
         # Settings
         {"dataset_D5_M0.csv": [
+            Model("qwen3:0.6b-q8_0", reasoning=False),
             Model("qwen3:0.6b-q4_K_M", reasoning=False),
             Model("qwen3:0.6b-q8_0", reasoning=True),
             Model("qwen3:1.7b-q4_K_M", reasoning=False),
-            Model("qwen3:1.7b-q8_0", reasoning=False),
             Model("qwen3:1.7b-q8_0", reasoning=True),
             Model("qwen3:4b-instruct-2507-q4_K_M"),
             Model("qwen3:4b-thinking-2507-q8_0"),

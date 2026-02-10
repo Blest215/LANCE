@@ -50,7 +50,9 @@ class Model:
                 return container
 
     def wrapup(self):
-        if self.backend == "vllm":
+        if self.backend == "ollama":
+            subprocess.run(['ollama', 'stop', self.model])
+        elif self.backend == "vllm":
             container = self.get_container()
             if container:
                 container.stop()

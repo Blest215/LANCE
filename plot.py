@@ -19,10 +19,10 @@ dpi = 600
 bar_width = 0.19
 gap = 0.01
 
-modes = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
-mode_labels = ["Baseline", "LANCE (natural)", "LANCE (recruit)", "LANCE"]
-stages = {"discovery": "#E41A1C", "plan": "#377EB8", "control": "#4DAF4A"}
-stage_labels = ["Discovery", "Composition", "Orchestration"]
+modes = {"CENTRALIZED": "#1f77b4", "NATURAL": "#ff7f0e", "RECRUIT": "#2ca02c", "CONVERSATIONAL": "#984ea3"}
+mode_labels = {"CENTRALIZED": "Baseline", "NATURAL": "LANCE (natural)", "RECRUIT": "LANCE (recruit)", "CONVERSATIONAL": "LANCE"}
+stages = {"discovery": "#2ca02c", "plan": "#1f77b4", "control": "#ff7f0e"}
+stage_labels = {"discovery": "Discovery", "plan": "Composition", "control": "Orchestration"}
 
 model_names = [
     "ministral-3:8b-instruct-2512",
@@ -90,7 +90,7 @@ def prepare_plot_data(df):
     metric_data = {}
     for model in all_models:
         metric_data[model] = {}
-        for mode in modes:
+        for mode in modes.keys():
             time_total = sum(time_data[model][mode].values())
             metric_data[model][mode] = (accuracy_data[model][mode] / time_total) if time_total > 0 else 0.0
 
@@ -108,8 +108,8 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
     xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "").replace("tiny", "7b-a1b").replace("micro", "3b") for m in models] if not xlabels else xlabels
     
     rows_data = [
-        (data["accuracy"], accuracy_label, False, mode_labels),
-        (data["time"], time_label, True, stage_labels),
+        (data["accuracy"], accuracy_label, False, [mode_labels[mode] for mode in modes]),
+        (data["time"], time_label, True, [stage_labels[stage] for stage in stages]),
         # (data["metric"], f"{accuracy_label} / Time", False, mode_labels),
     ]
 
@@ -120,35 +120,32 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             start = col_idx * n_models_per_col
             end = min(start + n_models_per_col, len(models))
             models_slice = models[start:end]
-            xlabels_slice = xlabels[start:end]
-            ax = axes[row_idx, col_idx]
-
             x = np.arange(len(models_slice))
 
             if is_stacked:
-                for i, mode in enumerate(modes):
+                for i, mode in enumerate(modes.keys()):
                     bottom = np.zeros(len(models_slice))
                     for stage_name, stage_color in stages.items():
-                        vals = [row_data.get(model, {}).get(mode, {}).get(stage_name, 0.0) for model in models_slice]
-                        ax.bar(x + (i - 1.5) * (bar_width + gap), vals, bar_width, bottom=bottom, color=stage_color, label=stage_name if (i == 0 and col_idx == n_cols - 1) else None)
-                        bottom += np.array(vals)
+                        values = [row_data.get(model, {}).get(mode, {}).get(stage_name, 0.0) for model in models_slice]
+                        axes[row_idx, col_idx].bar(x + (i - 1.5) * (bar_width + gap), values, bar_width, bottom=bottom, color=stage_color, label=stage_name if (i == 0 and col_idx == n_cols - 1) else None)
+                        bottom += np.array(values)
             else:
-                for i, mode in enumerate(modes):
-                    vals = [row_data.get(m, {}).get(mode, 0.0) for m in models_slice]
-                    ax.bar(x + (i - 1.5) * (bar_width + gap), vals, bar_width, label=mode if col_idx == n_cols - 1 else None)
+                for i, mode in enumerate(modes.keys()):
+                    values = [row_data.get(model, {}).get(mode, 0.0) for model in models_slice]
+                    axes[row_idx, col_idx].bar(x + (i - 1.5) * (bar_width + gap), values, bar_width, color=modes[mode], label=mode if col_idx == n_cols - 1 else None)
 
-            ax.set_xticks(x)
-            ax.set_xticklabels(xlabels_slice, rotation=0)
+            axes[row_idx, col_idx].set_xticks(x)
+            axes[row_idx, col_idx].set_xticklabels(xlabels[start:end], rotation=0)
             if col_idx == 0:
-                ax.set_ylabel(ylabel)
+                axes[row_idx, col_idx].set_ylabel(ylabel)
             if row_idx == 0:
-                ax.set_title(col_titles[col_idx], fontweight='bold')
+                axes[row_idx, col_idx].set_title(col_titles[col_idx], fontweight='bold')
             if col_idx == n_cols - 1:
                 if legend_labels:
-                    ax.legend(legend_labels, loc="upper right", reverse=True)
+                    axes[row_idx, col_idx].legend(legend_labels, loc="upper right", reverse=True)
                 else:
-                    ax.legend(loc="upper right")
-            ax.grid(axis="y", alpha=0.3)
+                    axes[row_idx, col_idx].legend(loc="upper right")
+            axes[row_idx, col_idx].grid(axis="y", alpha=0.3)
 
     output_path = path.replace(".csv", f"_{name}.png")
     plt.tight_layout()
@@ -167,20 +164,22 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
     
     if isinstance(devices, list) and isinstance(mutations, int):
         name = "devices"
+        width = 1 + figure_width // 2
         x_pos = np.arange(len(modes)) * 1.5
         configs = [(device, mutations) for device in devices]
         config_labels = [f"{d} devices" for d in devices]
         cmap = plt.cm.YlOrRd
     elif isinstance(devices, int) and isinstance(mutations, list):
         name = "mutations"
+        width = figure_width
         x_pos = np.arange(len(modes)) * 1.5
         configs = [(devices, mutation) for mutation in mutations]
         config_labels = [f"{m}% mutation" for m in mutations]
-        cmap = plt.cm.Blues
+        cmap = plt.cm.YlOrBr
     else:
         return
     
-    fig, ax = plt.subplots(figsize=(figure_width if len(configs) > 3 else (1 + figure_width // 2), 4))
+    fig, ax = plt.subplots(figsize=(width, 4))
     colors = cmap(np.linspace(0.4, 1.0, len(configs)))
 
     group_width = 1.2
@@ -193,10 +192,11 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
     offsets = (np.arange(len(configs)) - (len(configs) - 1) / 2) * per_bar_width
 
     for config_idx, config in enumerate(configs):
-        ax.bar(x_pos + offsets[config_idx], [data[config]['accuracy'][selected_model][mode] for mode in modes], actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
+        values = [data[config]['accuracy'][selected_model][mode] for mode in modes]
+        ax.bar(x_pos + offsets[config_idx], values, actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
 
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(mode_labels)
+    ax.set_xticklabels([mode_labels[mode] for mode in modes])
     ax.set_ylim(0, 100)
     ax.set_ylabel(accuracy_label)
     ax.legend(loc="upper right", ncol=len(configs))
@@ -225,30 +225,22 @@ def plot_by_hardwares(result_path, selected_models):
     
     fig, axes = plt.subplots(1, len(files), figsize=(figure_width, 4), squeeze=False, sharey=None)
     model_labels = [m.replace(":", "\n").replace("-q4_K_M", "\nq4_K_M").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in selected_models]
-    
-    for col_idx, hardware in enumerate(files.keys()):
-        ax = axes[0, col_idx]
         
+    for col_idx, hardware in enumerate(files.keys()):        
         x = np.arange(len(selected_models))
+        for stage_idx, stage_name in enumerate(stages.keys()):
+            values = [times_data[hardware].get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
+            axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=stages[stage_name], label=stage_name)
         
-        for mode_idx, mode in enumerate(modes):
-            xpos = x + (mode_idx - 1.5) * (bar_width + gap)
-            bottom = np.zeros(len(selected_models))
-            
-            for stage_name, stage_color in stages.items():
-                values = [times_data[hardware].get(model, {}).get(mode, {}).get(stage_name, 0.0) for model in selected_models]
-                ax.bar(xpos, values, bar_width, bottom=bottom, color=stage_color, label=stage_name)
-                bottom += np.array(values)
-        
-        ax.set_xticks(x)
-        ax.set_xticklabels(model_labels, rotation=0)
+        axes[0, col_idx].set_xticks(x)
+        axes[0, col_idx].set_xticklabels(model_labels, rotation=0)
         if col_idx == 0:
-            ax.set_ylabel(time_label)
-        ax.set_title(hardware_aliases[col_idx], fontweight='bold')
-        ax.grid(axis="y", alpha=0.3)
+            axes[0, col_idx].set_ylabel(time_label)
+        axes[0, col_idx].set_title(hardware_aliases[col_idx], fontweight='bold')
+        axes[0, col_idx].grid(axis="y", alpha=0.3)
         
         if col_idx == 2:
-            ax.legend(stage_labels, loc="upper right")
+            axes[0, col_idx].legend([stage_labels[stage] for stage in stages], loc="upper right", reverse=True)
     
     plt.tight_layout()
     plot_path = result_path.replace(".csv", "_hardwares.png")
