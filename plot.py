@@ -192,8 +192,9 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
     offsets = (np.arange(len(configs)) - (len(configs) - 1) / 2) * per_bar_width
 
     for config_idx, config in enumerate(configs):
-        values = [data[config]['accuracy'][selected_model][mode] for mode in modes]
-        ax.bar(x_pos + offsets[config_idx], values, actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
+        if config in data:
+            values = [data[config]['accuracy'][selected_model][mode] for mode in modes]
+            ax.bar(x_pos + offsets[config_idx], values, actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
 
     ax.set_xticks(x_pos)
     ax.set_xticklabels([mode_labels[mode] for mode in modes])
@@ -218,8 +219,9 @@ def plot_by_hardwares(result_path, selected_models):
     times_data = {}
     
     for hardware_label, file_path in files.items():
-        data, all_models = prepare_plot_data(pd.read_csv(file_path))
-        times_data[hardware_label] = { model: { mode: data["time"][model][mode] for mode in data["time"][model] } for model in all_models }
+        if os.path.exists(file_path):
+            data, all_models = prepare_plot_data(pd.read_csv(file_path))
+            times_data[hardware_label] = { model: { mode: data["time"][model][mode] for mode in data["time"][model] } for model in all_models }
     
     hardware_aliases = ['Raspberry Pi 5', 'Jetson Orin Nano', 'Desktop']
     
@@ -229,7 +231,7 @@ def plot_by_hardwares(result_path, selected_models):
     for col_idx, hardware in enumerate(files.keys()):        
         x = np.arange(len(selected_models))
         for stage_idx, stage_name in enumerate(stages.keys()):
-            values = [times_data[hardware].get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
+            values = [times_data.get(hardware, {}).get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
             axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=stages[stage_name], label=stage_name)
         
         axes[0, col_idx].set_xticks(x)
@@ -328,7 +330,7 @@ if __name__ == "__main__":
         "qwen3:1.7b-q4_K_M",
     ], name="settings", xlabels=["q8_0 (reasoning)", "q8_0", "q4_K_M"] * 3)
     
-    plot_by_hardwares(f"{RESULT_DIR}/{code}/result_D5_M0.csv", ["qwen3:8b-q4_K_M", "qwen3:4b-instruct-2507-q4_K_M", "qwen3:0.6b-q4_K_M"])
-    
     plot_by_heterogeneity(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0", devices=5, mutations=[0, 20, 40, 60, 80, 100])
     plot_by_heterogeneity(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0", devices=[5, 10, 15], mutations=0)
+    
+    plot_by_hardwares(f"{RESULT_DIR}/{code}/result_D5_M0.csv", ["qwen3:8b-q4_K_M", "qwen3:4b-instruct-2507-q4_K_M", "qwen3:0.6b-q4_K_M"])

@@ -145,7 +145,7 @@ async def save_dataframe(df, path, ensure=False):
         try:
             df.to_csv(path, index=False, encoding="utf-8-sig")
             break
-        except PermissionError:
+        except Exception:
             if ensure:
                 await asyncio.sleep(1)
             else:

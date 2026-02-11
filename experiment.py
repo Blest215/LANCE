@@ -144,8 +144,6 @@ if __name__ == "__main__":
     argument_parser.add_argument("--head", type=int, required=False)
     args = argument_parser.parse_args()
     set_debug(args.debug)
-    if not os.path.exists(RESULT_DIR):
-        os.mkdir(RESULT_DIR)
 
     # Get experiment code
     remove_empty_results()
