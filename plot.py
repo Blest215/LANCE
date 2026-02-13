@@ -105,7 +105,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
     n_cols = 3
     n_models_per_col = (len(models) + n_cols - 1) // n_cols
     
-    xlabels = [m.replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "").replace("tiny", "7b-a1b").replace("micro", "3b") for m in models] if not xlabels else xlabels
+    xlabels = [m.capitalize().replace(":", "\n").replace("-q8_0", "").replace("-2512", "").replace("-2507", "").replace("tiny", "7b-a1b").replace("micro", "3b") for m in models] if not xlabels else xlabels
     
     rows_data = [
         (data["accuracy"], accuracy_label, False, [mode_labels[mode] for mode in modes]),
@@ -141,10 +141,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             if row_idx == 0:
                 axes[row_idx, col_idx].set_title(col_titles[col_idx], fontweight='bold')
             if col_idx == n_cols - 1:
-                if legend_labels:
-                    axes[row_idx, col_idx].legend(legend_labels, loc="upper right", reverse=True)
-                else:
-                    axes[row_idx, col_idx].legend(loc="upper right")
+                axes[row_idx, col_idx].legend(legend_labels, loc="upper right", reverse=row_idx==1)
             axes[row_idx, col_idx].grid(axis="y", alpha=0.3)
 
     output_path = path.replace(".csv", f"_{name}.png")
@@ -211,24 +208,22 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
 
 
 def plot_by_hardwares(result_path, selected_models):
-    files = {
-        "Pi": result_path.replace(".csv", "_pi.csv"),
-        "Jetson": result_path.replace(".csv", "_jetson.csv"), 
+    hardwares = {
+        "Raspberry Pi 5": result_path.replace(".csv", "_pi.csv"),
+        "Jetson Orin Nano": result_path.replace(".csv", "_jetson.csv"), 
         "Desktop": result_path,
     }
     times_data = {}
     
-    for hardware_label, file_path in files.items():
+    for hardware_label, file_path in hardwares.items():
         if os.path.exists(file_path):
             data, all_models = prepare_plot_data(pd.read_csv(file_path))
-            times_data[hardware_label] = { model: { mode: data["time"][model][mode] for mode in data["time"][model] } for model in all_models }
+            times_data[hardware_label] = { model: { mode: data["time"].get(model, {}).get(mode, {}) for mode in data["time"].get(model, {}) } for model in selected_models }
     
-    hardware_aliases = ['Raspberry Pi 5', 'Jetson Orin Nano', 'Desktop']
-    
-    fig, axes = plt.subplots(1, len(files), figsize=(figure_width, 4), squeeze=False, sharey=None)
-    model_labels = [m.replace(":", "\n").replace("-q4_K_M", "\nq4_K_M").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in selected_models]
+    fig, axes = plt.subplots(1, len(hardwares), figsize=(figure_width, 4), squeeze=False, sharey=None)
+    model_labels = [m.capitalize().replace(":", "\n").replace("-q4_k_m", "\nq4_K_M").replace("-q8_0", "").replace("-2512", "").replace("-2507", "") for m in selected_models]
         
-    for col_idx, hardware in enumerate(files.keys()):        
+    for col_idx, hardware in enumerate(hardwares.keys()):        
         x = np.arange(len(selected_models))
         for stage_idx, stage_name in enumerate(stages.keys()):
             values = [times_data.get(hardware, {}).get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
@@ -238,7 +233,7 @@ def plot_by_hardwares(result_path, selected_models):
         axes[0, col_idx].set_xticklabels(model_labels, rotation=0)
         if col_idx == 0:
             axes[0, col_idx].set_ylabel(time_label)
-        axes[0, col_idx].set_title(hardware_aliases[col_idx], fontweight='bold')
+        axes[0, col_idx].set_title(hardware, fontweight='bold')
         axes[0, col_idx].grid(axis="y", alpha=0.3)
         
         if col_idx == 2:
@@ -333,4 +328,4 @@ if __name__ == "__main__":
     plot_by_heterogeneity(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0", devices=5, mutations=[0, 20, 40, 60, 80, 100])
     plot_by_heterogeneity(f"{RESULT_DIR}/{code}", "qwen3:4b-instruct-2507-q8_0", devices=[5, 10, 15], mutations=0)
     
-    plot_by_hardwares(f"{RESULT_DIR}/{code}/result_D5_M0.csv", ["qwen3:8b-q4_K_M", "qwen3:4b-instruct-2507-q4_K_M", "qwen3:0.6b-q4_K_M"])
+    plot_by_hardwares(f"{RESULT_DIR}/{code}/result_D5_M0.csv", ["qwen3:8b-q4_K_M", "qwen3:4b-instruct-2507-q4_K_M", "qwen3:1.7b-q4_K_M", "qwen3:0.6b-q4_K_M"])

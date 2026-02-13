@@ -200,8 +200,12 @@ if __name__ == "__main__":
         ]},
         # etc
         {"dataset_D5_M0.csv": [
-            Model("rnj-1:8b-instruct-q8_0"),
+            Model("tomng/lfm2.5-instruct:1.2b-q8_0"),
+            Model("hf.co/LiquidAI/LFM2-1.2B-Tool-GGUF:Q8_0"),
+            Model("hf.co/unsloth/SmolLM3-3B-GGUF:Q8_0"),
+            Model("hf.co/LGAI-EXAONE/EXAONE-4.0-1.2B-GGUF:Q8_0"),
             Model("granite4:350m-h-q8_0"),
+            Model("rnj-1:8b-instruct-q8_0"),
             Model("llama3.1:8b-instruct-q8_0"),
             Model("llama3.2:3b-instruct-q8_0"),
             Model("llama3.2:1b-instruct-q8_0"),
@@ -211,4 +215,4 @@ if __name__ == "__main__":
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
         from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
         set_event_loop_policy(WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(code=code, configurations=configurations[:1] if args.debug else configurations, modes=ALLOWED_MODES))
+    asyncio.run(main(code=code, configurations=configurations[:1] if args.debug else configurations, modes=["CONVERSATIONAL"] if args.edge else ALLOWED_MODES))

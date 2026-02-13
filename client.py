@@ -78,7 +78,7 @@ class Client:
             await asyncio.wait_for(self.wait_for_response(new_request_id), TIMEOUT_LIMIT)
         except asyncio.TimeoutError:
             self.requests[new_request_id]["status"] = "timeout"
-            self.requests[new_request_id]["response"] = str([dict(Response(agent_id=agent_id, request=message, success=False, message="timeout"))])
+            self.requests[new_request_id]["response"] = str([dict(Response(agent_id=agent_id, request={"message": message}, success=False, message="timeout"))])
         
         self.log(f"Agent {agent_id} responded {self.requests[new_request_id]['response']}")
         return self.requests[new_request_id]["response"]
