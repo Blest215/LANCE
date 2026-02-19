@@ -164,18 +164,21 @@ if __name__ == "__main__":
         ]}
     ] if args.edge else [
         {"dataset_D5_M0.csv": [
-            # Mid-size <=8b
+            # Small-size <=8b
             Model("ministral-3:8b-instruct-2512-q8_0"),
-            Model("ibm/granite4:tiny-h-q8_0"),
             Model("qwen3:8b-q8_0", reasoning=False),
-            # Small-size <=4b
+            Model("llama3.1:8b-instruct-q8_0"),
+            Model("ibm/granite4:tiny-h-q8_0"),
+            # Tiny-size <=4b
+            Model("qwen3:4b-instruct-2507-q8_0"),
             Model("ministral-3:3b-instruct-2512-q8_0"),
             Model("ibm/granite4:micro-h-q8_0"),
-            Model("qwen3:4b-instruct-2507-q8_0"),
-            # Tiny-size <=1b
-            Model("functiongemma:270m-it-q8_0"),
+            Model("llama3.2:3b-instruct-q8_0"),
+            # Micro-size <=2b
+            Model("tomng/lfm2.5-instruct:1.2b-q8_0"),
             Model("granite4:1b-h-q8_0"),
-            Model("qwen3:1.7b-q8_0", reasoning=False),
+            Model("llama3.2:1b-instruct-q8_0"),
+            Model("functiongemma:270m-it-q8_0"),
         ]},
         # Mutations
         {"dataset_D5_M20.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
@@ -186,11 +189,13 @@ if __name__ == "__main__":
         # Devices
         {"dataset_D10_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
         {"dataset_D15_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
+        {"dataset_D20_M0.csv": [Model("qwen3:4b-instruct-2507-q8_0")]},
         # Settings
         {"dataset_D5_M0.csv": [
             Model("qwen3:0.6b-q8_0", reasoning=False),
             Model("qwen3:0.6b-q4_K_M", reasoning=False),
             Model("qwen3:0.6b-q8_0", reasoning=True),
+            Model("qwen3:1.7b-q8_0", reasoning=False),
             Model("qwen3:1.7b-q4_K_M", reasoning=False),
             Model("qwen3:1.7b-q8_0", reasoning=True),
             Model("qwen3:4b-instruct-2507-q4_K_M"),
@@ -200,15 +205,16 @@ if __name__ == "__main__":
         ]},
         # etc
         {"dataset_D5_M0.csv": [
-            Model("tomng/lfm2.5-instruct:1.2b-q8_0"),
-            Model("hf.co/LiquidAI/LFM2-1.2B-Tool-GGUF:Q8_0"),
-            Model("hf.co/unsloth/SmolLM3-3B-GGUF:Q8_0"),
-            Model("hf.co/LGAI-EXAONE/EXAONE-4.0-1.2B-GGUF:Q8_0"),
             Model("granite4:350m-h-q8_0"),
             Model("rnj-1:8b-instruct-q8_0"),
-            Model("llama3.1:8b-instruct-q8_0"),
-            Model("llama3.2:3b-instruct-q8_0"),
-            Model("llama3.2:1b-instruct-q8_0"),
+            Model("mistral:7b-instruct-v0.3-q8_0"),
+            Model("nemotron-mini:4b-instruct-q8_0"),
+            Model("cogito:8b-v1-preview-llama-q8_0"),
+            Model("cogito:3b-v1-preview-llama-q8_0"),
+            Model("phi4-mini:3.8b-q8_0"),
+            Model("smollm2:1.7b-instruct-q8_0"),
+            Model("qwen3:14b-q8_0", reasoning=False),
+            Model("mistral-nemo:12b-instruct-2407-q8_0"),
         ]}
     ]
 
