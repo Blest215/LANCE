@@ -41,8 +41,8 @@ class Client:
         
         await self.message_handler(topic, id, sender, message, request_id)
 
-    async def loop(self):
-        self.client = aiomqtt.Client(MQTT_BROKER_ADDRESS)
+    async def loop(self, broker_address=MQTT_BROKER_ADDRESS):
+        self.client = aiomqtt.Client(broker_address)
         while True:
             try:
                 async with self.client:

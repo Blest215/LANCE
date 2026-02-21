@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LANCE</title>
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  body > .container {
+    display: flex;
+    flex-direction: column;
+    width: 800px;
+    max-height: 90vh;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 0 0 20px;
+  }
+
+  #chat-box {
+    flex: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .message {
+    max-width: 70%;
+    margin-bottom: 12px;
+    padding: 12px 18px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    position: relative;
+  }
+
+  .user-message {
+    background: #ffd6e0;
+    align-self: flex-end;
+    text-align: right;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bot-message {
+    background: #d6eaff;
+    align-self: flex-start;
+    text-align: left;
+    border-bottom-left-radius: 4px;
+  }
+
+  #input-area {
+    display: flex;
+    margin-top: 15px;
+  }
+  #user-input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 24px;
+    outline: none;
+  }
+  #user-input:focus {
+    border-color: #4caf50;
+  }
+
+  #clear-button {
+    margin-left: 10px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 24px;
+    background: #ff9999;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  #clear-button:hover {
+    background: #ff6666;
+  }
+
+  #loading {
+    display: none;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 6px 0;
+  }
+
+  think {
+    color: #aaaaaa;
+  }
+
+  tool {
+    color: #888888;
+  }
+
+  @media (max-width: 600px) {
+    body > .container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-height: 90vh;
+      padding: 10px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .message {
+      max-width: 85%;
+      font-size: 14px;
+      padding: 10px 14px;
+    }
+
+    #user-input {
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+
+    #clear-button {
+      padding: 8px 14px;
+      font-size: 14px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>LANCE</h1>
+  <div id="chat-box">
+  </div>
+  <div id="loading"></div>
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="What can Agent do for you?" autocomplete="off" />
+    <button id="clear-button">Clear</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@3.0.0/lib/marked.min.js"></script>
+<script>
+function renderWithMarkdown(input) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(input, "text/html");
+
+  function processNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const span = document.createElement("span");
+      span.innerHTML = marked.parse(node.textContent);
+      return span;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const clone = node.cloneNode(false); 
+      node.childNodes.forEach(child => {
+        clone.appendChild(processNode(child));
+      });
+      return clone;
+    }
+
+    return document.createTextNode(""); 
+  }
+
+  const fragment = document.createDocumentFragment();
+  doc.body.childNodes.forEach(child => {
+    fragment.appendChild(processNode(child));
+  });
+
+  const container = document.createElement("div");
+  container.appendChild(fragment);
+  return container.innerHTML;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const userInput = document.getElementById("user-input");
+  const chatBox = document.getElementById("chat-box");
+  const loading = document.getElementById("loading");
+  const clearButton = document.getElementById("clear-button");
+
+  const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const ws = new WebSocket(wsProtocol + location.host + '/ws');
+
+  ws.onmessage = (ev) => {
+    addMessage(ev.data, 'bot');
+  };
+
+  document.querySelectorAll('.markdown-content').forEach(div => {
+    const md = div.getAttribute('data-md');
+    div.innerHTML = renderWithMarkdown(md);
+  });
+
+  userInput.focus();
+
+  userInput.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      await sendMessage();
+    }
+  });
+
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (!message) return;
+
+    userInput.disabled = true;
+    clearButton.disabled = true;
+
+    addMessage(message, "user");
+    loading.style.display = "block";
+    userInput.value = "";
+
+    try {
+      const response = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+        credentials: "include"
+      });
+    } catch (err) {
+    } finally {
+      clearButton.disabled = false;
+      userInput.disabled = false;
+      userInput.focus();
+    }
+  }
+
+  function addMessage(message, sender) {
+    const div = document.createElement("div");
+    div.classList.add("message", sender === "user" ? "user-message" : "bot-message");
+    div.innerHTML = renderWithMarkdown(message);
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
+  }
+
+  clearButton.addEventListener("click", async () => {
+    if (!confirm("Are you sure you want to clear the chat?")) return;
+    await fetch("/clear", { method: "POST", credentials: "include" });
+    chatBox.innerHTML = "";
+    userInput.focus();
+  });
+});
+</script>
+
+</body>
+</html>

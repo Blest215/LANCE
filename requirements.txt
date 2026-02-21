@@ -17,3 +17,6 @@ pandas==2.3.3
 tqdm==4.67.1
 docker==7.1.0
 matplotlib==3.10.8
+fastapi==0.129.0
+uvicorn==0.41.0
+websockets==16.0

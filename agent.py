@@ -1,8 +1,10 @@
 import asyncio
 import sys
+import argparse
 
 from langchain_core.output_parsers import PydanticOutputParser
 
+from model import Model
 from settings import *
 from client import Client
 from device import instantiate_device
@@ -62,3 +64,48 @@ class Agent(Client):
 
     def control_device(self, arguments):
         return dict(self.device.control(**arguments))
+
+
+async def register(agent):
+    while True:
+        await agent.publish(MQTT_TOPIC_CENTRALIZED_REGISTER, agent.id, agent.device.description)
+        await asyncio.sleep(1)
+
+
+async def main(broker_address: str, session: str, model: Model, device_description: str):
+    agent = Agent(get_agent_id(device_description), model, device_description)
+    loop = asyncio.create_task(agent.loop(broker_address))
+    while not agent.is_connected:
+        await asyncio.sleep(TICK)
+    await agent.reset(session)
+
+    print(f"{session}\n{device_description}")
+    await asyncio.gather(loop, asyncio.create_task(register(agent)))
+
+
+if __name__ == "__main__":
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--model", type=str, required=False, default="qwen3:4b-instruct-2507-q8_0")
+    argument_parser.add_argument("--broker", type=str, required=False, default="192.168.0.2")
+    argument_parser.add_argument("--session", type=str, required=False, default="0000000000000000")
+    args = argument_parser.parse_args()
+
+    if sys.platform.lower() == "win32" or os.name.lower() == "nt":
+        from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
+        set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+
+    description = None
+    if os.path.exists(DESCRIPTION_PATH):
+        with open(DESCRIPTION_PATH, 'r', encoding='utf-8') as f:
+            content = f.read()
+        try:
+            description = eval(content)
+        except Exception:
+            try:
+                description = json.loads(content)
+            except Exception:
+                description = content
+    else:
+        description = {}
+
+    asyncio.run(main(broker_address=args.broker, session=args.session, model=Model(args.model), device_description=description))
