@@ -195,8 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
   const ws = new WebSocket(wsProtocol + location.host + '/ws');
 
-  ws.onmessage = (ev) => {
-    addMessage(ev.data, 'bot');
+  ws.onmessage = (event) => {
+    addMessage(event.data, 'bot');
   };
 
   document.querySelectorAll('.markdown-content').forEach(div => {
@@ -204,7 +204,11 @@ document.addEventListener("DOMContentLoaded", () => {
     div.innerHTML = renderWithMarkdown(md);
   });
 
+  clearButton.disabled = false;
+  userInput.disabled = false;
   userInput.focus();
+  
+  discovery();
 
   userInput.addEventListener("keydown", async (e) => {
     if (e.key === "Enter") {
@@ -246,6 +250,13 @@ document.addEventListener("DOMContentLoaded", () => {
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
     return div;
+  }
+
+  async function discovery() {
+    try {
+      const response = await fetch("/discovery");
+    } catch (err) {
+    }
   }
 
   clearButton.addEventListener("click", async () => {

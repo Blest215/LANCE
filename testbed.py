@@ -48,6 +48,16 @@ class ConnectionManager:
 async def index():
     return FileResponse('templates/index.html')
 
+@app.get('/discovery')
+async def discovery():
+    app.state.proposals = ""
+    user.set_agents(eval(await user.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, REGISTRY_ID, "")).keys())
+    async def get_proposal(agent_id):
+        proposal = await user.call_for_proposal(MQTT_TOPIC_CONVERSATIONAL_CALL, agent_id, "Explain the device capability")
+        app.state.proposals += f"\n{proposal}"
+        await manager.send(proposal)
+    await asyncio.gather(*[get_proposal(agent_id) for agent_id in user.agents])
+
 @app.post('/ask')
 async def ask(request_data: MessageRequest):
     user_message = request_data.message.strip()
@@ -55,12 +65,8 @@ async def ask(request_data: MessageRequest):
     try:
         user.requests = {}
         user.consequences = []
-        user.set_agents(eval(await user.request(MQTT_TOPIC_CENTRALIZED_DISCOVERY, REGISTRY_ID, "")).keys())
-
-        proposals = await user.recruit(user_message, True)
-        await manager.send(proposals)
-
-        plan = await user.plan(user.natural, user_message, proposals)
+        
+        plan = await user.plan(user.natural, user_message, app.state.proposals)
         for tool_call in plan.tool_calls:
             await manager.send(f"{tool_call['args']['agent_id']}: {tool_call['args']['instruction']}")
 
@@ -129,5 +135,7 @@ if __name__ == "__main__":
 
     registry = Registry()
     user = UserAgent(id="COORDINATOR", model=Model(args.model))
+
+    app.state.proposals = ""
     
     asyncio.run(main(args.broker, args.session))

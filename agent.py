@@ -1,6 +1,8 @@
 import asyncio
 import sys
 import argparse
+import random
+import pandas as pd
 
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -106,6 +108,7 @@ if __name__ == "__main__":
             except Exception:
                 description = content
     else:
-        description = {}
+        dataset_df = pd.read_csv(f"{DATASET_DIR}/dataset_D5_M0.csv")
+        description = random.sample(eval(dataset_df.sample(1).device_descriptions.iloc[0]), 1)[0]
 
     asyncio.run(main(broker_address=args.broker, session=args.session, model=Model(args.model), device_description=description))
