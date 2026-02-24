@@ -131,15 +131,16 @@ class SmartThingsDevice(Device):
         try:
             command = {"component": "main", "capability": kwargs["capability"], "command": kwargs["command"]}
             # TODO arguments control
+            result = requests.post(
+                f"{SMARTTHINGS_API_URL}/{self.agent_id}/commands", 
+                headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
+                json={"commands": [command]},
+            ).json()
             return Response(
                 agent_id=self.agent_id,
                 request=kwargs,
-                success=True,
-                message=str(requests.post(
-                    f"{SMARTTHINGS_API_URL}/{self.agent_id}/commands", 
-                    headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
-                    json={"commands": [command]},
-                ).json())
+                success="error" not in result,
+                message=str(result)
             )
         except Exception as e:
             # TODO

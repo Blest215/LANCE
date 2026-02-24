@@ -18,7 +18,7 @@ class Model:
         self.options = options
         self.temperature = temperature
         self.reasoning = reasoning
-        self.base_url = base_url
+        self.base_url = f"http://{base_url}:11434"
         self.max_output_tokens = max_output_tokens
         self.kwargs = kwargs
 
