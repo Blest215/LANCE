@@ -14,12 +14,15 @@ from settings import *
 from settings import BaseModel
 
 class Device(ABC):
-    def __init__(self, agent_id, description):
+    def __init__(self, agent_id, description: dict, experiment=True):
         self.agent_id = agent_id # One-to-one
-        self.description = str(description["natural"]) if "natural" in description else str(description["structured"])
-        self.dict = description["structured"]
-        # TODO experiment control
-        self.experiment = True
+        if experiment:
+            self.description = str(description["natural"]) if "natural" in description else str(description["structured"])
+            self.dict = description["structured"]
+        else:
+            self.description = str(description)
+            self.dict = description
+        self.experiment = experiment
 
     @property
     def structured(self):
@@ -29,7 +32,7 @@ class Device(ABC):
         try:
             validation_result = self.validate_input(**kwargs)
             if validation_result == "VALID":
-                return self.execute(**kwargs) if self.experiment else self.request(kwargs)
+                return self.execute(**kwargs) if self.experiment else self.request(**kwargs)
             return Response(agent_id=self.agent_id, request=kwargs, success=False, message=validation_result)
         except Exception as e:
             return Response(agent_id=self.agent_id, request=kwargs, success=False, message=str(e))
@@ -51,8 +54,8 @@ class Device(ABC):
     def request(self, **kwargs) -> Response:
         pass
 
-def instantiate_device(id, description) -> Device:
-    return getattr(sys.modules[__name__], f"{description['format']}Device")(id, description)
+def instantiate_device(id, description, experiment) -> Device:
+    return getattr(sys.modules[__name__], f"{description['format']}Device")(id, description, experiment)
 
 class W3CInput(BaseModel):
     agent_id: str = Field(description="The unique ID of the agent associated with the W3C device")
@@ -112,12 +115,13 @@ class SmartThingsDevice(Device):
                 capability = c
         if not capability:
             return "INVALID CAPABILITY NAME"
-        if kwargs["command"] not in capability["commands"]:
-            return "INVALID COMMAND NAME"
-        for argument in capability["commands"][kwargs["command"]]["arguments"]:
-            if not argument["optional"] and argument["name"] not in kwargs["arguments"]:
-                return "REQUIREMENT MISSING"
-        # TODO ARGUMENT TYPE
+        if self.experiment:
+            if kwargs["command"] not in capability["commands"]:
+                return "INVALID COMMAND NAME"
+            for argument in capability["commands"][kwargs["command"]]["arguments"]:
+                if not argument["optional"] and argument["name"] not in kwargs["arguments"]:
+                    return "REQUIREMENT MISSING"
+            # TODO ARGUMENT TYPE
         return "VALID"
     
     def execute(self, **kwargs):
@@ -131,11 +135,11 @@ class SmartThingsDevice(Device):
                 agent_id=self.agent_id,
                 request=kwargs,
                 success=True,
-                message=requests.post(
-                    f"{SMARTTHINGS_API_URL}/{self.dict['id']}/commands", 
+                message=str(requests.post(
+                    f"{SMARTTHINGS_API_URL}/{self.agent_id}/commands", 
                     headers={"Authorization": f"Bearer {os.getenv('SMARTTHINGS_API_KEY')}", "Accept": "application/json"}, 
                     json={"commands": [command]},
-                ).json()
+                ).json())
             )
         except Exception as e:
             # TODO

@@ -132,10 +132,15 @@ def check_topic(formatted, unformatted):
     return formatted == unformatted.split("/")[0]    
 
 def get_agent_id(device_description):
-    if "id" in device_description["structured"]:
-        return device_description["structured"]["id"]
-    if "deviceId" in device_description["structured"]:
-        return device_description["structured"]["deviceId"]
+    if "structured" in device_description:
+        if "id" in device_description["structured"]:
+            return device_description["structured"]["id"]
+        if "deviceId" in device_description["structured"]:
+            return device_description["structured"]["deviceId"]
+    if "id" in device_description:
+        return device_description["id"]
+    if "deviceId" in device_description:
+        return device_description["deviceId"]
 
 def get_column_name(name, model, mode):
     return f"{name}_{model}_{mode}"

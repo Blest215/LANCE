@@ -17,10 +17,10 @@ class ScreeningResult(BaseModel):
     message: str = Field(description="Short response message that describes what you can contribute to the task. Do not mention what you cannot do.")
 
 class Agent(Client):
-    def __init__(self, id, model, device_description):
+    def __init__(self, id, model, device_description, experiment=True):
         super().__init__(id)
         self.configuration = model
-        self.device = instantiate_device(id, device_description)
+        self.device = instantiate_device(id, device_description, experiment)
 
         # RECRUIT
         screener_parser = PydanticOutputParser(pydantic_object=ScreeningResult)
@@ -75,7 +75,7 @@ async def register(agent):
 
 
 async def main(broker_address: str, session: str, model: Model, device_description: str):
-    agent = Agent(get_agent_id(device_description), model, device_description)
+    agent = Agent(get_agent_id(device_description), model, device_description, False)
     loop = asyncio.create_task(agent.loop(broker_address))
     while not agent.is_connected:
         await asyncio.sleep(TICK)
@@ -87,6 +87,7 @@ async def main(broker_address: str, session: str, model: Model, device_descripti
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("--server", type=str, required=False, default=None)
     argument_parser.add_argument("--model", type=str, required=False, default="qwen3:4b-instruct-2507-q8_0")
     argument_parser.add_argument("--broker", type=str, required=False, default="192.168.0.2")
     argument_parser.add_argument("--session", type=str, required=False, default="0000000000000000")
@@ -111,4 +112,4 @@ if __name__ == "__main__":
         dataset_df = pd.read_csv(f"{DATASET_DIR}/dataset_D5_M0.csv")
         description = random.sample(eval(dataset_df.sample(1).device_descriptions.iloc[0]), 1)[0]
 
-    asyncio.run(main(broker_address=args.broker, session=args.session, model=Model(args.model), device_description=description))
+    asyncio.run(main(broker_address=args.broker, session=args.session, model=Model(args.model, base_url=args.server), device_description=description))
