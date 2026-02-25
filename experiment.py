@@ -208,13 +208,10 @@ if __name__ == "__main__":
             Model("granite4:350m-h-q8_0"),
             Model("rnj-1:8b-instruct-q8_0"),
             Model("mistral:7b-instruct-v0.3-q8_0"),
-            Model("nemotron-mini:4b-instruct-q8_0"),
             Model("cogito:8b-v1-preview-llama-q8_0"),
             Model("cogito:3b-v1-preview-llama-q8_0"),
             Model("phi4-mini:3.8b-q8_0"),
             Model("smollm2:1.7b-instruct-q8_0"),
-            Model("qwen3:14b-q8_0", reasoning=False),
-            Model("mistral-nemo:12b-instruct-2407-q8_0"),
         ]}
     ]
 

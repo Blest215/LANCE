@@ -63,7 +63,7 @@ async def discovery():
     await asyncio.gather(*[get_proposal(agent_id) for agent_id in user.agents])
 
 async def retry(consequence):
-    compensation_plan = await user.plan(user.natural, f"Retry the failed instruction: {consequence['request']}\nLast failure was: {consequence['message']}", app.state.proposals)
+    compensation_plan = await user.plan(user.natural, f"Carefully revise the last failure ({consequence['message']}), and retry the failed instruction: {consequence['request']}", app.state.proposals)
     for tool_call in compensation_plan.tool_calls:
         new_consequences = await user.control_device(MQTT_TOPIC_NATURAL_CONTROL, agent_id=consequence['agent_id'], instruction=tool_call["args"]["instruction"])
         for new_consequence in new_consequences:

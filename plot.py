@@ -21,6 +21,7 @@ gap = 0.01
 modes = {"CENTRALIZED": "#1f77b4", "NATURAL": "#ff7f0e", "RECRUIT": "#2ca02c", "CONVERSATIONAL": "#984ea3"}
 mode_labels = {"CENTRALIZED": "Baseline", "NATURAL": "LANCE (natural)", "RECRUIT": "LANCE (recruit)", "CONVERSATIONAL": "LANCE"}
 stages = {"discovery": "#2ca02c", "plan": "#1f77b4", "control": "#ff7f0e"}
+stage_hatches = {"discovery": "OO", "plan": "", "control": "**"}
 stage_labels = {"discovery": "Discovery", "plan": "Composition", "control": "Orchestration"}
 
 model_names = {
@@ -29,10 +30,10 @@ model_names = {
     "ministral-3:3b-instruct-2512": "Ministral-3:3B-instruct",
     "mistral-nemo:12b-instruct-2407": "Mistral-Nemo:12B-instruct",
     "functiongemma:270m-it": "FunctionGemma:270M-instruct",
-    "granite4:tiny-h": "Granite4:7B-A1B-h",
-    "granite4:micro-h": "Granite4:3B-h",
-    "granite4:1b-h": "Granite4:1B-h",
-    "granite4:350m-h": "Granite4:350M-h",
+    "granite4:tiny-h": "Granite4:7B-A1B-mamba",
+    "granite4:micro-h": "Granite4:3B-mamba",
+    "granite4:1b-h": "Granite4:1B-mamba",
+    "granite4:350m-h": "Granite4:350M-mamba",
     "gpt-oss:20b": "GPT-OSS:20B",
     "qwen3:0.6b": "Qwen3:0.6B",
     "qwen3:1.7b": "Qwen3:1.7B",
@@ -128,9 +129,11 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             if is_stacked:
                 for i, mode in enumerate(modes.keys()):
                     bottom = np.zeros(len(models_slice))
-                    for stage_name, stage_color in stages.items():
+                    for stage_name, stage_hatch in stage_hatches.items():
                         values = [row_data.get(model, {}).get(mode, {}).get(stage_name, 0.0) for model in models_slice]
-                        axes[row_idx, col_idx].bar(x + (i - 1.5) * (bar_width + gap), values, bar_width, bottom=bottom, color=stage_color, label=stage_name if (i == 0 and col_idx == n_cols - 1) else None)
+                        axes[row_idx, col_idx].bar(x + (i - 1.5) * (bar_width + gap), values, bar_width, bottom=bottom, color=modes[mode], hatch=stage_hatch, label=stage_name if (i == 0 and col_idx == n_cols - 1) else None)
+                        for j, pos in enumerate(x + (i - 1.5) * (bar_width + gap)):
+                            axes[row_idx, col_idx].plot([pos - bar_width / 2, pos + bar_width / 2], [bottom[j], bottom[j]], color='black', linewidth=0.5)
                         bottom += np.array(values)
             else:
                 for i, mode in enumerate(modes.keys()):
@@ -144,7 +147,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             if row_idx == 0:
                 axes[row_idx, col_idx].set_title(col_titles[col_idx], fontweight='bold')
             if col_idx == n_cols - 1:
-                axes[row_idx, col_idx].legend(legend_labels, loc="upper right", reverse=row_idx==1)
+                axes[row_idx, col_idx].legend(axes[row_idx, col_idx].get_legend_handles_labels()[0], legend_labels, loc="upper right", reverse=is_stacked)
             axes[row_idx, col_idx].grid(axis="y", alpha=0.3)
 
     output_path = path.replace(".csv", f"_{name}.png")
@@ -191,10 +194,21 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
 
     offsets = (np.arange(len(configs)) - (len(configs) - 1) / 2) * per_bar_width
 
+    # Store values for line plot
+    all_values = []
+    
     for config_idx, config in enumerate(configs):
         if config in data:
             values = [data[config]['accuracy'][selected_model][mode] for mode in modes]
+            all_values.append(values)
             ax.bar(x_pos + offsets[config_idx], values, actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
+
+    # Draw lines connecting values across configs for each mode
+    for mode_idx in range(len(modes)):
+        x_positions = x_pos[mode_idx] + offsets
+        values = [all_values[config_idx][mode_idx] for config_idx in range(len(all_values))]
+        # Draw line segments in black
+        ax.plot(x_positions, values, color='black', linewidth=1.5, marker='o', markersize=4)
 
     ax.set_xticks(x_pos)
     ax.set_xticklabels([mode_labels[mode] for mode in modes])
@@ -230,7 +244,7 @@ def plot_by_hardwares(result_path, selected_models):
         x = np.arange(len(selected_models))
         for stage_idx, stage_name in enumerate(stages.keys()):
             values = [times_data.get(hardware, {}).get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
-            axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=stages[stage_name], label=stage_name)
+            axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=stages[stage_name], hatch=stage_hatches[stage_name], label=stage_name)
         
         axes[0, col_idx].set_xticks(x)
         axes[0, col_idx].set_xticklabels(model_labels, rotation=0)
