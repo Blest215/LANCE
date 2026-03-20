@@ -20,8 +20,7 @@ gap = 0.01
 
 modes = {"CENTRALIZED": "#1f77b4", "NATURAL": "#ff7f0e", "RECRUIT": "#2ca02c", "CONVERSATIONAL": "#984ea3"}
 mode_labels = {"CENTRALIZED": "Baseline", "NATURAL": "LANCE (natural)", "RECRUIT": "LANCE (recruit)", "CONVERSATIONAL": "LANCE"}
-stages = {"discovery": "#2ca02c", "plan": "#1f77b4", "control": "#ff7f0e"}
-stage_hatches = {"discovery": "OO", "plan": "", "control": "**"}
+stages = {"discovery": "OO", "plan": "", "control": ".."}
 stage_labels = {"discovery": "Discovery", "plan": "Composition", "control": "Orchestration"}
 
 model_names = {
@@ -35,6 +34,10 @@ model_names = {
     "granite4:1b-h": "Granite4:1B-mamba",
     "granite4:350m-h": "Granite4:350M-mamba",
     "gpt-oss:20b": "GPT-OSS:20B",
+    "qwen3.5:0.8b": "Qwen3.5:0.8B",
+    "qwen3.5:2b": "Qwen3.5:2B",
+    "qwen3.5:4b": "Qwen3.5:4B",
+    "qwen3.5:9b": "Qwen3.5:9b",
     "qwen3:0.6b": "Qwen3:0.6B",
     "qwen3:1.7b": "Qwen3:1.7B",
     "qwen3:4b-instruct-2507": "Qwen3:4B-instruct",
@@ -45,6 +48,7 @@ model_names = {
     "cogito:8b-v1-preview-llama": "cogito:8B-v1-preview-llama",
     "cogito:3b-v1-preview-llama": "cogito:3B-v1-preview-llama",
     "smollm2:1.7b-instruct": "smollm2:1.7B-instruct",
+    "nemotron-3-nano:4b": "Nemotron-3-Nano:4B",
     "nemotron-mini:4b-instruct": "nemotron-mini:4B-instruct",
     "mistral:7b-instruct-v0.3": "mistral:7B-instruct-v0.3",
     "rnj-1:8b-instruct": "rnj-1:8B-instruct",
@@ -129,7 +133,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             if is_stacked:
                 for i, mode in enumerate(modes.keys()):
                     bottom = np.zeros(len(models_slice))
-                    for stage_name, stage_hatch in stage_hatches.items():
+                    for stage_name, stage_hatch in stages.items():
                         values = [row_data.get(model, {}).get(mode, {}).get(stage_name, 0.0) for model in models_slice]
                         axes[row_idx, col_idx].bar(x + (i - 1.5) * (bar_width + gap), values, bar_width, bottom=bottom, color=modes[mode], hatch=stage_hatch, label=stage_name if (i == 0 and col_idx == n_cols - 1) else None)
                         for j, pos in enumerate(x + (i - 1.5) * (bar_width + gap)):
@@ -147,7 +151,7 @@ def plot_by_models(path, col_titles, xlabels=None, selected_models=None, name="m
             if row_idx == 0:
                 axes[row_idx, col_idx].set_title(col_titles[col_idx], fontweight='bold')
             if col_idx == n_cols - 1:
-                axes[row_idx, col_idx].legend(axes[row_idx, col_idx].get_legend_handles_labels()[0], legend_labels, loc="upper right", reverse=is_stacked)
+                axes[row_idx, col_idx].legend(axes[row_idx, col_idx].get_legend_handles_labels()[0], legend_labels, loc="upper right", reverse=is_stacked, handleheight=1.5)
             axes[row_idx, col_idx].grid(axis="y", alpha=0.3)
 
     output_path = path.replace(".csv", f"_{name}.png")
@@ -244,7 +248,7 @@ def plot_by_hardwares(result_path, selected_models):
         x = np.arange(len(selected_models))
         for stage_idx, stage_name in enumerate(stages.keys()):
             values = [times_data.get(hardware, {}).get(model, {}).get("CONVERSATIONAL", {}).get(stage_name, 0.0) for model in selected_models]
-            axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=stages[stage_name], hatch=stage_hatches[stage_name], label=stage_name)
+            axes[0, col_idx].bar(x + (stage_idx - (len(stages) - 1) / 2) * (bar_width + gap), values, bar_width, color=modes["CONVERSATIONAL"], hatch=stages[stage_name], label=stage_name)
         
         axes[0, col_idx].set_xticks(x)
         axes[0, col_idx].set_xticklabels(model_labels, rotation=0)
@@ -254,7 +258,7 @@ def plot_by_hardwares(result_path, selected_models):
         axes[0, col_idx].grid(axis="y", alpha=0.3)
         
         if col_idx == 2:
-            axes[0, col_idx].legend([stage_labels[stage] for stage in stages], loc="upper right", reverse=True)
+            axes[0, col_idx].legend([stage_labels[stage] for stage in stages], loc="upper right", reverse=True, handleheight=1.5)
     
     plt.tight_layout()
     plot_path = result_path.replace(".csv", "_hardwares.png")
@@ -323,10 +327,10 @@ if __name__ == "__main__":
         "ministral-3:3b-instruct-2512-q8_0",
         "granite4:micro-h-q8_0",
         "llama3.2:3b-instruct-q8_0",
-        
+
         "lfm2.5-instruct:1.2b-q8_0",
         "granite4:1b-h-q8_0",
-        "llama3.2:1b-instruct-q8_0",
+        "qwen3.5:0.8b-q8_0",
         "functiongemma:270m-it-q8_0",
     ]
 

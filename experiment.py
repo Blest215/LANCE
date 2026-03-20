@@ -177,7 +177,7 @@ if __name__ == "__main__":
             # Micro-size <=2b
             Model("tomng/lfm2.5-instruct:1.2b-q8_0"),
             Model("granite4:1b-h-q8_0"),
-            Model("llama3.2:1b-instruct-q8_0"),
+            Model("qwen3.5:0.8b-q8_0", reasoning=False),
             Model("functiongemma:270m-it-q8_0"),
         ]},
         # Mutations
@@ -212,7 +212,12 @@ if __name__ == "__main__":
             Model("cogito:3b-v1-preview-llama-q8_0"),
             Model("phi4-mini:3.8b-q8_0"),
             Model("smollm2:1.7b-instruct-q8_0"),
-        ]}
+            Model("nemotron-3-nano:4b-q8_0", reasoning=False),
+            Model("llama3.2:1b-instruct-q8_0"),
+            Model("qwen3.5:2b-q8_0", reasoning=False),
+            Model("qwen3.5:4b-q8_0", reasoning=False),
+            Model("qwen3.5:9b-q8_0", reasoning=False),
+        ]}, 
     ]
 
     if sys.platform.lower() == "win32" or os.name.lower() == "nt":
