@@ -1,545 +1,75 @@
-import os
-import pandas as pd
-import argparse
-import asyncio
-import requests
-import xml.etree.ElementTree as ET
-import json
-import random
-
-from tqdm import tqdm
-from dotenv import load_dotenv
-load_dotenv()
-
-from langchain_core.documents import Document
-from langchain_community.retrievers import BM25Retriever
-
-from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
-from typing import Optional, Literal
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-
 from settings import *
-from device import *
 from model import Model
+from schema import *
+from prompts import *
+from simulator import *
 
-# W3C WoT TD
-
-class TDProperty(BaseModel):
-    type: Literal["integer", "string"]
-
-class TDObjectProperty(BaseModel):
-    type: Literal["object"]
-    properties: Dict[str, TDProperty] = Field(description="The properties of the object.")
-    required: List[str] = Field(default=[], description="The required properties of the object.")
-
-class TDAction(BaseModel):
-    title: str = Field(description="Title of the action that the device can perform.")
-    description: str = Field(description="Description of the action.")
-    input: Optional[TDObjectProperty] = Field(description="The input to the action.")
-    # TODO output
-    # TODO forms
-
-class TDDevice(BaseModel):
-    # AUTOCOMPLETION format: Literal["W3C"]
-    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
-    title: str = Field(description="Title of the device, e.g., light, TV, air_conditioner.")
-    # TODO properties
-    actions: Dict[str, TDAction] = Field(description="Actions the device can perform with optional arguments.")
-
-# SmartThings
-
-class STSchema(BaseModel):
-    type: Literal["integer", "string"]
-
-class STArgument(BaseModel):
-    name: str = Field(description="Argument name.")
-    optional: bool = Field(description="Whether this argument is optional or mandatory.")
-    schema_: STSchema = Field(description="Schema of the argument.")
-
-class STCommand(BaseModel):
-    arguments: List[STArgument] = Field(default=[], description="Required arguments for the command.")
-
-class STCapability(BaseModel):
-    id: str = Field(description="Name of the capability.")
-    # AUTOCOMPLETION version: Literal[1]
-    # AUTOCOMPLETION status: Literal["live"]
-    # TODO attributes
-    commands: Dict[str, STCommand] = Field(description="Available commands to the capability.")
-
-class STComponent(BaseModel):
-    # AUTOCOMPLETION id: Literal["main"]
-    # AUTOCOMPLETION label: Literal["main"]
-    # AUTOCOMPLETION optional: Literal[False]
-    capabilities: List[STCapability] = Field(description="The capabilities that the device can control.")
-    # categories
-    # restrictions
-
-class STDevice(BaseModel):
-    # AUTOCOMPLETION format: Literal["SmartThings"]
-    # AUTOCOMPLETION deviceId: Annotated[UUID, PlainSerializer(serialize_id)]
-    name: str = Field(description="Name of the device, e.g., light, TV, air_conditioner.")
-    label: str = Field(description="User-custom label of the device.")
-    # manufacturerName
-    # presentationId
-    # deviceManufacturerCode
-    # locationId
-    # ownerId
-    # roomId
-    # deviceTypeId
-    # deviceTypeName
-    # deviceNetworkType
-    # productId
-    # brandId
-    components: List[STComponent] = Field(min_length=1, max_length=1)
-    # createTime
-    # parentDeviceId
-    # childDevices
-    # profile
-    # app
-    # ble
-    # bleD2D
-    # dth
-    # lan
-    # zigbee
-    # zwave
-    # matter
-    # hub
-    # edgeChild
-    # ir
-    # irOcf
-    # ocf
-    # viper
-    # group
-    # virtual
-    # mqtt
-    # type
-    # restrictionTier
-    # allowed
-    # indoorMap
-    # executionContext
-    # relationships
-
-# Matter
-
-class MTEndpoint(BaseModel):
-    endpoint_id: str
-    device_type_name: str = Field(description="Device type name.")
-    device_type_id: str = Field(description="Device type id associated with the name.")
-    # AUTOCOMPLETION clusters: Dict
-
-class MTDevice(BaseModel):
-    # AUTOCOMPLETION format: Literal["Matter"]
-    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
-    endpoints: Dict[str, MTEndpoint] = Field(description="Endpoints of the device node.")
-
-class MatterRetriever:
-    def __init__(self, version=1.5):
-        self.version = version
-
-        if not os.path.exists(DB_PATH):
-            os.mkdir(DB_PATH)
-
-        # Get clusters
-        if not os.path.exists(MATTER_CLUSTERS_PATH):
-            files = requests.get(f"https://api.github.com/repos/project-chip/connectedhomeip/contents/data_model/{version}/clusters").json()
-            clusters = {}
-            for file in files:
-                if file['name'].endswith('.xml'):
-                    cluster_xml = ET.fromstring(requests.get(file['download_url']).text)
-                    clusters[cluster_xml.get('id')] = {
-                        "name": cluster_xml.get('name'),
-                        # TODO attributes
-                        "commands": {
-                            command.get("id"): {
-                                "name": command.get("name"),
-                                "id": command.get("id"),
-                                "mandatory": command.find("mandatoryConform") is not None,
-                                "fields": [
-                                    {"id": field.get("id"), "name": field.get("name"), "type": field.get("type"), "mandatory": field.find("mandatoryConform") is not None} for field in command.findall(".//field")
-                                ]
-                            }
-                            for command in cluster_xml.findall(".//command")
-                        }
-                    }
-            json.dump(clusters, open(MATTER_CLUSTERS_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
-        self.clusters = json.load(open(MATTER_CLUSTERS_PATH, 'r', encoding='utf-8'))
-
-        # Get device types
-        if not os.path.exists(MATTER_DEVICE_TYPES_PATH):
-            files = requests.get(f"https://api.github.com/repos/project-chip/connectedhomeip/contents/data_model/{version}/device_types").json()
-            device_types = {}
-            for file in files:
-                if file['name'].endswith('.xml'):
-                    device_type_xml = ET.fromstring(requests.get(file['download_url']).text)
-                    device_types[device_type_xml.get('id')] = {
-                        "name": device_type_xml.get('name'),
-                        "clusters": {
-                            cluster.get('id'): {
-                                "name": cluster.get("name"),
-                                "id": cluster.get("id"),
-                                "mandatory": cluster.find("mandatoryConform") is not None,
-                            }
-                            for cluster in device_type_xml.findall('.//cluster') if cluster.get('id') in self.clusters
-                        }
-                    }
-            json.dump(device_types, open(MATTER_DEVICE_TYPES_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
-        self.device_types = json.load(open(MATTER_DEVICE_TYPES_PATH, 'r', encoding='utf-8'))
-
-        documents = [Document(page_content=f"Device type name: {self.device_types[id]['name']} (device type id: {id})", metadata={"device_type_name": self.device_types[id]["name"], "device_type_id": id}) for id in self.device_types]
-        
-        self.retriever = BM25Retriever.from_documents(documents)
-        self.retriever.k = 20
-    
-    def invoke(self, input, **kwargs):
-        return [("system", document.page_content) for document in self.retriever.invoke(input, **kwargs)]
-    
-    def autocomplete(self, device):
-        if device["format"] != "Matter":
-            raise Exception("NOT MATTER DEVICE")
-        count = 1
-        endpoints = {}
-        # TODO descriptor cluster
-        for endpoint in device["endpoints"].values():
-            if not endpoint["device_type_name"] or endpoint["device_type_id"] == "null":
-                raise Exception("NO DEVICE_TYPE_NAME OR DEVICE_TYPE_ID")
-            if endpoint["device_type_id"] not in self.device_types or self.device_types[endpoint["device_type_id"]]["name"] != endpoint["device_type_name"]:
-                raise Exception(f"INVALID DEVICE_TYPE_NAME {endpoint['device_type_name']} or DEVICE_TYPE_ID {endpoint['device_type_id']}")
-            device_type = self.device_types[endpoint["device_type_id"]]
-            endpoints[str(count)] = {
-                "endpoint_id": str(count),
-                "device_type_name": endpoint["device_type_name"],
-                "device_type_id": endpoint["device_type_id"],
-                "clusters": {
-                    cluster_id: {
-                        "cluster_name": cluster["name"],
-                        "cluster_id": cluster["id"],
-                        # TODO attributes
-                        # TODO features
-                        # TODO dataTypes
-                        "commands": {
-                            command_id: {
-                                "command_name": command["name"],
-                                "command_id": command["id"],
-                                "fields": [{"id": field["id"], "name": field["name"], "type": field["type"]} for field in command["fields"] if field["mandatory"]]
-                            } for command_id, command in self.clusters[cluster_id]["commands"].items() if command["mandatory"]
-                        } if "commands" in self.clusters[cluster_id] else []
-                    } for cluster_id, cluster in device_type["clusters"].items() if cluster["mandatory"]
-                } if "clusters" in device_type else {}
-            }
-            count += 1
-        if not endpoints:
-            raise Exception("EMPTY ENDPOINTS")
-        device["endpoints"] = endpoints
-
-GENERATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a system designer creating realistic scenarios to test AI agents that control smart devices."),
-    ("system", "You MUST not reveal the private information."),
-    ("system", "The device_types MUST include every device type required to accomplish the user_message."),
-    ("system", "The device_types MAY include the device types in the survey answer."),
-    ("system", "The user_message MUST be a fluent natural language imperative sentence for controlling some of the devices in the device_descriptions."),
-    ("system", "The user_message MUST unambiguously specify the device to control, command, and arguments."),
-    ("system", "[Format]\n{format}"),
-    ("assistant", "Where were you?"),
-    ("user", "{space}"),
-    ("assistant", "What devices were in the space? (Select all that apply.)"),
-    ("user", "{devices}"),
-    ("assistant", "What did you command the AI assistant?"),
-    ("user", "{user_command}"),
-    ("user", "Convert the above survey answers into a realistic scenario where a user sends a message to various devices.")
-])
-
-FACTORY_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a device developer who is writing a description document."),
-    ("system", "If the device type is relevant to the user's message, the device MUST provide relevant functions."),
-    ("system", "[Format]\n{format}"),
-    ("system", "[Matter Specification Document]\n{matter_specifications}"),
-    ("system", "[User Message]\n{user_message}"),
-    ("user", "Generate a device of the given type: {device_type}"),
-])
-
-PLANNER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a secretary who controls smart devices. Control the devices upon the following user's message. Carefully revise the output according to your previous failure."),
-    ("system", "[Format]\n{format}"),
-    ("system", "[Available Devices]\n{device_descriptions}"),
-    ("system", "[Expected Behavior]\n{expected_behavior}"),
-    ("system", "[Previous Failure]\n{previous_failure}"),
-    ("user", "{user_message}"),
-])
-
-VALIDATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a validator who evaluates whether the device control orders accomplish the user's goal."),
-    ("system", "[Format]\n{format}"),
-    ("system", "[Available Devices]\n{device_descriptions}"),
-    ("user", "{user_message}"),
-    ("assistant", "[Device Behaviors]\n{device_controls}"),
-    ("user", "Did the devices accomplish the user's goal?"),
-])
-
-SCALER_PROMPT = ChatPromptTemplate.from_messages([
-    ("user", "Give me one name of the smart home device types that is not included in: {device_descriptions}"),
-])
-
-MUTATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a software developer who is writing documentation for the device."),
-    ("system", "[Device Sepcification]\n{description}"),
-    ("user", "Convert the structured description into a short human-written README file."),
-])
-
-async def generate_scenario(answer, pbar):
-    tries = 0
+def generate_scenario(answer_dict: dict, num_devices: int):
     while True:
         try:
-            tries += 1
+            scene_spec = scene_generator.invoke(answer_dict | {"num_devices": num_devices})
+            if len(scene_spec.devices) != num_devices:
+                continue
 
-            # Scenario
-            pbar.set_postfix({"tries": tries, "progress": "scenario"})
-            scenario = await generator.ainvoke(answer._asdict())
-            debug(scenario)
+            task = task_generator.invoke(answer_dict | {"scene": scene_spec})
 
-            # Create devices
-            pbar.set_postfix({"tries": tries, "progress": "devices"})
-            device_descriptions = [await create_device(device_type, scenario.user_message) for device_type in scenario.device_types]
-            debug(device_descriptions)
+            if not validate_task(scene_spec, task):
+                continue
 
-            # Expectations
-            pbar.set_postfix({"tries": tries, "progress": "expectations"})
-            expectations = await generate_expectations(device_descriptions, scenario.user_message, answer.expected_behavior)
-            debug(expectations)
+            rendering(scene_spec, task)
 
-            return {
-                "user_message": scenario.user_message,
-                "device_descriptions": device_descriptions,
-                "evaluation_criteria": expectations
-            }
+            return {"scene": scene_spec.model_dump(), "task": task.model_dump()}
+
         except Exception as e:
-            debug(e)
-            continue
+            debug(e)        
 
-async def create_device(device_type, user_message):
-    device_format = random.choice(DEVICE_FORMATS)
-    device_id = get_random_device_id()
-    debug(f"Create device: {device_format} {device_type} {device_id}")
-    for _ in range(SYNTHESIZE_RETRY):
-        try:
-            if device_format == "W3C":
-                device = (await w3c_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
-                device["format"] = "W3C"
-                device["id"] = device_id
-                return {"format": "W3C", "structured": device}
-            elif device_format == "SmartThings":
-                device = (await smartthings_factory.ainvoke({"device_type": device_type, "user_message": user_message})).model_dump(exclude_none=True)
-                device["format"] = "SmartThings"
-                device["deviceId"] = device_id
-                for component in device["components"]:
-                    component["id"] = "main"
-                    component["label"] = "main"
-                    component["optional"] = False
-                    for capability in component["capabilities"]:
-                        capability["version"] = 1
-                        capability["status"] = "live"
-                return {"format": "SmartThings", "structured": device}
-            elif device_format == "Matter":
-                device = (await matter_factory.ainvoke({"device_type": device_type, "user_message": user_message, "matter_specifications": retriever.invoke(device_type)})).model_dump(exclude_none=True)
-                device["format"] = "Matter"
-                device["id"] = device_id
-                retriever.autocomplete(device)
-                return {"format": "Matter", "structured": device}
-        except Exception as e:
-            debug(e)
-            continue
-    raise Exception("DEVICE CREATION FAILURE")
+def validate_task(scene_spec: SceneSpec, task: Task) -> bool:
+    simulator = Simulator(scene_spec.model_dump(), None)
+    for goal_state in task.goal_states:
+        if goal_state.entity_id not in simulator.agents:
+            return False
+        if goal_state.attribute not in simulator.agents[goal_state.entity_id].properties:
+            return False
+    return True
 
-class Expectations(BaseModel):
-    inputs: List[W3CInput | SmartThingsInput | MatterInput] = Field(min_length=1, description="The list of the correct control of the devices upon the user's message.")
-
-async def generate_expectations(device_descriptions, user_message, expected_behavior):
-    previous_failure = []
-    for _ in range(SYNTHESIZE_RETRY):
-        try:
-            expectations = await planner.ainvoke({
-                "device_descriptions": "\n".join([str(description["structured"]) for description in device_descriptions]),
-                "expected_behavior": expected_behavior,
-                "previous_failure": previous_failure,
-                "user_message": user_message,
-            })
-
-            # Syntatic validation
-            for expectation in expectations.inputs:
-                description = None
-                for d in device_descriptions:
-                    if expectation.agent_id == (d["structured"]["deviceId"] if d["format"] == "SmartThings" else d["structured"]["id"]):
-                        description = d
-                        break
-                if description is None:
-                    debug(expectation)
-                    raise Exception(f"INVALID AGENT ID: {expectation}")
-                
-                validation_result = instantiate_device("", description).validate_input(**dict(expectation))
-                if  validation_result != "VALID":
-                    debug(expectation)
-                    raise Exception(f"{validation_result}: {expectation}")
-            
-            # Semantic validation
-            await validate_scenario(device_descriptions, user_message, expectations.inputs)            
-
-            return expectations.model_dump(exclude_none=True)["inputs"]
-        except Exception as e:
-            debug(e)
-            previous_failure.append(str(e))
-            continue
-    raise Exception("EXPECTATION FAILURE")
-
-class ValidationResult(BaseModel):
-    valid: bool
-    reason: str
-
-async def validate_scenario(device_descriptions, user_message, expectations):
-    validation_result = await validator.ainvoke({
-        "device_descriptions": "\n".join([str(description["structured"]) for description in device_descriptions]),
-        "user_message": user_message,
-        "device_controls": "\n".join([str(dict(expectation)) for expectation in expectations]),
-    })
-    if not validation_result.valid:
-        raise Exception(validation_result.reason)
-
-async def scale_scenario(scenario, num_devices):
-    scaled_scenario = scenario._asdict()
-    device_descriptions = eval(scaled_scenario["device_descriptions"])
-
-    while len(device_descriptions) < num_devices:
-        try:
-            device_descriptions.append(await create_device(await scaler.ainvoke({"device_descriptions": str(device_descriptions)}), ""))
-        except Exception as e:
-            debug(e)
-            continue
-    
-    random.shuffle(device_descriptions)
-    scaled_scenario["device_descriptions"] = str(device_descriptions)
-    return scaled_scenario
-
-async def mutate_scenario(scenario, mutation_ratio):
-    mutated_scenario = scenario._asdict()
-    device_descriptions = eval(mutated_scenario["device_descriptions"])
-
-    while sum(100 if "natural" in device else 0 for device in device_descriptions) / len(device_descriptions) < mutation_ratio:
-        try:
-            target = random.choice([i for i, device in enumerate(device_descriptions) if "natural" not in device])
-            device_descriptions[target] = {
-                "format": device_descriptions[target]["format"],
-                "structured": device_descriptions[target]["structured"],
-                "natural": await mutator.ainvoke({"description": device_descriptions[target]["structured"]}),
-            }
-        except Exception as e:
-            debug(e)
-            continue
-
-    mutated_scenario["device_descriptions"] = str(device_descriptions)
-    return mutated_scenario
-
-async def synthesize_dataset(path):
-    survey_df = pd.read_csv(SURVEY_PATH)
-    survey_df = survey_df.reset_index(drop=True)
-    survey_df = survey_df[survey_df['class'] == 'Control']
-    survey_df = survey_df.head() if args.debug else survey_df
-
-    df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
-
-    if len(survey_df) > len(df):
-        synthesize_df = survey_df[len(df):]
-        with tqdm(total=len(synthesize_df), desc="Synthesize") as pbar:
-            done = 0
-            for answer in synthesize_df.itertuples():
-                task = asyncio.create_task(generate_scenario(answer, pbar))
-                while not task.done():
-                    await asyncio.sleep(1)
-                    pbar.n = done
-                    pbar.refresh()
-                df = pd.concat([df, pd.DataFrame([task.result()])], ignore_index=True)
-                await save_dataframe(df, path)
-                done += 1
-            pbar.n = done
-            pbar.refresh()
-        await save_dataframe(df, path, ensure=True)
-
-def get_scale_target(path, num_devices):
-    for i in reversed(range(1, num_devices)):
-        smaller_path = path.replace(f"D{num_devices}", f"D{i}")
-        if os.path.exists(smaller_path):
-            print(f"Scaling target found: {i}")
-            return pd.read_csv(smaller_path)
-
-async def scale_dataset(path, num_devices):
-    scaled_df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
-    scaling_df = get_scale_target(path, num_devices)[len(scaled_df):]
-    for scenario in tqdm(scaling_df.itertuples(index=False), total=len(scaling_df), desc=f"Scaling {num_devices} devices"):
-        scaled_df = pd.concat([scaled_df, pd.DataFrame([await scale_scenario(scenario, num_devices)])], ignore_index=True)
-        await save_dataframe(scaled_df, path)
-    await save_dataframe(scaled_df, path, ensure=True)
-
-async def mutate_dataset(path, num_devices):
-    for mutation_ratio in [20, 40, 60, 80, 100]:
-        mutated_path = path.replace("_M0", f"_M{mutation_ratio}")
-        mutated_df = pd.read_csv(mutated_path) if os.path.exists(mutated_path) else pd.DataFrame()
-        previous_df = pd.read_csv(path.replace("_M0", f"_M{mutation_ratio - 20}"))[len(mutated_df):]
-        for scenario in tqdm(previous_df.itertuples(index=False), total=len(previous_df), desc=f"Mutation {mutation_ratio}"):
-            mutated_df = pd.concat([mutated_df, pd.DataFrame([await mutate_scenario(scenario, mutation_ratio)])], ignore_index=True)
-            await save_dataframe(mutated_df, mutated_path)
-        await save_dataframe(mutated_df, mutated_path, ensure=True)
-
-async def main(path: str, num_devices: int, scale: bool, mutation: bool):
-    if scale:
-        await scale_dataset(path, num_devices)
-
-    await synthesize_dataset(path)
-
-    if mutation:
-        await mutate_dataset(path, num_devices)
-
+def rendering(scene_spec, task):
+    return None
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
-    argument_parser.add_argument("--model", type=str, required=False, default="gpt-oss:20b", help="LLM to use")
+    argument_parser.add_argument("--model", type=str, required=False, default="gemma4:12b-it-q4_K_M", help="LLM to use")
     argument_parser.add_argument("--devices", type=int, required=False, default=5, help="Number of devices for each scenario")
     argument_parser.add_argument("--mutation", action="store_true")
     argument_parser.add_argument("--scale", action="store_true", help="Scale from less devices dataset")
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
-    # Models
-
-    debug(f"{DEVICE_FORMATS} {args.devices} devices")
     path = f"{DATASET_DIR}/dataset_D{args.devices}_M0.csv"
 
-    class Scenario(BaseModel):
-        device_types: List[str] = Field(description="The types of the devices in the space.", min_length=args.devices, max_length=args.devices)
-        user_message: str = Field(description="The message the user gives to the AI agent.")
+    # TODO models
+    model = Model(model=args.model, reasoning=False, temperature=0.7)
+    scene_generator = create_generator(SCENE_PROMPT, SceneSpec, model)
+    task_generator = create_generator(TASK_PROMPT, Task, model)
 
-    # LLM
+    survey_df = pd.read_csv(SURVEY_PATH)
+    survey_df = survey_df[survey_df["class"] == "Control"]
+    df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
 
-    model = Model(model=args.model, backend="ollama", reasoning=False, temperature=0.7, max_output_tokens=4096)
+    synthesize_df = survey_df[len(df):] if len(survey_df) > len(df) else pd.DataFrame()
 
-    scenario_parser = PydanticOutputParser(pydantic_object=Scenario)
-    generator = GENERATOR_PROMPT.partial(format=scenario_parser.get_format_instructions()) | model.instantiate() | scenario_parser
+    try:
+        synthesize_df = survey_df[len(df):]
+        for answer in tqdm(synthesize_df.itertuples(index=False), total=len(synthesize_df), desc=f"Synthesize ({model.name})"):
+            scenario = generate_scenario(answer._asdict(), args.devices)
 
-    expectation_parser = PydanticOutputParser(pydantic_object=Expectations)
-    planner = PLANNER_PROMPT.partial(format=expectation_parser.get_format_instructions()) | model.instantiate() | expectation_parser
+            df = pd.concat([df, pd.DataFrame([scenario])], ignore_index=True)
+            save_dataframe(df, path, ensure=False)
+        save_dataframe(df, path, ensure=True)
 
-    retriever = MatterRetriever()
+        # TODO scale
 
-    w3c_parser = PydanticOutputParser(pydantic_object=TDDevice)
-    w3c_factory = FACTORY_PROMPT.partial(format=w3c_parser.get_format_instructions(), matter_specifications=[]) | model.instantiate() | w3c_parser
-    smartthings_parser = PydanticOutputParser(pydantic_object=STDevice)
-    smartthings_factory = FACTORY_PROMPT.partial(format=smartthings_parser.get_format_instructions(), matter_specifications=[]) | model.instantiate() | smartthings_parser
-    matter_parser = PydanticOutputParser(pydantic_object=MTDevice)
-    matter_factory = FACTORY_PROMPT.partial(format=matter_parser.get_format_instructions()) | model.instantiate() | matter_parser
+        # TODO mutation
 
-    validator_parser = PydanticOutputParser(pydantic_object=ValidationResult)
-    validator = VALIDATOR_PROMPT.partial(format=validator_parser.get_format_instructions()) | model.instantiate() | validator_parser
-
-    scaler = SCALER_PROMPT | model.instantiate() | StrOutputParser()
-
-    mutator = MUTATOR_PROMPT | model.instantiate() | StrOutputParser()
-
-    asyncio.run(main(path=path, num_devices=args.devices, scale=args.scale, mutation=args.mutation))
+    except KeyboardInterrupt:
+        pass

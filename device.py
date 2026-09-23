@@ -1,17 +1,114 @@
-import requests
-import os
-import json
-import sys
-
-from typing import Optional
-from pydantic import BaseModel
-from langchain.tools import tool
-from typing import List, Dict, Any, Optional
-
-from abc import ABC, abstractmethod
-
 from settings import *
-from settings import BaseModel
+
+# W3C WoT TD
+
+class TDProperty(BaseModel):
+    type: Literal["integer", "string"]
+
+class TDObjectProperty(BaseModel):
+    type: Literal["object"]
+    properties: Dict[str, TDProperty] = Field(description="The properties of the object.")
+    required: List[str] = Field(default=[], description="The required properties of the object.")
+
+class TDAction(BaseModel):
+    title: str = Field(description="Title of the action that the device can perform.")
+    description: str = Field(description="Description of the action.")
+    input: Optional[TDObjectProperty] = Field(description="The input to the action.")
+    # TODO output
+    # TODO forms
+
+class TDDevice(BaseModel):
+    # AUTOCOMPLETION format: Literal["W3C"]
+    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
+    title: str = Field(description="Title of the device, e.g., light, TV, air_conditioner.")
+    # TODO properties
+    actions: Dict[str, TDAction] = Field(description="Actions the device can perform with optional arguments.")
+
+# SmartThings
+
+class STSchema(BaseModel):
+    type: Literal["integer", "string"]
+
+class STArgument(BaseModel):
+    name: str = Field(description="Argument name.")
+    optional: bool = Field(description="Whether this argument is optional or mandatory.")
+    schema_: STSchema = Field(description="Schema of the argument.")
+
+class STCommand(BaseModel):
+    arguments: List[STArgument] = Field(default=[], description="Required arguments for the command.")
+
+class STCapability(BaseModel):
+    id: str = Field(description="Name of the capability.")
+    # AUTOCOMPLETION version: Literal[1]
+    # AUTOCOMPLETION status: Literal["live"]
+    # TODO attributes
+    commands: Dict[str, STCommand] = Field(description="Available commands to the capability.")
+
+class STComponent(BaseModel):
+    # AUTOCOMPLETION id: Literal["main"]
+    # AUTOCOMPLETION label: Literal["main"]
+    # AUTOCOMPLETION optional: Literal[False]
+    capabilities: List[STCapability] = Field(description="The capabilities that the device can control.")
+    # categories
+    # restrictions
+
+class STDevice(BaseModel):
+    # AUTOCOMPLETION format: Literal["SmartThings"]
+    # AUTOCOMPLETION deviceId: Annotated[UUID, PlainSerializer(serialize_id)]
+    name: str = Field(description="Name of the device, e.g., light, TV, air_conditioner.")
+    label: str = Field(description="User-custom label of the device.")
+    # manufacturerName
+    # presentationId
+    # deviceManufacturerCode
+    # locationId
+    # ownerId
+    # roomId
+    # deviceTypeId
+    # deviceTypeName
+    # deviceNetworkType
+    # productId
+    # brandId
+    components: List[STComponent] = Field(min_length=1, max_length=1)
+    # createTime
+    # parentDeviceId
+    # childDevices
+    # profile
+    # app
+    # ble
+    # bleD2D
+    # dth
+    # lan
+    # zigbee
+    # zwave
+    # matter
+    # hub
+    # edgeChild
+    # ir
+    # irOcf
+    # ocf
+    # viper
+    # group
+    # virtual
+    # mqtt
+    # type
+    # restrictionTier
+    # allowed
+    # indoorMap
+    # executionContext
+    # relationships
+
+# Matter
+
+class MTEndpoint(BaseModel):
+    endpoint_id: str
+    device_type_name: str = Field(description="Device type name.")
+    device_type_id: str = Field(description="Device type id associated with the name.")
+    # AUTOCOMPLETION clusters: Dict
+
+class MTDevice(BaseModel):
+    # AUTOCOMPLETION format: Literal["Matter"]
+    # AUTOCOMPLETION id: Annotated[UUID, PlainSerializer(serialize_id)]
+    endpoints: Dict[str, MTEndpoint] = Field(description="Endpoints of the device node.")
 
 class Device(ABC):
     def __init__(self, agent_id, description: dict, experiment=True):

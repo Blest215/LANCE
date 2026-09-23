@@ -198,20 +198,19 @@ def plot_by_heterogeneity(directory_path, selected_model, devices=None, mutation
 
     offsets = (np.arange(len(configs)) - (len(configs) - 1) / 2) * per_bar_width
 
-    # Store values for line plot
     all_values = []
     
+    print("\t".join([m[:3] for m in modes]))
     for config_idx, config in enumerate(configs):
         if config in data:
             values = [data[config]['accuracy'][selected_model][mode] for mode in modes]
+            print("\t".join([f'{v:.2f}' for v in values]))
             all_values.append(values)
             ax.bar(x_pos + offsets[config_idx], values, actual_bar_width, label=config_labels[config_idx], color=colors[config_idx])
 
-    # Draw lines connecting values across configs for each mode
     for mode_idx in range(len(modes)):
         x_positions = x_pos[mode_idx] + offsets
         values = [all_values[config_idx][mode_idx] for config_idx in range(len(all_values))]
-        # Draw line segments in black
         ax.plot(x_positions, values, color='black', linewidth=1.5, marker='o', markersize=4)
 
     ax.set_xticks(x_pos)

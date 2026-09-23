@@ -1,12 +1,13 @@
 # LANCE
 
-This artifact contains the (1) data synthesizer, (2) synthesized dataset, and (3) experiment codes for the reproducibility of the paper titled: _**LANCE**: Linguistic Agent Network for Cooperative Ensemble of Heterogeneous Physical AI Services_
+This artifact contains the (1) data synthesizer, (2) synthesized dataset, (3) experiment codes, and (4) testbed codes for the reproducibility of the paper titled: _**LANCE**: Linguistic Agent Network for Cooperative Ensemble of Heterogeneous Physical AI Services_
 
 ## Main structure
 
-- **synthesizer.py**: LLM-based synthesis of realistic datasets. Requires survey data to be in ./dataset/db/survey_result.csv, which is excluded in the repository to protect the participants' privacy.
-- **experiment.py**: main code for the experiments.
+- **synthesizer.py**: LLM-based synthesis of realistic datasets. Requires survey data to be in `./dataset/db/survey_result.csv`, which is excluded in the repository to protect the participants' privacy.
 - **dataset/**: the directory contains the synthesized datasets, which are converted from the survey results. (`dataset_D{device numbers}_M{mutation level}.csv`)
+- **experiment.py**: main code for the experiments.
+- **testbed.py**: code for the testbed.
 
 ## Dependencies
 
@@ -20,9 +21,25 @@ This artifact contains the (1) data synthesizer, (2) synthesized dataset, and (3
 
 1. Install the above dependencies
 2. Pull the following SLMs from the Ollama repository `ollama pull {model_name}`
-3. Ensure the Mosquitto broker is running (MQTT_BROKER_ADDRESS can be changed in `settings.py`)
+3. Ensure the Mosquitto broker is running (`MQTT_BROKER_ADDRESS` can be changed in `settings.py`)
 4. Run the experiments: `python experiment.py`
-5. After done, plot the results: `python plot.py` (The results used in the paper are in ./results/2026-02-10-01-48-36)
+5. After done, plot the results: `python plot.py` (The results used in the paper are in `./results/2026-02-10-01-48-36`)
+
+## Related-work baselines
+
+`baseline.py` provides separate Agents for `REACT`, `SASHA`, `SAGE`,
+`AORCHESTRA`, `TOOLTREE`, `SKILLORCHESTRA`, `AGENTORCHESTRA`, `TOOLORCHESTRA`
+and a `RAGREACT` BM25 retrieval control. Public source snapshots are pinned in
+`third_party/baselines`. Select them alongside LANCE with:
+
+```console
+python experiment.py --debug --log --modes CENTRALIZED CONVERSATIONAL REACT RAGREACT SASHA SAGE
+```
+
+See [baseline sources, adaptations and evaluation limits](docs/baselines.md).
+SkillOrchestra needs a frozen development Handbook; ToolOrchestra needs its
+published checkpoint served separately. Configure these with `--baseline-config`
+using [the example](docs/baseline-config.example.json).
 
 ## SLMs used in the experiments
 
@@ -66,3 +83,10 @@ This artifact contains the (1) data synthesizer, (2) synthesized dataset, and (3
 - qwen3.5:2b-q8_0
 - qwen3.5:4b-q8_0
 - qwen3.5:9b-q8_0
+
+## How to reproduce the testbed
+
+1. Ensure the Mosquitto broker is running (`MQTT_BROKER_ADDRESS` can be changed in `settings.py`)
+2. `python testbed.py`: Run the testbed server, including service registry and Web GUI.
+3. `python agent.py`: Run service agents (if a description is not given, automatically get a random description from the dataset).
+4. Open the page on localhost:5000

@@ -5,15 +5,29 @@ import re
 import os
 import subprocess
 import json
+import time
+import argparse
+import pandas as pd
+import sys
+import requests
+
+from tqdm import tqdm
+from datetime import datetime
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
+from langchain_core.exceptions import OutputParserException
+from langchain.tools import tool
+from typing import List, Dict, Any, Optional, Literal
+from abc import ABC, abstractmethod
+from pydantic import BaseModel, Field, model_validator
 
 from dotenv import load_dotenv
 load_dotenv()
 
 # Settings
 
-DATASET_FILENAME_PATTERN = r'^dataset_D(\d+)_M(\d+)\.csv$' 
+DATASET_FILENAME_PATTERN = re.compile(r'^dataset_D(\d+)_M(\d+)\.csv$')
 RESULT_FILENAME_PATTERN = r'^result_D(\d+)_M(\d+)\.csv$'
 
 VLLM_URL = "http://localhost:8000/v1"
@@ -21,7 +35,7 @@ VLLM_URL = "http://localhost:8000/v1"
 DATASET_DIR = "dataset"
 DB_PATH = f"{DATASET_DIR}/db"
 RESULT_DIR = "results"
-SURVEY_PATH = f"{DB_PATH}/survey_result.csv"
+SURVEY_PATH = "survey_result.csv"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
@@ -44,7 +58,7 @@ GPU_MEMORY_UTILIZATION = 0.8
 
 # RECRUIT
 
-RECRUIT_SCREENING_THRESHOLD = 0.3
+RECRUIT_SCREENING_THRESHOLD = 0.0
 
 # MQTT
 
@@ -67,38 +81,9 @@ MQTT_TOPIC_CENTRALIZED_REGISTER = "register"
 
 # Devices
 
-DESCRIPTION_PATH = "description.txt"
-
 DEVICE_FORMATS = ["W3C", "SmartThings", "Matter"]
 
 SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
-
-# User
-
-COORDINATOR_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are an orchestrator who controls multiple devices to accomplish a user's task."),
-    ("system", "[Available Devices]\n{descriptions}"),
-    ("system", "(1) Analyze the user task and identify relevant devices."),
-    ("system", "(2) Control each relevant device using the appropriate tool."),
-    ("user", "{user_message}"),
-])
-
-# Agents
-
-SCREENER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a screener who determines if this device can contribute to completing the following task based on the following specification."),
-    ("system", "[Device Specification]\n{description}"),
-    ("system", "[Format]\n{format}"),
-    ("system", "Can you contribute to the following user message?"),
-    ("user", "{message}"),
-])
-
-CONTROLLER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are an orchestrator who controls this device to accomplish a user's task based on the following specification."),
-    ("system", "[Device Specification]\n{description}"),
-    ("system", "Control the device according to its specification using the appropriate tool."),
-    ("user", "{message}"),
-])
 
 from pydantic import BaseModel, Field
 class Response(BaseModel):
@@ -106,18 +91,6 @@ class Response(BaseModel):
     request: dict
     success: bool
     message: str
-
-def save_settings(code):
-    with open(SETTING_PATH.format(code=code), "w") as f:
-        f.write(json.dumps({
-            "COORDINATOR_PROMPT": [str(message) for message in COORDINATOR_PROMPT.messages],
-            "SCREENER_PROMPT": [str(message) for message in SCREENER_PROMPT.messages],
-            "CONTROLLER_PROMPT": [str(message) for message in CONTROLLER_PROMPT.messages],
-            "RECRUIT_SCREENING_THRESHOLD": RECRUIT_SCREENING_THRESHOLD,
-            "MAX_OUTPUT_TOKENS": MAX_OUTPUT_TOKENS,
-            "MAX_CONTEXT": MAX_CONTEXT,
-            "GPU_MEMORY_UTILIZATION": GPU_MEMORY_UTILIZATION,
-        }, indent=4))
 
 def get_random_device_id():
     return str(uuid.uuid4())
@@ -145,7 +118,7 @@ def get_agent_id(device_description):
 def get_column_name(name, model, mode):
     return f"{name}_{model}_{mode}"
 
-async def save_dataframe(df, path, ensure=False):
+def save_dataframe(df, path, ensure=False):
     if df is None or len(df) == 0:
         return
     while True:
@@ -154,7 +127,7 @@ async def save_dataframe(df, path, ensure=False):
             break
         except Exception:
             if ensure:
-                await asyncio.sleep(1)
+                time.sleep(1)
             else:
                 break
 
@@ -203,3 +176,16 @@ def remove_empty_results():
             os.rmdir(f"{RESULT_DIR}/{result_code}")
         elif not files:            
             os.rmdir(f"{RESULT_DIR}/{result_code}")
+
+def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | str, model):
+    prompt_template = prompt if isinstance(prompt, ChatPromptTemplate) else ChatPromptTemplate.from_template(prompt)
+    if pydantic_object == str:
+        return prompt_template | model.instantiate() | StrOutputParser()
+    if "qwen3.5" in model.model:
+        parser = PydanticOutputParser(pydantic_object=pydantic_object)
+        return ChatPromptTemplate.from_messages([
+            ("system", "[Format]\n{format}"),
+            *prompt_template.messages,
+        ]).partial(format=parser.get_format_instructions())| model.instantiate() | parser
+        
+    return prompt_template | model.with_structured_output(pydantic_object)
