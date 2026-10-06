@@ -3,14 +3,7 @@ from settings import *
 from simulator import *
 from LANCE import *
 
-def evaluate_scenario(simulator: Simulator, task: Task):
-    scores = [
-        100 if simulator.agents[goal_state.entity_id].properties[goal_state.attribute] == goal_state.value else 0 
-        for goal_state in task.goal_states if goal_state.entity_type == "device"
-    ]
-    return sum(scores) / len(scores)
-
-def simulate_scenarios(model: Model, mode: UserAgent, scenarios: List[pd.core.frame.pandas]):
+def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]):
     consequences = []
     times = []
     scores = []
@@ -27,7 +20,7 @@ def simulate_scenarios(model: Model, mode: UserAgent, scenarios: List[pd.core.fr
 
         consequences.append(simulator.render())
         times.append(user.time_log)
-        scores.append(evaluate_scenario(simulator, task))
+        scores.append(simulator.evaluate(task))
 
     return consequences, times, scores
 

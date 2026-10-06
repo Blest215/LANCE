@@ -5,10 +5,10 @@ from langchain.tools import tool
 # Spec
 
 class PropertySpec(BaseModel):
-    name: str
+    property_name: str
     value_type: Literal["string", "integer", "number", "boolean"]
     minimum: Optional[float] = None
-    minimum: Optional[float] = None
+    maximum: Optional[float] = None
     unit: Optional[str] = None
     initial_value: str | int | float | bool
 
@@ -33,14 +33,14 @@ class EffectSpec(BaseModel):
         return self
 
 class ActionSpec(BaseModel):
-    name: str
+    action_name: str
     description: str
     arguments: List[ArgumentSpec] = Field(default_factory=list)
     effects: List[EffectSpec] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_effects(self) -> "ActionSpec":
-        argument_names = {argument.value.name for argument in self.arguments}
+        argument_names = {argument.value.property_name for argument in self.arguments}
         for effect in self.effects:
             if effect.from_argument is not None and effect.from_argument not in argument_names:
                 raise ValueError("provide a valid argument name for from_argument")
@@ -48,7 +48,7 @@ class ActionSpec(BaseModel):
 
 class DeviceSpec(BaseModel):
     device_id: str
-    name: str
+    device_name: str
     device_type: str
     room_id: str
     properties: List[PropertySpec] = Field(min_length=1)
@@ -56,7 +56,7 @@ class DeviceSpec(BaseModel):
 
     @model_validator(mode="after")
     def validate_effects(self) -> "DeviceSpec":
-        property_names = {property_spec.name for property_spec in self.properties}
+        property_names = {property_spec.property_name for property_spec in self.properties}
         for action_spec in self.actions:
             for effect_spec in action_spec.effects:
                 if effect_spec.target_property not in property_names:
@@ -65,7 +65,7 @@ class DeviceSpec(BaseModel):
 
 class RoomSpec(BaseModel):
     room_id: str
-    name: str
+    room_name: str
     # properties: List[PropertySpec] = Field(default_factory=list)
 
 class State(BaseModel):
@@ -76,7 +76,7 @@ class State(BaseModel):
 
 class SceneSpec(BaseModel):
     rooms: List[RoomSpec] = Field(min_length=1)
-    devices: List[DeviceSpec] = Field(min_length=1)
+    devices: List[DeviceSpec] = Field(min_length=5, max_length=5)
 
     @model_validator(mode="after")
     def validate_ids(self) -> "SceneSpec":
@@ -92,23 +92,31 @@ class SceneSpec(BaseModel):
 
 # Task
 
-class DeviceCall(BaseModel):
+class PropertyCall(BaseModel):
     device_id: str
-    name: str
+    property_name: str
+
+class ActionCall(BaseModel):
+    device_id: str
+    action_name: str
     arguments: Dict[str, str | int | float | bool] = Field(default_factory=dict)
 
 class AgentInstruction(BaseModel):
     agent_id: str
-    instruction: str = Field(description="A natural language instruction describing the task or action to perform on the device")
+    instruction: str = Field(description="A natural language instruction describing the task or action to perform on the device.")
 
 class Task(BaseModel):
     user_utterance: str
-    expected_actions: List[DeviceCall] = Field(min_length=1)
+    expected_actions: List[ActionCall] = Field(min_length=1)
     goal_states: List[State] = Field(min_length=1)
 
-@tool(args_schema=DeviceCall)
-def call_device_api(device_id: str, name: str, arguments: Dict[str, str | int | float | bool] = {}):
-    """Call a device API for reading properties or invoking actions."""
+@tool(args_schema=PropertyCall)
+def get_device_property(device_id: str, property_name: str):
+    """Call a device API for reading properties."""
+
+@tool(args_schema=ActionCall)
+def call_device_action(device_id: str, action_name: str, arguments: Dict[str, str | int | float | bool] = {}):
+    """Call a device API for invoking actions."""
 
 @tool(args_schema=AgentInstruction)
 def instruct_agent(agent_id: str, instruction: str):

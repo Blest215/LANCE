@@ -30,8 +30,6 @@ load_dotenv()
 DATASET_FILENAME_PATTERN = re.compile(r'^dataset_D(\d+)_M(\d+)\.csv$')
 RESULT_FILENAME_PATTERN = r'^result_D(\d+)_M(\d+)\.csv$'
 
-VLLM_URL = "http://localhost:8000/v1"
-
 DATASET_DIR = "dataset"
 DB_PATH = f"{DATASET_DIR}/db"
 RESULT_DIR = "results"
@@ -39,12 +37,6 @@ SURVEY_PATH = "survey_result.csv"
 MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
 MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
-
-SYNTHESIZE_RETRY = 3
-TIMEOUT_LIMIT = 600
-TICK = 0.1
-
-REGISTRY_ID = "REGISTRY"
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
 
@@ -54,30 +46,10 @@ DEBUG = False
 
 MAX_OUTPUT_TOKENS = 2048
 MAX_CONTEXT = 4096
-GPU_MEMORY_UTILIZATION = 0.8
 
 # RECRUIT
 
 RECRUIT_SCREENING_THRESHOLD = 0.0
-
-# MQTT
-
-MQTT_RECONNECT_DELAY = 1
-MQTT_BROKER_ADDRESS = "localhost"
-MQTT_TOPIC_RESET = "reset"
-MQTT_TOPIC_RESPONSE = "response"
-# mode CONVERSATIONAL topics
-MQTT_TOPIC_CONVERSATIONAL_CALL = "call"
-# mode RECRUIT topics
-MQTT_TOPIC_RECRUIT_CALL = "recruit"
-# mode NATURAL topics
-MQTT_TOPIC_NATURAL_CONTROL = "natural"
-# mode CENTRALIZED topics (BASELINE)
-MQTT_TOPIC_STRUCTURED_CONTROL = "structured"
-MQTT_TOPIC_CENTRALIZED_DISCOVERY = "discovery"
-MQTT_TOPIC_CENTRALIZED_REGISTER = "register"
-# mode CLOUD topics
-# mode ONTOLOGY topics
 
 # Devices
 
@@ -85,21 +57,11 @@ DEVICE_FORMATS = ["W3C", "SmartThings", "Matter"]
 
 SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
 
-from pydantic import BaseModel, Field
-class Response(BaseModel):
-    agent_id: str
-    request: dict
-    success: bool
-    message: str
-
 def get_random_device_id():
     return str(uuid.uuid4())
 
 def get_random_request_id():
     return uuid.uuid4().hex
-
-def get_random_session():
-    return secrets.token_hex(16)
 
 def check_topic(formatted, unformatted):
     return formatted == unformatted.split("/")[0]    
@@ -145,13 +107,6 @@ def get_last_result():
         if os.listdir(f"{RESULT_DIR}/{code}"):
             return code
     return ""
-
-def get_gpu_utilization():
-    try:
-        result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], capture_output=True, text=True)
-        return int(result.stdout.strip().split('\n')[0])
-    except:
-        return 0
     
 def moving_average(l: list, window: int):
     while len(l) > window:
