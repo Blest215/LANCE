@@ -15,7 +15,7 @@ from tqdm import tqdm
 from datetime import datetime
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
+from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser, StrOutputParser
 from langchain_core.exceptions import OutputParserException
 from langchain.tools import tool
 from typing import List, Dict, Any, Optional, Literal
@@ -31,11 +31,8 @@ DATASET_FILENAME_PATTERN = re.compile(r'^dataset_D(\d+)_M(\d+)\.csv$')
 RESULT_FILENAME_PATTERN = r'^result_D(\d+)_M(\d+)\.csv$'
 
 DATASET_DIR = "dataset"
-DB_PATH = f"{DATASET_DIR}/db"
 RESULT_DIR = "results"
 SURVEY_PATH = "survey_result.csv"
-MATTER_CLUSTERS_PATH = f"{DB_PATH}/matter_clusters.json"
-MATTER_DEVICE_TYPES_PATH = f"{DB_PATH}/matter_device_types.json"
 SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
 
 ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
@@ -132,15 +129,16 @@ def remove_empty_results():
         elif not files:            
             os.rmdir(f"{RESULT_DIR}/{result_code}")
 
-def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | str, model):
+def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | dict | str, model):
     prompt_template = prompt if isinstance(prompt, ChatPromptTemplate) else ChatPromptTemplate.from_template(prompt)
     if pydantic_object == str:
         return prompt_template | model.instantiate() | StrOutputParser()
     if "qwen3.5" in model.model:
-        parser = PydanticOutputParser(pydantic_object=pydantic_object)
+        parser = JsonOutputParser() if isinstance(pydantic_object, dict) else PydanticOutputParser(pydantic_object=pydantic_object)
         return ChatPromptTemplate.from_messages([
             ("system", "[Format]\n{format}"),
             *prompt_template.messages,
-        ]).partial(format=parser.get_format_instructions())| model.instantiate() | parser
+        ]).partial(format=json.dumps(pydantic_object) if isinstance(pydantic_object, dict)
+                   else parser.get_format_instructions()) | model.instantiate() | parser
         
     return prompt_template | model.with_structured_output(pydantic_object)

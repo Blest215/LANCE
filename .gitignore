@@ -211,3 +211,5 @@ example.txt
 results/*
 survey_result.csv
 description.txt
+dataset/official_catalog
+tests
