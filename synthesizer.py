@@ -1,7 +1,8 @@
 from settings import *
 from model import Model
 from schema import *
-from device_synthesizer import get_profiles, complete_profile_device
+from device_synthesizer import get_profiles, complete_profile_device, render_device
+import random
 from simulator import Simulator
 
 SCENE_PROMPT = ChatPromptTemplate.from_template(
@@ -38,25 +39,19 @@ class ValidationResult(BaseModel):
     reason: str
 
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
-"""Check user_utterance and expected_actions against the survey and declared scene APIs.
-Reject missing targets/functions, unrelated actions, unsupported substitutions, schedules, conditions or queries. Not every surveyed device is needed; ordinary assistant acknowledgements need no action.
-Check control IDs, argument types, required fields, choices, units and enum meanings. Scalars must not be value objects. Heating requires heating capability; presets are not startup settings or brightness numbers. A 2 Celsius relative change needs SetpointRaiseLower.Amount=20.
-Accept reasonable concretization of unspecified ordinary values when explicit in user_utterance; do not demand an original numeric value for 'dim'. Preserve all explicit targets and relative changes.
-Configured enum_labels and synthetic URLs are valid dataset bindings: LaunchURL can select the named content without LaunchContent or an extra Play. Bare Play does not identify named content. Do not demand live provider access or prefer one equivalent API arbitrarily.
-Reject only concrete mismatches. Return valid and a brief reason identifying the unmet requirement or invalid action.
+"""Validate the generated scenario:
+1. user_utterance is a natural, self-contained pure-control request with clear targets and values.
+2. expected_actions match its full meaning: devices, rooms, content, values, units and enum meanings, without missing or unrelated actions.
+3. Scene devices are realistic products with plausible capabilities, names and room placements. Extra devices are allowed.
+API syntax is checked separately. Accept equivalent APIs and configured synthetic bindings; do not require live services. Reject only concrete issues, not stylistic preferences.
+Return valid and a brief reason.
 
-Survey Response:
-[Space] {space}
-[Command] {user_command}
-[Expected] {expected_behavior}
-
-Generated:
 [Scene] {scene}
 [Task] {task}
 """)
 
 def generate_device(device_spec: DeviceDraft, index: int) -> Device:
-    return complete_profile_device(device_spec, index)
+    return render_device(complete_profile_device(device_spec, index), random.choice(DEVICE_FORMATS))
 
 def generate_scenario(answer_dict: dict, device_count=5):
     if device_count < 1:
@@ -80,13 +75,13 @@ def generate_scenario(answer_dict: dict, device_count=5):
             debug(scene)
 
             simulator = Simulator(scene)
-            rendered_scene = simulator.task_scene()
+            rendered_scene = simulator.render()
             task = task_generator.invoke(answer_dict | {"scene": rendered_scene})
             debug(task)
             for action in task.expected_actions:
                 simulator.validate_action(action)
 
-            validation_result = validator.invoke(answer_dict | {"scene": rendered_scene, "task": task})
+            validation_result = validator.invoke({"scene": rendered_scene, "task": task})
             if not validation_result.valid:
                 return {"model": model.name, "scene": validation_result.reason}
 
@@ -94,14 +89,6 @@ def generate_scenario(answer_dict: dict, device_count=5):
 
         except Exception as e:
             debug(e)
-
-def rendering(scene_spec, task):
-    # TODO: Matter, W3C TD, SmartThings.
-    return None
-
-def validate_scenario(scene, task):
-    # TODO: Validate rendered interfaces and task fulfillment.
-    return None
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()

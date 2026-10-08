@@ -9,24 +9,28 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
     scores = []
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
-        simulator = Simulator(eval(scenario.scene), model)
-        task = Task.model_validate(eval(scenario.task))
-        user = mode(model)
+        try:
+            simulator = Simulator(eval(scenario.scene), model)
+            task = Task.model_validate(eval(scenario.task))
+            user = mode(model)
+        except SyntaxError:
+            continue
 
         try:
             user.main(simulator, task.user_utterance)
         except Exception as e:
             debug(e)
 
-        consequences.append(simulator.render())
+        consequences.append(simulator.action_calls)
         times.append(user.time_log)
         scores.append(simulator.evaluate(task))
 
     return consequences, times, scores
 
-def simulation(code, dataset_path, models, modes):
-    result_path = f"{RESULT_DIR}/{code}/{dataset_path.replace('dataset', 'result')}"
-    result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.read_csv(f"{DATASET_DIR}/{dataset_path}")
+def simulation(code, dataset_file, models, modes):
+    dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}")
+    result_path = f"{RESULT_DIR}/{code}/{dataset_file.replace('dataset', 'result')}"
+    result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
     done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
     for model in models:
@@ -36,16 +40,15 @@ def simulation(code, dataset_path, models, modes):
             if get_column_name("CONSEQUENCES", model, mode.__name__) in done_columns:
                 continue
 
-            consequences, times, scores = simulate_scenarios(model, mode, list(result_df.itertuples()))
+            consequences, times, scores = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
 
             result_df = pd.concat([result_df, pd.DataFrame({
                 get_column_name("CONSEQUENCES", model, mode.__name__): consequences,
                 get_column_name("TIME", model, mode.__name__): times,
                 get_column_name("SCORE", model, mode.__name__): scores,
             })], axis=1)
-
+            save_dataframe(result_df, path=result_path)
         model.wrapup()
-        save_dataframe(result_df, path=result_path)
     
     save_dataframe(result_df, path=result_path, ensure=True)
     return result_path

@@ -1,5 +1,9 @@
-from catalog import SOURCE, DEVICE_TYPES, CLUSTERS, STANDARD_CATALOG, PROFILES, PROFILE_FEATURES
-from schema import DeviceDraft, MatterDeviceSpec, MatterDevice, MatterEndpoint, MatterCluster
+from catalog import DEVICE_TYPES, CLUSTERS, STANDARD_CATALOG, PROFILES, PROFILE_FEATURES
+from schema import (DeviceDraft, MatterDeviceSpec, MatterDevice, MatterEndpoint, MatterCluster,
+                    W3CDevice, W3CThingDescription, SmartThingsDevice, SmartThingsProfile,
+                    SmartThingsCapability, SmartThingsComponent)
+from urllib.parse import quote
+from uuid import NAMESPACE_URL, uuid5
 from itertools import product
 import random
 import re
@@ -63,6 +67,7 @@ def _definition(node, types, scalar=None):
     if "conformance" not in value:
         value["conformance"] = [_rule(child) for child in node["children"] if child["tag"].endswith("Conform")]
     datatype = types.get(data_type.removeprefix("ref_").removesuffix(" Type."))
+    datatype = next((child for child in node["children"] if child["tag"] in {"enum", "bitmap"}), datatype)
     if data_type == "ref_CharacteristicEnum":
         datatype = _standard_members(_STANDARD_CLUSTERS["0x0506"], "dataTypes")["CharacteristicEnum"]
     if data_type == "list":
@@ -73,17 +78,17 @@ def _definition(node, types, scalar=None):
                   for child in datatype["children"] if child["tag"] == "field"]}
     elif data_type == "MessageID":
         value |= {"value_type": "string", "min_length": 16, "max_length": 16}
+    elif datatype and datatype["tag"] == "enum":
+        labels = {number: child["attributes"]["name"] for child in datatype["children"] if child["tag"] == "item"
+                  for number in ([int(child["attributes"]["value"], 0)] if "value" in child["attributes"] else
+                      range(int(child["attributes"]["from"], 0), int(child["attributes"]["to"], 0) + 1))}
+        value.setdefault("enum_values", list(labels))
+        value |= {"value_type": "integer", "enum_labels": labels}
     elif "value_type" not in value:
-        if datatype and datatype["tag"] in {"enum", "bitmap"}:
-            value["value_type"] = "integer"
-            members = datatype["children"]
-            if datatype["tag"] == "enum":
-                labels = {value: child["attributes"]["name"] for child in members if child["tag"] == "item"
-                          for value in ([int(child["attributes"]["value"], 0)] if "value" in child["attributes"] else
-                              range(int(child["attributes"]["from"], 0), int(child["attributes"]["to"], 0) + 1))}
-                value |= {"enum_values": list(labels), "enum_labels": labels}
-            else:
-                value |= {"minimum": 0, "maximum": sum(1 << int(child["attributes"]["bit"]) for child in members if child["tag"] == "bitfield")}
+        if datatype and datatype["tag"] == "bitmap":
+            value |= {"value_type": "integer", "minimum": 0,
+                "maximum": sum(1 << int(child["attributes"]["bit"])
+                    for child in datatype["children"] if child["tag"] == "bitfield")}
         elif data_type in {"string", "octstr", "bool", "single", "double"}:
             value["value_type"] = {"bool": "boolean", "single": "number", "double": "number"}.get(data_type, "string")
         else:
@@ -151,6 +156,123 @@ def complete_profile_device(draft: DeviceDraft, index: int) -> MatterDevice:
     device.profile_id = draft.profile_id
     _apply_options(device, draft.options)
     return device
+
+def json_schema(field):
+    schema = {key: field[key] for key in ("minimum", "maximum", "unit") if key in field}
+    kind = field["property_type"]
+    if kind != "opaque":
+        schema["type"] = kind
+    for source, target in (("enum_values", "enum"), ("enum_labels", "x-enumLabels"),
+                           ("min_length", "minItems" if kind == "array" else "minLength"),
+                           ("max_length", "maxItems" if kind == "array" else "maxLength")):
+        if source in field:
+            schema[target] = field[source]
+    if kind == "object" and "fields" in field:
+        schema |= argument_schema(field["fields"])
+    if kind == "array":
+        schema["items"] = json_schema(field["items"])
+    return {"oneOf": [schema, {"type": "null"}]} if field.get("nullable") and kind != "opaque" else schema
+
+def argument_schema(fields):
+    return {"type": "object", "properties": {field["name"]: json_schema(field) for field in fields},
+            "required": [field["name"] for field in fields if field.get("required")],
+            "additionalProperties": False}
+
+def render_device(device: MatterDevice, protocol: str):
+    if protocol == "Matter":
+        return device
+    identity = {key: getattr(device, key) for key in ("device_id", "device_name", "room_id", "profile_id")}
+    return {"W3C": _w3c_device, "SmartThings": _smartthings_device}[protocol](device, identity)
+
+
+def _name(name):
+    words = re.findall(r"[A-Za-z0-9]+", name)
+    return words[0][0].lower() + words[0][1:] + "".join(word.capitalize() for word in words[1:])
+
+
+def _unique_name(name, interactions):
+    name = _name(name)
+    candidate, index = name, 2
+    while candidate in interactions:
+        candidate = f"{name}{index}"
+        index += 1
+    return candidate
+
+
+def _w3c_device(device, identity):
+    properties, actions = {}, {}
+    base = f"https://devices.example.test/{quote(device.device_id, safe='')}"
+    for endpoint in device.endpoints:
+        for cluster in endpoint.clusters:
+            for attribute in cluster.attributes:
+                name = _unique_name(attribute["name"], properties)
+                properties[name] = json_schema(attribute) | {"title": attribute["name"],
+                    "readOnly": not attribute["writable"], "forms": [{"href": f"{base}/properties/{name}",
+                        "op": ["readproperty", "writeproperty"] if attribute["writable"] else ["readproperty"]}]}
+            for command in cluster.commands:
+                name = _unique_name(command["name"], actions)
+                actions[name] = {"title": command["name"], "input": argument_schema(command["fields"]),
+                    "forms": [{"href": f"{base}/actions/{name}", "op": ["invokeaction"]}]}
+    return W3CDevice(**identity, td=W3CThingDescription(
+        id=f"urn:uuid:{uuid5(NAMESPACE_URL, base)}", title=device.device_name,
+        securityDefinitions={"nosec_sc": {"scheme": "nosec"}}, security=["nosec_sc"],
+        properties=properties, actions=actions))
+
+
+def _smartthings_device(device, identity):
+    components, capabilities = [], {}
+    for index, endpoint in enumerate(device.endpoints, 1):
+        refs = []
+        for cluster in endpoint.clusters:
+            if not cluster.attributes and not cluster.commands:
+                continue
+            attributes, commands = {}, {}
+            for command in cluster.commands:
+                name = _name(command["name"])
+                commands[name] = {"name": name, "arguments": [{"name": field["name"],
+                    "optional": not field.get("required"), "schema": json_schema(field)} for field in command["fields"]]}
+            for attribute in cluster.attributes:
+                name = _name(attribute["name"])
+                attributes[name] = {"schema": {"type": "object", "properties": {"value": json_schema(attribute)},
+                    "required": ["value"], "additionalProperties": False}}
+                if attribute["writable"]:
+                    setter = "write" + attribute["name"]
+                    attributes[name]["setter"] = setter
+                    commands[setter] = {"name": setter, "arguments": [{"name": "value", "schema": json_schema(attribute)}]}
+            signature = json.dumps({"attributes": attributes, "commands": commands}, sort_keys=True)
+            label = {6: "Power", 8: "Brightness", 98: "Presets", 257: "Lock", 258: "Covering",
+                     513: "Temperature", 514: "Fan", 768: "Color", 1286: "Playback",
+                     1290: "Content"}.get(cluster.cluster_id, cluster.name)
+            identifier = f"custom.{_name(label)}{uuid5(NAMESPACE_URL, signature).hex[:12]}"
+            capabilities[identifier] = SmartThingsCapability(id=identifier, name=label, attributes=attributes, commands=commands)
+            refs.append({"id": identifier, "version": 1})
+        components.append(SmartThingsComponent(id="main" if index == 1 else f"component{index}",
+            label=device.device_name if index == 1 else f"Controls {index}", capabilities=refs))
+    return SmartThingsDevice(**identity, profile=SmartThingsProfile(name=device.device_name, components=components),
+                            capabilities=list(capabilities.values()))
+
+
+def device_description(device):
+    if isinstance(device, W3CDevice):
+        return _document(device.td.model_dump(by_alias=True, exclude_none=True))
+    if isinstance(device, SmartThingsDevice):
+        documents = [("SmartThings Device Profile", device.profile)] + [
+            ("SmartThings Capability Definition", cap) for cap in device.capabilities]
+        return "\n\n".join(f"{title}\n{_document(spec.model_dump(by_alias=True, exclude_none=True))}"
+                             for title, spec in documents)
+    return "Matter node data model\n" + _document(device.model_dump(
+        include={"node_id", "endpoints"}, exclude_none=True))
+
+
+def _document(value):
+    """Omit only default metadata; retain API schemas and native identifiers."""
+    def compact(value):
+        if isinstance(value, dict):
+            return {key: compact(item) for key, item in value.items()
+                    if not (key in {"nullable", "timed", "writeOnly"} and item is False)
+                    and not (key in {"categories", "required"} and item == [])}
+        return list(map(compact, value)) if isinstance(value, list) else value
+    return json.dumps(compact(value), ensure_ascii=False, separators=(",", ":"))
 
 def _apply_options(device, options):
     if not options:
@@ -271,7 +393,6 @@ def get_clusters(device_type, cluster_ids, commands=None, properties=None, allow
                 | ({"allowed_features": allowed_features[identifier]} if allowed_features and identifier in allowed_features else {})
             for identifier in cluster_ids
         },
-        "provenance": SOURCE | {"device_type_id": device["device_type_id"], "clusters": cluster_ids},
         "allowed_features": allowed_features,
     }
 
