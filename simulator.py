@@ -1,6 +1,7 @@
 from settings import *
 from schema import *
 from model import Model
+from collections import Counter
 
 class ScreeningResult(BaseModel):
     relevance: float = Field(description="How much you can contribute to the task. 0 <= score <= 1", ge=0, le=1)
@@ -13,37 +14,23 @@ Can you contribute to the following request? {request}""")
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
 """You are an AI agent that controls the following device: {description}
 Control the device for the request: {request}
-Use argument property_name keys.""")
+Use native device_id, endpoint_id and cluster_id. Invoke command_id with named arguments, or write a writable attribute_id with value.""")
 
 class DeviceAgent:
-    def __init__(self, spec: DeviceSpec, model: Model | None):
+    def __init__(self, spec: Device, model: Model | None, simulator):
         self.agent_id = spec.device_id
         self.spec = spec
-        self.properties = {property_spec.property_name: property_spec.initial_value for property_spec in self.spec.properties}
-        self.property_specs = {property_spec.property_name: property_spec for property_spec in self.spec.properties}
-        self.actions = {action_spec.action_name: action_spec for action_spec in self.spec.actions}
+        self.simulator = simulator
 
         self.model = model
         if self.model is not None:
             self.screener = create_generator(SCREENER_PROMPT, ScreeningResult, model)
             # TODO ReAct
-            self.controller = CONTROLLER_PROMPT | model.with_tools([get_device_property, call_device_action])
+            self.controller = CONTROLLER_PROMPT | model.with_tools([call_device_matter])
 
     @property
     def description(self) -> str:
-        properties = []
-        for prop in self.spec.properties:
-            domain = prop.model_dump(exclude_none=True, exclude={"initial_value"})
-            domain["value"] = self.properties[prop.property_name]
-            properties.append(domain)
-        actions = []
-        for action in self.spec.actions:
-            actions.append({"action_name": action.action_name, "description": action.description,
-                            "arguments": [argument.model_dump(exclude_none=True, exclude={"initial_value"})
-                                          for argument in action.arguments], "required": action.required})
-        return json.dumps({"device_id": self.spec.device_id, "device_name": self.spec.device_name,
-                           "device_type": self.spec.device_type, "room_id": self.spec.room_id,
-                           "properties": properties, "actions": actions}, ensure_ascii=False)
+        return self.spec.model_dump_json(exclude={"provenance"}, exclude_none=True)
     
     def screen(self, request: str, structured: bool):
         result = self.screener.invoke({"description": self.description, "request": request})
@@ -51,78 +38,110 @@ class DeviceAgent:
 
     def instruct(self, instruction: str):
         result = self.controller.invoke({"description": self.description, "request": instruction})
-        return [self.call(tool_call["args"]["action_name"], tool_call["args"].get("arguments", {})) for tool_call in result.tool_calls]
+        return [self.call(**tool_call["args"]) for tool_call in result.tool_calls]
 
-    def get(self, property_name: str):    
-        if property_name in self.properties:
-            return self.properties[property_name]
-        raise ValueError(f"UNKNOWN NAME: {property_name} for {self.spec.device_name}")
-
-    def call(self, action_name: str, arguments: Dict[str, str | int | float | bool] | None = None):
-        arguments = {} if arguments is None else arguments
-        if action_name in self.actions:
-            action = self.actions[action_name]
-            allowed = {argument.property_name for argument in action.arguments}
-            if set(arguments) - allowed:
-                raise ValueError(f"UNKNOWN_ARGUMENT: {sorted(set(arguments) - allowed)}")
-            missing = set(action.required) - set(arguments)
-            if missing:
-                raise ValueError(f"MISSING_ARGUMENT: {sorted(missing)}")
-            for argument_spec in action.arguments:
-                name = argument_spec.property_name
-                if name in arguments:
-                    argument_spec.validate_value(arguments[name])
-
-            updates = dict(self.properties)
-            for effect_spec in action.effects:
-                original_value = updates[effect_spec.target_property]
-                if isinstance(effect_spec, ToggleEffectSpec):
-                    if type(original_value) is not bool:
-                        raise ValueError("toggle requires a boolean property")
-                    update = not original_value
-                else:
-                    if isinstance(effect_spec, FromArgumentEffectSpec):
-                        if effect_spec.argument_name not in arguments:
-                            raise ValueError(f"MISSING_ARGUMENT: {effect_spec.argument_name}")
-                        value = arguments[effect_spec.argument_name]
-                    else:
-                        value = effect_spec.constant
-                    if effect_spec.operation == "set":
-                        update = value
-                    else:
-                        if type(original_value) not in (int, float) or type(value) not in (int, float):
-                            raise ValueError("only numeric values can be added or subtracted")
-                        update = original_value + value if effect_spec.operation == "add" else original_value - value
-                updates[effect_spec.target_property] = update
-            for name, value in updates.items():
-                self.property_specs[name].validate_value(value)
-            self.properties = updates
-            return
-        raise ValueError(f"UNKNOWN NAME: {action_name} for {self.spec.device_name}")
+    def call(self, device_id, **request):
+        if device_id != self.agent_id:
+            raise ValueError(f"UNSUPPORTED_DEVICE: {device_id}")
+        return self.simulator.call(device_id=device_id, **request)
 
 class Simulator:
-    def __init__(self, scene: dict, model: Model | None):
-        self.rooms = scene["rooms"]
-        self.devices = [DeviceSpec.model_validate(device) for device in scene["devices"]]
+    def __init__(self, scene: Scene | dict, model: Model | None = None):
+        parsed = Scene.model_validate(scene)
+        self.rooms = [room.model_dump() for room in parsed.rooms]
+        self.devices = parsed.devices
+        if len({device.device_id for device in self.devices}) != len(self.devices):
+            raise ValueError("device IDs must be unique within a scene")
+        self.controls = {device.device_id: self.device_controls(device) for device in self.devices}
         self.reset(model)
 
+    @staticmethod
+    def control_id(endpoint_id, cluster_id, operation, member_id):
+        return f"{endpoint_id}/{cluster_id}/{operation}/{member_id}"
+
+    @classmethod
+    def device_controls(cls, device):
+        if not isinstance(device, MatterDevice):
+            raise NotImplementedError("W3C and SmartThings control mappings are not implemented")
+        controls = {}
+        for endpoint in device.endpoints:
+            for cluster in endpoint.clusters:
+                for command in cluster.commands:
+                    key = cls.control_id(endpoint.endpoint_id, cluster.cluster_id, "invoke", command["command_id"])
+                    controls[key] = {"name": command["name"],
+                        "arguments": {field["name"]: field for field in command["fields"]}}
+                for attribute in cluster.attributes:
+                    if attribute["writable"]:
+                        key = cls.control_id(endpoint.endpoint_id, cluster.cluster_id, "write", attribute["attribute_id"])
+                        controls[key] = {"name": attribute["name"],
+                            "arguments": {"value": attribute | {"required": True}}}
+        return controls
+
+    @classmethod
+    def _normalize(cls, value, field):
+        if value is None and field.get("nullable"):
+            return None
+        kind = field["property_type"]
+        types = {"boolean": (bool,), "integer": (int,), "number": (int, float),
+                 "string": (str,), "array": (list,), "object": (dict,)}
+        if kind in types and type(value) not in types[kind]:
+            raise ValueError(f"Invalid type for {field['name']}")
+        if "enum_values" in field and value not in field["enum_values"]:
+            raise ValueError(f"Invalid choice for {field['name']}")
+        for bound, compare in (("minimum", lambda a, b: a < b), ("maximum", lambda a, b: a > b)):
+            if bound in field and compare(value, field[bound]):
+                raise ValueError(f"Out of range: {field['name']}")
+        for bound, compare in (("min_length", lambda a, b: a < b), ("max_length", lambda a, b: a > b)):
+            if bound in field and compare(len(value), field[bound]):
+                raise ValueError(f"Invalid length: {field['name']}")
+        if kind == "array":
+            return [cls._normalize(item, field["items"]) for item in value]
+        if kind == "object" and "fields" in field:
+            return cls._arguments(value, {member["name"]: member for member in field["fields"]})
+        return float(value) if kind == "number" else value
+
+    @classmethod
+    def _arguments(cls, arguments, fields):
+        if arguments.keys() - fields.keys():
+            raise ValueError("Unknown argument")
+        if {name for name, field in fields.items() if field.get("required")} - arguments.keys():
+            raise ValueError("Missing required argument")
+        return {name: cls._normalize(value, fields[name]) for name, value in arguments.items()}
+
+    def validate_action(self, action: ExpectedAction):
+        if action.device_id not in self.controls:
+            raise ValueError(f"UNSUPPORTED_DEVICE: {action.device_id}")
+        controls = self.controls[action.device_id]
+        if action.control_id not in controls:
+            raise ValueError(f"Unsupported control: {action.control_id}")
+        arguments = self._arguments(action.arguments, controls[action.control_id]["arguments"])
+        return action.model_copy(update={"arguments": arguments})
+
+    def task_scene(self):
+        return {"rooms": self.rooms, "devices": [
+            {"device_id": device.device_id, "device_name": device.device_name, "room_id": device.room_id,
+             "controls": self.controls[device.device_id]} for device in self.devices]}
+
     def reset(self, model):
-        self.agents = {device_spec.device_id: DeviceAgent(device_spec, model) for device_spec in self.devices}
+        self.action_calls = []
+        self.agents = {device.device_id: DeviceAgent(device, model, self) for device in self.devices}
 
-    def get(self, device_id: str, property_name: str):
+    def call(self, device_id, endpoint_id, cluster_id,
+             command_id=None, attribute_id=None, arguments=None, **request):
+        if command_id is not None and attribute_id is None and (not request or request == {"value": None}):
+            operation, member_id, payload = "invoke", command_id, arguments or {}
+        elif attribute_id is not None and command_id is None and not arguments and set(request) == {"value"}:
+            operation, member_id, payload = "write", attribute_id, {"value": request["value"]}
+        else:
+            raise ValueError("Invalid Matter call")
+        action = ExpectedAction(device_id=device_id,
+            control_id=self.control_id(endpoint_id, cluster_id, operation, member_id), arguments=payload)
+        self.action_calls.append(self.validate_action(action))
+
+    def instruct(self, device_id: str, instruction: str):
         if device_id not in self.agents:
-            raise ValueError(f"UNKNOWN_DEVICE_ID: {device_id}")
-        return self.agents[device_id].get(property_name)
-
-    def call(self, device_id: str, action_name: str, arguments: Dict[str, str | int | float | bool] | None = None):
-        if device_id not in self.agents:
-            raise ValueError(f"UNKNOWN_DEVICE_ID: {device_id}")
-        return self.agents[device_id].call(action_name, arguments)
-
-    def instruct(self, agent_id: str, instruction: str):
-        if agent_id not in self.agents:
-            raise ValueError(f"UNKNOWN_DEVICE_ID: {agent_id}")
-        return self.agents[agent_id].instruct(instruction)
+            raise ValueError(f"UNSUPPORTED_DEVICE: {device_id}")
+        return self.agents[device_id].instruct(instruction)
 
     def discovery(self):
         return [f"{agent.agent_id}: {agent.description}" for agent in self.agents.values()]
@@ -131,23 +150,16 @@ class Simulator:
         return [agent.screen(request, structured) for agent in self.agents.values()]
 
     def evaluate(self, task: Task):
-        scores = []
-        for goal_state in task.goal_states:
-            try:
-                if goal_state.entity_type == "device":
-                    agent = self.agents[goal_state.entity_id]
-                    agent.property_specs[goal_state.attribute].validate_value(goal_state.value)
-                    scores.append(1 if agent.properties[goal_state.attribute] == goal_state.value else 0)
-            except (KeyError, ValueError):
-                scores.append(0)
-        return sum(scores) / len(scores)        
+        def freeze(value):
+            if isinstance(value, dict):
+                return dict, tuple((tag, freeze(item)) for tag, item in sorted(value.items()))
+            if isinstance(value, list):
+                return list, tuple(map(freeze, value))
+            return type(value), value
 
-    def render(self):
-        return {device_id: device.properties for device_id, device in self.agents.items()}
-
-    def print(self):
-        for device_id, device in self.agents.items():
-            for name, value in device.properties.items():
-                print(f"[{device_id}] {name}: {value}")
-            for name, value in device.actions.items():
-                print(f"[{device_id}] {name}: {value}")
+        def key(call):
+            call = self.validate_action(call)
+            return call.device_id, call.control_id, freeze(call.arguments)
+        actual = Counter(map(key, self.action_calls))
+        expected = Counter(map(key, task.expected_actions))
+        return sum((actual & expected).values()) / len(task.expected_actions)

@@ -45,13 +45,13 @@ class UserAgent(ABC):
         return result
 
     @abstractmethod
-    def control_handler(self, simulator: Simulator, calls: List[PropertyCall | ActionCall]):
+    def control_handler(self, simulator: Simulator, calls: List[dict]):
         pass
 
 
 class CENTRALIZED(UserAgent):
     def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools([get_device_property, call_device_action])
+        self.controller = CONTROLLER_PROMPT | self.model.with_tools([call_device_matter])
 
     def discovery_handler(self, simulator, user_utterance):
         return simulator.discovery()
@@ -60,10 +60,7 @@ class CENTRALIZED(UserAgent):
         return self.controller.invoke({"description": descriptions, "request": user_utterance})
 
     def control_handler(self, simulator, calls):
-        return [
-            simulator.get(**call["args"]) if call["name"] == "get_device_property" else simulator.call(**call["args"])
-            for call in calls
-        ]
+        return [simulator.call(**call["args"]) for call in calls]
 
 class NATURAL(UserAgent):
     def setup(self):
@@ -81,7 +78,7 @@ class NATURAL(UserAgent):
 
 class RECRUIT(UserAgent):
     def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools([get_device_property, call_device_action])
+        self.controller = CONTROLLER_PROMPT | self.model.with_tools([call_device_matter])
 
     def discovery_handler(self, simulator, user_utterance):
         return simulator.recruit(user_utterance, structured=True)
@@ -90,10 +87,7 @@ class RECRUIT(UserAgent):
         return self.controller.invoke({"description": descriptions, "request": user_utterance})
 
     def control_handler(self, simulator, calls):
-        return [
-            simulator.get(**call["args"]) if call["name"] == "get_device_property" else simulator.call(**call["args"])
-            for call in calls
-        ]
+        return [simulator.call(**call["args"]) for call in calls]
 
 class CONVERSATIONAL(UserAgent):
     def setup(self):

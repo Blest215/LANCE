@@ -1,13 +1,18 @@
 from settings import *
 from model import Model
 from schema import *
+from device_synthesizer import get_profiles, complete_profile_device
 from simulator import Simulator
-from device_synthesizer import get_choices, get_details, device_api
 
 SCENE_PROMPT = ChatPromptTemplate.from_template(
-"""Create a realistic pure-control scene using exact catalog device types and cluster IDs.
-Include only devices needed for the command and its dependencies, preserving the full survey intent.
-Not every surveyed device is required.
+"""Create realistic rooms and DeviceDrafts by selecting profile_id from the catalog.
+Include only independently controlled devices needed for the full intent, covering every requested room. Equipment sharing one controlled plug needs no separate controls.
+Follow profile capabilities, not device names: a cooling-only AC is not a heater. Speaker On/Off is mute/unmute, not power.
+DeviceDraft.options lists user-specific information: plain content names (include artist/provider), robot cleaning areas, appliance modes or lighting presets. Preserve names or descriptive aliases such as 'my favorite Spotify playlist'; use [] otherwise. Do not list platform brands alone or invent preset capabilities.
+Pure control only: reject schedules, conditions, queries, shopping and pairing; ordinary assistant acknowledgements are not device requirements. Immediate preset activation is not scheduling.
+Content App supports content launch/playback, not shuffle, playlist edits or content recognition.
+Set solvable=false if any required function is unsupported; do not silently drop it. Unspecified ordinary control values may be concretized consistently in the task.
+Always explain the device/profile choices and any unsupported requirements in reason.
 
 [Catalog] {catalog}
 [Space] {space}
@@ -15,38 +20,17 @@ Not every surveyed device is required.
 [Expected] {expected_behavior}
 """)
 
-# ADDITIONAL_SCENE_PROMPT = ChatPromptTemplate.from_template(
-# """Add {count} devices suited to existing rooms and unrelated to the command.
-# Use unused surveyed devices first; introduce other devices only if none remain.
-
-# [Catalog] {catalog}
-# [Scene] {scene}
-# [Space] {space}
-# [Devices] {devices}
-# [Command] {user_command}
-# [Expected] {expected_behavior}
-# """)
-
-EFFECT_PROMPT = ChatPromptTemplate.from_template(
-"""Convert the action into exact immediate property effects for all valid argument values, independently of initial state.
-Use only supplied property and argument names, compatible types and raw Matter units.
-Use set, add or subtract with supplied argument_name or action-defined constants; toggle only boolean properties.
-Never use argument defaults as constants.
-No timing, conditions, simulated measurements or unsupported transformations.
-
-[Properties] {properties}
-[Action] {action}
-""")
-
 TASK_PROMPT = ChatPromptTemplate.from_template(
 """Create a pure-control Task preserving the full survey intent and explicit device/room/content targets.
-Use exact scene names and valid argument values. Argument keys are property_name values.
-Add no unrelated goals.
-Goals must be achieved by expected_actions and not all satisfied initially.
+Cover every requested target with only necessary actions. Preserve explicit values; concretize unspecified ordinary values consistently and make those choices explicit in user_utterance.
+Use declared control_id and named arguments with their exact types, required fields and configured choices. Command scalars are direct values, never wrapped in a value object; only property writes use arguments.value.
+Select named content via its configured enum_labels/URL binding or matching search fields; a provider name alone is not content. Play resumes playback; presets use RecallScene, not brightness levels or startup settings.
+Respect units and enum meanings: SetpointRaiseLower.Amount uses 0.1 Celsius (increase 2 Celsius = 20); thermostat setpoints use 0.01 Celsius. Resolve unspecified temperature units plausibly and state the unit. Use relative commands for relative requests, not invented initial states.
+Return user_utterance and expected_actions, without automation or assistant acknowledgement actions.
 
+[Scene] {scene}
 [Command] {user_command}
 [Expected] {expected_behavior}
-[Scene] {scene}
 """)
 
 class ValidationResult(BaseModel):
@@ -54,50 +38,25 @@ class ValidationResult(BaseModel):
     reason: str
 
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
-"""Check that utterance, actions and goals preserve the full survey intent using only scene APIs.
-Reject omissions, substitutions, approximations, unrelated goals or automation.
-Explicit room/content/temperature targets must be fulfilled; generic playback does not select requested content.
-Not every surveyed device is required. Return valid and reason.
+"""Check user_utterance and expected_actions against the survey and declared scene APIs.
+Reject missing targets/functions, unrelated actions, unsupported substitutions, schedules, conditions or queries. Not every surveyed device is needed; ordinary assistant acknowledgements need no action.
+Check control IDs, argument types, required fields, choices, units and enum meanings. Scalars must not be value objects. Heating requires heating capability; presets are not startup settings or brightness numbers. A 2 Celsius relative change needs SetpointRaiseLower.Amount=20.
+Accept reasonable concretization of unspecified ordinary values when explicit in user_utterance; do not demand an original numeric value for 'dim'. Preserve all explicit targets and relative changes.
+Configured enum_labels and synthetic URLs are valid dataset bindings: LaunchURL can select the named content without LaunchContent or an extra Play. Bare Play does not identify named content. Do not demand live provider access or prefer one equivalent API arbitrarily.
+Reject only concrete mismatches. Return valid and a brief reason identifying the unmet requirement or invalid action.
 
+Survey Response:
 [Space] {space}
-[Devices] {devices}
 [Command] {user_command}
 [Expected] {expected_behavior}
+
+Generated:
 [Scene] {scene}
 [Task] {task}
 """)
 
-def generate_device(device: DeviceSpecMatter, index: int):
-    api = device_api(get_details(device.device_type, device.clusters))
-    properties = [PropertySpec.model_validate(property) for property in api["properties"].values()]
-    property_names = [property_spec.property_name for property_spec in properties]
-
-    actions = []
-    for action in api["actions"].values():
-        if "effects" in action:
-            actions.append(ActionSpec.model_validate(action))
-            continue
-        while True:
-            try:
-                print(action)
-                effect_generator = effect_generator_arguments if action["arguments"] else effect_generator_not_arguments
-                effect = effect_generator.invoke({"properties": properties, "action": action})
-                print(effect)
-                for effect_spec in effect.effects:
-                    if effect_spec.target_property not in property_names:
-                        raise ValueError("Invalid property name")
-                actions.append(ActionSpec.model_validate(action | {"effects": effect.effects}))
-                break
-            except Exception as e:
-                debug(e)
-    return DeviceSpec.model_validate({
-        "device_id": f"d{index}",
-        "device_name": f"{device.room_id} {device.device_type} {index + 1}",
-        "device_type": device.device_type,
-        "room_id": device.room_id,
-        "properties": properties,
-        "actions": actions,
-    })
+def generate_device(device_spec: DeviceDraft, index: int) -> Device:
+    return complete_profile_device(device_spec, index)
 
 def generate_scenario(answer_dict: dict, device_count=5):
     if device_count < 1:
@@ -107,62 +66,41 @@ def generate_scenario(answer_dict: dict, device_count=5):
     while True:
         try:
             scene_spec = scene_generator.invoke(answer_dict)
+            if not scene_spec.solvable:
+                return {"model": model.name, "scene": scene_spec.reason}
+            
             if len(scene_spec.devices) > device_count:
-                raise ValueError("Too many required devices")
-            devices = [generate_device(device_spec, i) for i, device_spec in enumerate(scene_spec.devices)]
-            scene = {"rooms": scene_spec.rooms, "devices": devices}
+                return {"model": model.name, "scene": "Too many devices are required"}
+
+            devices = [generate_device(device, index) for index, device in enumerate(scene_spec.devices)]
+            scene = Scene.model_validate({
+                "rooms": scene_spec.rooms,
+                "devices": devices
+            })
             debug(scene)
 
-            task = task_generator.invoke(answer_dict | {"scene": scene})
+            simulator = Simulator(scene)
+            rendered_scene = simulator.task_scene()
+            task = task_generator.invoke(answer_dict | {"scene": rendered_scene})
             debug(task)
+            for action in task.expected_actions:
+                simulator.validate_action(action)
 
-            simulator = Simulator(scene, None)
+            validation_result = validator.invoke(answer_dict | {"scene": rendered_scene, "task": task})
+            if not validation_result.valid:
+                return {"model": model.name, "scene": validation_result.reason}
 
-            if simulator.evaluate(task) >= 1:
-                raise ValueError()
-            for expected_action in task.expected_actions:
-                simulator.call(**expected_action.model_dump())
-            if simulator.evaluate(task) < 1:
-                raise ValueError()
-            # validation_result = validator.invoke(answer_dict | {
-            #     "scene": scene, "task": task.model_dump()
-            # })
-            # if not validation_result.valid:
-            #     debug(validation_result.reason)
-            #     raise ValueError(validation_result.reason)
-
-            break
+            return {"model": model.name, "scene": scene.model_dump(), "task": task.model_dump()}
 
         except Exception as e:
             debug(e)
 
-    # while True:
-    #     try:
-    #         if count := device_count - len(devices):
-    #             used_types = {device.device_type for device in scene_spec.devices}
-    #             used_clusters = {cluster for device in scene_spec.devices for cluster in device.clusters}
-    #             choices = {name: clusters for name, clusters in device_composer.choices().items()
-    #                 if name not in used_types and not any(cluster["cluster_id"] in used_clusters and
-    #                     any(rule["kind"] == "mandatoryConform" for rule in cluster["conformance"])
-    #                     for cluster in clusters)}
-    #             additional_generator = create_generator(ADDITIONAL_SCENE_PROMPT.partial(catalog=choices),
-    #                 SceneSpec.with_choices(choices, device_count=count), model)
-    #             additional_scene = additional_generator.invoke(answer_dict | {
-    #                 "scene": {"rooms": scene_spec.rooms, "devices": scene_spec.devices}, "count": count})
-    #             if {device.room_id for device in additional_scene.devices} - {room.room_id for room in scene_spec.rooms}:
-    #                 raise ValueError("Additional devices must use existing rooms")
-    #             scene = scene | {"devices": devices + generate_devices(additional_scene,
-    #                 answer_dict | {"user_command": "", "expected_behavior": ""}, start_index=len(devices))}
-
-    #             break
-
-    #     except Exception as e:
-    #         debug(e)
-        
-    return {"scene": scene, "task": task.model_dump()}
-
 def rendering(scene_spec, task):
-    # TODO
+    # TODO: Matter, W3C TD, SmartThings.
+    return None
+
+def validate_scenario(scene, task):
+    # TODO: Validate rendered interfaces and task fulfillment.
     return None
 
 if __name__ == "__main__":
@@ -173,18 +111,15 @@ if __name__ == "__main__":
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
-    choices = get_choices()
-
+    catalog = get_profiles()
     path = f"{DATASET_DIR}/dataset_D{args.devices}_M0.csv"
     model = Model(model=args.model, reasoning=False, temperature=None, context=32768)
-    scene_generator = create_generator(SCENE_PROMPT.partial(catalog=choices), SceneSpec.with_choices(choices), model)
-    effect_generator_not_arguments = create_generator(EFFECT_PROMPT, NotFromArgumentEffects, model)
-    effect_generator_arguments = create_generator(EFFECT_PROMPT, FromArgumentEffects, model)
+    scene_generator = create_generator(SCENE_PROMPT.partial(catalog=catalog), SceneSpec, model)
     task_generator = create_generator(TASK_PROMPT, Task, model)
+
     validator = create_generator(VALIDATION_PROMPT, ValidationResult, model)
 
     survey_df = pd.read_csv(SURVEY_PATH)
-    survey_df = survey_df[survey_df["class"] == "Control"]
     df = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame()
     synthesize_df = survey_df[len(df):]
 

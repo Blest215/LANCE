@@ -213,3 +213,5 @@ survey_result.csv
 description.txt
 dataset/official_catalog
 tests
+*.md
+*.pdf
