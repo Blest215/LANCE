@@ -4,6 +4,9 @@ from model import Model
 from collections import Counter
 from copy import deepcopy
 import json
+import random
+from urllib.parse import quote
+from profiles import PROFILES
 from pydantic import TypeAdapter
 
 ARGUMENT_TYPES = {
@@ -12,6 +15,97 @@ ARGUMENT_TYPES = {
     "boolean": TypeAdapter(bool),
     "string": TypeAdapter(str),
 }
+
+def _device_actions(data):
+    if data["protocol"] == "Matter":
+        return [(command["name"].lower(), {field["name"]: field for field in command["fields"]})
+                for endpoint in data["endpoints"] for cluster in endpoint["clusters"]
+                for command in cluster.get("commands", [])]
+    if data["protocol"] == "W3C":
+        return [(action["title"].lower(), action["input"].get("properties", {}))
+                for action in data["td"]["actions"].values()]
+    return [(command["name"].lower(), {arg["name"]: arg["value_schema"] for arg in command.get("arguments", [])})
+            for capability in data["capabilities"] for command in capability.get("commands", {}).values()]
+
+def _resource_options(data, resources: ScenarioResources):
+    actions = _device_actions(data)
+    bound = {}
+
+    def choices(field, entries, key):
+        enum, labels = ("enum_values", "enum_labels") if data["protocol"] == "Matter" else ("enum", "x-enumLabels")
+        values = list(dict.fromkeys(entry[key] for entry in entries))
+        field[enum] = values
+        field[labels] = {str(entry[key]): entry["name"] for entry in entries}
+
+    contents = [item.model_dump(exclude_none=True) for item in resources.contents]
+    contents += [{"name": item.name, "kind": "radio"} for item in resources.channels if item.kind == "radio"]
+    media = [item | {"ContentURL": item["name"] if item["name"].startswith(("http://", "https://")) else
+             f"https://media.example.test/{quote(data['device_id'], safe='')}/{i}"} for i, item in enumerate(contents, 1)]
+    areas = [item.model_dump(exclude_none=True) | {"AreaID": i} for i, item in enumerate(resources.cleaning_areas, 1)]
+    tv_channels = [item for item in resources.channels if item.kind == "tv"]
+    used_numbers = {item.major_number for item in tv_channels if item.major_number is not None}
+    channels = []
+    for item in tv_channels:
+        number = item.major_number
+        if number is None:
+            number = next(number for number in range(1, 65536) if number not in used_numbers)
+            used_numbers.add(number)
+        channels.append(item.model_dump(exclude_none=True) | {"MajorNumber": number,
+                        "MinorNumber": item.minor_number if item.minor_number is not None else 0})
+    inputs = [{"name": item.name, "Index": i} for i, item in enumerate(resources.inputs)]
+    apps = [{"name": item.name, "ApplicationID": str(i), "CatalogVendorID": 65521}
+            for i, item in enumerate(resources.applications, 1)]
+    maps = list(dict.fromkeys(item.map_name for item in resources.cleaning_areas if item.map_name))
+    for area in areas:
+        if "map_name" in area:
+            area["MapID"] = maps.index(area["map_name"]) + 1
+
+    for name, fields in actions:
+        if name == "launchurl" and media:
+            choices(fields["ContentURL"], media, "ContentURL")
+            bound["contents"] = media
+        elif name == "selectareas" and areas:
+            choices(fields["NewAreas"]["items"], areas, "AreaID")
+            bound["cleaning_areas"] = areas
+        elif name == "changechannelbynumber" and channels:
+            choices(fields["MajorNumber"], channels, "MajorNumber")
+            choices(fields["MinorNumber"], channels, "MinorNumber")
+            bound["channels"] = channels
+        elif name == "changechannel" and channels:
+            choices(fields["Match"], [{"name": item["name"], "Match": item["name"]} for item in channels], "Match")
+        elif name == "selectinput" and inputs:
+            choices(fields["Index"], inputs, "Index")
+            bound["inputs"] = inputs
+        elif name in ("launchapp", "stopapp", "hideapp") and apps and "Application" in fields:
+            application = fields["Application"]
+            if data["protocol"] == "Matter":
+                members = {field["name"]: field for field in application["fields"]}
+            else:
+                members = application["properties"]
+            choices(members["ApplicationID"], apps, "ApplicationID")
+            choices(members["CatalogVendorID"], apps, "CatalogVendorID")
+            bound["applications"] = apps
+    data["resources"] = bound
+
+def generate_device(draft: DeviceDraft, protocol=None):
+    profile = PROFILES[draft.profile]
+    protocol = protocol or random.choice(tuple(profile["devices"]))
+    template = profile["devices"][protocol]
+    data = deepcopy(template)
+
+    data["device_id"] = draft.device_id
+    data["device_name"] = f"{draft.room.room_name}_{draft.profile}"
+    data["room"] = draft.room.room_name
+    if protocol == "W3C":
+        data["td"]["title"] = data["device_name"]
+    elif protocol == "SmartThings":
+        for capability in data["capabilities"]:
+            for command in capability.get("commands", {}).values():
+                command.get("arguments", []).sort(key=lambda arg: (
+                    arg.get("optional", False), arg.get("optional", False) and "default" not in arg["value_schema"]))
+    _resource_options(data, draft.resources)
+
+    return {"Matter": MatterDevice, "W3C": W3CDevice, "SmartThings": SmartThingsDevice}[protocol].model_validate(data)
 
 class ScreeningResult(BaseModel):
     relevant: bool = Field(description="Whether you can contribute to the task.", ge=0, le=1)
@@ -253,13 +347,40 @@ class DeviceAgent:
             raise ValueError("Invalid SmartThings call")
         return self._action(identifier, dict(zip(fields, arguments)))
 
+def _protocol_control_ids(profile, device):
+    clusters = [(endpoint["endpoint_id"], cluster)
+                for endpoint in PROFILES[profile]["devices"]["Matter"]["endpoints"] for cluster in endpoint["clusters"]]
+    if isinstance(device, MatterDevice):
+        return {identifier: identifier for identifier in device_controls(device)}
+    mapping = {}
+    if isinstance(device, W3CDevice):
+        actions = iter(device.td.actions)
+        properties = iter(name for name, prop in device.td.properties.items() if not prop.readOnly)
+        for endpoint, cluster in clusters:
+            for command in cluster.get("commands", []):
+                mapping[control_id(endpoint, cluster["cluster_id"], "invoke", command["command_id"])] = f"actions/{next(actions)}"
+            for attribute in cluster.get("attributes", []):
+                if attribute["writable"]:
+                    mapping[control_id(endpoint, cluster["cluster_id"], "write", attribute["attribute_id"])] = f"properties/{next(properties)}"
+    else:
+        for (endpoint, cluster), capability in zip(clusters, device.capabilities):
+            for command in cluster.get("commands", []):
+                name = command["name"][0].lower() + command["name"][1:]
+                mapping[control_id(endpoint, cluster["cluster_id"], "invoke", command["command_id"])] = f"{capability.capability_name}/{name}"
+            for attribute in cluster.get("attributes", []):
+                if attribute["writable"]:
+                    mapping[control_id(endpoint, cluster["cluster_id"], "write", attribute["attribute_id"])] = f"{capability.capability_name}/write{attribute['name']}"
+    return mapping
+
 class Simulator:
-    def __init__(self, scene: Scene | dict, model: Model | None = None):
-        parsed = Scene.model_validate(scene)
-        self.rooms = parsed.rooms
-        self.devices = parsed.devices
-        if len({device.device_id for device in self.devices}) != len(self.devices):
-            raise ValueError("device IDs must be unique within a scene")
+    def __init__(self, intent: Scene | dict, model: Model | None = None, protocol: str | None = None, seed: int | None = None):
+        self.intent = Scene.model_validate(intent)
+        rng = random.Random(seed) if seed is not None else random
+        self.devices = [generate_device(draft, protocol or rng.choice(tuple(PROFILES[draft.profile]["devices"])))
+                        for draft in self.intent.devices]
+        self.rooms = list(dict.fromkeys(device.room for device in self.devices))
+        self.control_maps = {device.device_id: _protocol_control_ids(draft.profile, device)
+                             for draft, device in zip(self.intent.devices, self.devices)}
         self.agents = {device.device_id: DeviceAgent(device, model) for device in self.devices}
 
     @property
@@ -275,13 +396,21 @@ class Simulator:
             raise ValueError(f"INVALID DEVICE ID: {device_id}")
         return self.agents[device_id]
 
+    def _resolve_action(self, action: Action) -> Action:
+        return action.model_copy(update={"action_name":
+            self.control_maps.get(action.device_id, {}).get(action.action_name, action.action_name)})
+
     def validate_action(self, action: Action):
-        return self.get_agent(action.device_id).validate_action(action)
+        return self.get_agent(action.device_id).validate_action(self._resolve_action(action))
 
     def assemble_action(self, action: Action) -> Action:
+        action = self._resolve_action(action)
         spec = self.get_agent(action.device_id).controls[action.action_name]
         return self.validate_action(action.model_copy(update={
             "arguments": _arguments(action.arguments, spec["arguments"], coerce=True)}))
+
+    def compile_task(self, task: Task) -> Task:
+        return Task(expected_actions=[self.assemble_action(action) for action in task.expected_actions])
 
     def render(self) -> tuple[str, dict]:
         lines, lookup = ["* = required; {...} = options; [min..max] = range; omitted arguments use defaults."], {}
@@ -308,6 +437,8 @@ class Simulator:
             names = list(spec["arguments"])
             while names and names[-1] not in action.arguments:
                 names.pop()
+            if any(name not in action.arguments for name in names):
+                raise ValueError("Cannot omit an intermediate SmartThings positional argument")
             request["arguments"] = [action.arguments[name] for name in names]
         else:
             request["arguments"] = action.arguments
@@ -335,5 +466,5 @@ class Simulator:
             call = self.validate_action(call)
             return call.device_id, call.action_name, freeze(call.arguments)
         actual = Counter(map(key, self.action_calls))
-        expected = Counter(map(key, task.expected_actions))
+        expected = Counter(map(key, self.compile_task(task).expected_actions))
         return sum((actual & expected).values()) / len(task.expected_actions)

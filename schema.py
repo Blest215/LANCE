@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
-from typing import Annotated, List, Dict, Optional, Literal
+from pydantic import BaseModel, Field
+from typing import List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
@@ -32,16 +32,21 @@ class ScenarioResources(BaseModel):
     inputs: List[InputResource] = Field(default_factory=list)
     applications: List[ApplicationResource] = Field(default_factory=list)
 
-class Intent(BaseModel):
-    solvable: bool
-    room: Literal[
+class Room(BaseModel):
+    room_name: Literal[
         "living_room", "bedroom", "kitchen", "bathroom", "dining_room", "office", "study",
-        "playroom", "family_room", "tv_room", "garage", "hallway", "entryway", "landing",
-        "stairway", "garden", "backyard", "driveway", "pool_area", "upstairs", "downstairs",
-        "first_floor", "second_floor", "unspecified",
+        "playroom", "family_room", "tv_room", "garage", "entryway", "garden", "backyard",
     ]
-    devices: List[ProfileId] = Field(min_length=1)
+
+class DeviceDraft(BaseModel):
+    device_id: str
+    room: Room
+    profile: ProfileId
     resources: ScenarioResources = Field(default_factory=ScenarioResources)
+
+class Scene(BaseModel):
+    solvable: bool
+    devices: List[DeviceDraft] = Field(min_length=1)
     description: str
 
 # Devices
@@ -134,12 +139,6 @@ class SmartThingsDevice(Device):
     protocol: Literal["SmartThings"] = "SmartThings"
     # profile: SmartThingsProfile
     capabilities: List[SmartThingsCapability] = Field(min_length=1)
-
-class Scene(BaseModel):
-    rooms: List[str] = Field(min_length=1)
-    devices: List[
-        Annotated[MatterDevice | W3CDevice | SmartThingsDevice, Field(discriminator="protocol")]
-    ] = Field(min_length=1)
 
 # Task
 

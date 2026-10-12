@@ -10,8 +10,8 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
         try:
-            simulator = Simulator(eval(scenario.scene), model)
-            task = Task.model_validate(eval(scenario.task))
+            simulator = Simulator(Scene.model_validate(eval(scenario.intent)), model, seed=scenario.Index)
+            task = simulator.compile_task(Task.model_validate(eval(scenario.task)))
             user = mode(model)
         except (SyntaxError, TypeError):
             continue

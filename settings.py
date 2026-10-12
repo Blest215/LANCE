@@ -33,9 +33,6 @@ RESULT_FILENAME_PATTERN = r'^result_D(\d+)_M(\d+)\.csv$'
 DATASET_DIR = "dataset"
 RESULT_DIR = "results"
 SURVEY_PATH = "survey_result.csv"
-SETTING_PATH = RESULT_DIR + "/{code}/settings.txt"
-
-ALLOWED_MODES = ["CENTRALIZED", "NATURAL", "RECRUIT", "CONVERSATIONAL"]
 
 DEBUG = False
 
@@ -43,15 +40,6 @@ DEBUG = False
 
 MAX_CONTEXT = 32768
 MAX_OUTPUT_TOKENS = 2048
-
-def get_random_device_id():
-    return str(uuid.uuid4())
-
-def get_random_request_id():
-    return uuid.uuid4().hex
-
-def check_topic(formatted, unformatted):
-    return formatted == unformatted.split("/")[0]    
 
 def get_agent_id(device_description):
     if "structured" in device_description:
@@ -112,11 +100,7 @@ def remove_empty_results():
     if not os.path.exists(RESULT_DIR):
         os.mkdir(RESULT_DIR)
     for result_code in os.listdir(RESULT_DIR):
-        files = os.listdir(f"{RESULT_DIR}/{result_code}")
-        if len(files) == 1 and files[0] == "settings.txt":
-            os.remove(SETTING_PATH.format(code=result_code))
-            os.rmdir(f"{RESULT_DIR}/{result_code}")
-        elif not files:            
+        if not os.listdir(f"{RESULT_DIR}/{result_code}"):            
             os.rmdir(f"{RESULT_DIR}/{result_code}")
 
 def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | dict | str, model):
