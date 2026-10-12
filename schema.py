@@ -4,54 +4,53 @@ from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
 
-# Spec
+class ContentResource(BaseModel):
+    name: str
+    kind: Literal["song", "album", "playlist", "show", "video", "podcast", "other"]
+    provider: Optional[str] = None
 
-class PropertySpec(BaseModel):
-    property_name: str
-    property_type: Literal["string", "integer", "number", "boolean", "object", "array", "opaque"]
-    fields: Dict[str, "PropertySpec"] = Field(default_factory=dict)
-    items: Optional["PropertySpec"] = None
+class CleaningAreaResource(BaseModel):
+    name: str
+    map_name: Optional[str] = None
 
-class ActionSpec(BaseModel):
-    action_name: str
-    arguments: Dict[str, PropertySpec] = Field(default_factory=dict)
-    required: List[str] = Field(default_factory=list)
+class ChannelResource(BaseModel):
+    name: str
+    kind: Literal["tv", "radio"]
+    major_number: Optional[int] = Field(default=None, ge=0, le=65535)
+    minor_number: Optional[int] = Field(default=None, ge=0, le=65535)
 
-class DeviceDraft(BaseModel):
-    device_id: str
-    device_name: str
-    room_id: str
-    profile_id: ProfileId
-    options: List[str]
+class InputResource(BaseModel):
+    name: str
 
-class RoomSpec(BaseModel):
-    room_id: str
-    room_name: str
+class ApplicationResource(BaseModel):
+    name: str
 
-class SceneSpec(BaseModel):
-    rooms: List[RoomSpec] = Field(min_length=1)
-    devices: List[DeviceDraft] = Field(min_length=1)
+class ScenarioResources(BaseModel):
+    contents: List[ContentResource] = Field(default_factory=list)
+    cleaning_areas: List[CleaningAreaResource] = Field(default_factory=list)
+    channels: List[ChannelResource] = Field(default_factory=list)
+    inputs: List[InputResource] = Field(default_factory=list)
+    applications: List[ApplicationResource] = Field(default_factory=list)
+
+class Intent(BaseModel):
     solvable: bool
-    reason: str
-
-    @model_validator(mode="after")
-    def validate_ids(self) -> "SceneSpec":
-        if self.solvable and not self.devices:
-            raise ValueError("Solvable scene requires devices")
-        room_ids = [room.room_id for room in self.rooms]
-        if len(room_ids) != len(set(room_ids)):
-            raise ValueError("Not unique room ID")
-        if {device.room_id for device in self.devices} - set(room_ids):
-            raise ValueError("Invalid room ID")
-        return self
+    room: Literal[
+        "living_room", "bedroom", "kitchen", "bathroom", "dining_room", "office", "study",
+        "playroom", "family_room", "tv_room", "garage", "hallway", "entryway", "landing",
+        "stairway", "garden", "backyard", "driveway", "pool_area", "upstairs", "downstairs",
+        "first_floor", "second_floor", "unspecified",
+    ]
+    devices: List[ProfileId] = Field(min_length=1)
+    resources: ScenarioResources = Field(default_factory=ScenarioResources)
+    description: str
 
 # Devices
 
 class Device(BaseModel):
     device_id: str
     device_name: str
-    room_id: str
-    profile_id: Optional[ProfileId] = None
+    room: str
+    resources: Dict[str, List[Dict[str, Value]]] = Field(default_factory=dict)
 
 class MatterCluster(BaseModel):
     cluster_id: int
@@ -137,7 +136,7 @@ class SmartThingsDevice(Device):
     capabilities: List[SmartThingsCapability] = Field(min_length=1)
 
 class Scene(BaseModel):
-    rooms: List[RoomSpec] = Field(min_length=1)
+    rooms: List[str] = Field(min_length=1)
     devices: List[
         Annotated[MatterDevice | W3CDevice | SmartThingsDevice, Field(discriminator="protocol")]
     ] = Field(min_length=1)
@@ -146,12 +145,14 @@ class Scene(BaseModel):
 
 class Action(BaseModel):
     device_id: str
-    control_id: str
+    action_name: str
     arguments: Dict[str, Value] = Field(default_factory=dict)
 
 class Task(BaseModel):
-    user_utterance: str
     expected_actions: List[Action] = Field(min_length=1)
+
+class UserUtterance(BaseModel):
+    user_utterance: str
 
 @tool
 def call_device_matter(

@@ -25,8 +25,7 @@ PROFILES['onoff_light']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Onoff Light',
-    'room_id': '',
-    'profile_id': 'onoff_light',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -89,6 +88,7 @@ PROFILES['onoff_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -149,8 +149,7 @@ PROFILES['onoff_light']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Onoff Light',
-    'room_id': '',
-    'profile_id': 'onoff_light',
+    'room': '',
     'td': {
         'title': 'Onoff Light',
         'properties': {
@@ -174,7 +173,7 @@ PROFILES['onoff_light']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -208,8 +207,7 @@ PROFILES['onoff_light']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Onoff Light',
-    'room_id': '',
-    'profile_id': 'onoff_light',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -263,7 +261,7 @@ PROFILES['onoff_light']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -313,8 +311,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Dimmable Light',
-    'room_id': '',
-    'profile_id': 'dimmable_light',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -377,6 +374,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -530,6 +528,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -540,6 +539,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -577,6 +577,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -587,6 +588,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -634,6 +636,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -644,6 +647,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -661,6 +665,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -671,6 +676,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -708,6 +714,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -718,6 +725,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -755,6 +763,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -765,6 +774,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -812,6 +822,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -822,6 +833,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -839,6 +851,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -849,6 +862,7 @@ PROFILES['dimmable_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -1174,8 +1188,7 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Dimmable Light',
-    'room_id': '',
-    'profile_id': 'dimmable_light',
+    'room': '',
     'td': {
         'title': 'Dimmable Light',
         'properties': {
@@ -1238,7 +1251,7 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -1271,8 +1284,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1286,8 +1299,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1302,8 +1315,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1314,7 +1327,7 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                 'title': 'Stop',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -1327,8 +1340,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1342,8 +1355,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1358,8 +1371,8 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -1370,7 +1383,7 @@ PROFILES['dimmable_light']["devices"]['W3C'] = {
                 'title': 'StopWithOnOff',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -1483,8 +1496,7 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Dimmable Light',
-    'room_id': '',
-    'profile_id': 'dimmable_light',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -1538,7 +1550,7 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -1615,8 +1627,8 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'move': {
@@ -1624,8 +1636,8 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'step': {
@@ -1634,15 +1646,15 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stop': {
                     'name': 'stop',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToLevelWithOnOff': {
@@ -1650,8 +1662,8 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveWithOnOff': {
@@ -1659,8 +1671,8 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stepWithOnOff': {
@@ -1669,15 +1681,15 @@ PROFILES['dimmable_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stopWithOnOff': {
                     'name': 'stopWithOnOff',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -1816,8 +1828,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Temperature Light',
-    'room_id': '',
-    'profile_id': 'temperature_light',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -1880,6 +1891,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -2033,6 +2045,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2043,6 +2056,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2080,6 +2094,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2090,6 +2105,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2137,6 +2153,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2147,6 +2164,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2164,6 +2182,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2174,6 +2193,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2211,6 +2231,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2221,6 +2242,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2258,6 +2280,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2268,6 +2291,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2315,6 +2339,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2325,6 +2350,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2342,6 +2368,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2352,6 +2379,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -2507,6 +2535,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2517,6 +2546,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2534,6 +2564,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2544,6 +2575,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2601,6 +2633,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2611,6 +2644,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2678,6 +2712,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -2688,6 +2723,7 @@ PROFILES['temperature_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -3013,8 +3049,7 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Temperature Light',
-    'room_id': '',
-    'profile_id': 'temperature_light',
+    'room': '',
     'td': {
         'title': 'Temperature Light',
         'properties': {
@@ -3111,7 +3146,7 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -3144,8 +3179,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3159,8 +3194,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3175,8 +3210,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3187,7 +3222,7 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                 'title': 'Stop',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -3200,8 +3235,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3215,8 +3250,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3231,8 +3266,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3243,7 +3278,7 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                 'title': 'StopWithOnOff',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -3256,8 +3291,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                     'properties': {
                         'ColorTemperatureMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['ColorTemperatureMireds', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3268,7 +3303,7 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                 'title': 'StopMoveStep',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -3283,8 +3318,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                         'Rate': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
                         'ColorTemperatureMinimumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'ColorTemperatureMaximumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'ColorTemperatureMinimumMireds', 'ColorTemperatureMaximumMireds', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3301,8 +3336,8 @@ PROFILES['temperature_light']["devices"]['W3C'] = {
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
                         'ColorTemperatureMinimumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'ColorTemperatureMaximumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'ColorTemperatureMinimumMireds', 'ColorTemperatureMaximumMireds', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -3416,8 +3451,7 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Temperature Light',
-    'room_id': '',
-    'profile_id': 'temperature_light',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -3471,7 +3505,7 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -3548,8 +3582,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'move': {
@@ -3557,8 +3591,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'step': {
@@ -3567,15 +3601,15 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stop': {
                     'name': 'stop',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToLevelWithOnOff': {
@@ -3583,8 +3617,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveWithOnOff': {
@@ -3592,8 +3626,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stepWithOnOff': {
@@ -3602,15 +3636,15 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stopWithOnOff': {
                     'name': 'stopWithOnOff',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -3717,15 +3751,15 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'ColorTemperatureMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stopMoveStep': {
                     'name': 'stopMoveStep',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveColorTemperature': {
@@ -3735,8 +3769,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                         {'name': 'Rate', 'value_schema': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMinimumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMaximumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stepColorTemperature': {
@@ -3747,8 +3781,8 @@ PROFILES['temperature_light']["devices"]['SmartThings'] = {
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMinimumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMaximumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -3892,8 +3926,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Color Light',
-    'room_id': '',
-    'profile_id': 'color_light',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -3956,6 +3989,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -4109,6 +4143,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4119,6 +4154,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4156,6 +4192,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4166,6 +4203,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4213,6 +4251,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4223,6 +4262,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4240,6 +4280,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4250,6 +4291,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4287,6 +4329,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4297,6 +4340,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4334,6 +4378,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4344,6 +4389,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4391,6 +4437,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4401,6 +4448,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4418,6 +4466,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4428,6 +4477,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -4634,6 +4684,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4644,6 +4695,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4681,6 +4733,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4691,6 +4744,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4738,6 +4792,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4748,6 +4803,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4785,6 +4841,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4795,6 +4852,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4832,6 +4890,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4842,6 +4901,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4889,6 +4949,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4899,6 +4960,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4937,6 +4999,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4947,6 +5010,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -4994,6 +5058,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5004,6 +5069,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5041,6 +5107,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5051,6 +5118,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5098,6 +5166,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5108,6 +5177,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5145,6 +5215,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5155,6 +5226,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5202,6 +5274,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5212,6 +5285,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5249,6 +5323,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5259,6 +5334,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5306,6 +5382,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5316,6 +5393,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5363,6 +5441,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5373,6 +5452,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5390,6 +5470,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5400,6 +5481,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5457,6 +5539,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5467,6 +5550,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5534,6 +5618,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5544,6 +5629,7 @@ PROFILES['color_light']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 1.0,
                                     'nullable': False,
@@ -5869,8 +5955,7 @@ PROFILES['color_light']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Color Light',
-    'room_id': '',
-    'profile_id': 'color_light',
+    'room': '',
     'td': {
         'title': 'Color Light',
         'properties': {
@@ -5972,7 +6057,7 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -6005,8 +6090,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6020,8 +6105,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6036,8 +6121,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6048,7 +6133,7 @@ PROFILES['color_light']["devices"]['W3C'] = {
                 'title': 'Stop',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -6061,8 +6146,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6076,8 +6161,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6092,8 +6177,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6104,7 +6189,7 @@ PROFILES['color_light']["devices"]['W3C'] = {
                 'title': 'StopWithOnOff',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -6118,8 +6203,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'Hue': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'Direction': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Shortest', '1': 'Longest', '2': 'Up', '3': 'Down'}},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['Hue', 'Direction', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6133,8 +6218,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}},
                         'Rate': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6149,8 +6234,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6164,8 +6249,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'Saturation': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['Saturation', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6179,8 +6264,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}},
                         'Rate': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6195,8 +6280,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6211,8 +6296,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'Hue': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'Saturation': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['Hue', 'Saturation', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6227,8 +6312,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'ColorX': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'ColorY': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['ColorX', 'ColorY', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6242,8 +6327,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'RateX': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'},
                         'RateY': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['RateX', 'RateY', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6258,8 +6343,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepX': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'},
                         'StepY': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepX', 'StepY', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6273,8 +6358,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'ColorTemperatureMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['ColorTemperatureMireds', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6289,8 +6374,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'EnhancedHue': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
                         'Direction': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Shortest', '1': 'Longest', '2': 'Up', '3': 'Down'}},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['EnhancedHue', 'Direction', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6304,8 +6389,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}},
                         'Rate': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6320,8 +6405,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6336,8 +6421,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'EnhancedHue': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
                         'Saturation': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['EnhancedHue', 'Saturation', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6348,7 +6433,7 @@ PROFILES['color_light']["devices"]['W3C'] = {
                 'title': 'StopMoveStep',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -6363,8 +6448,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'Rate': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'},
                         'ColorTemperatureMinimumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'ColorTemperatureMaximumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'ColorTemperatureMinimumMireds', 'ColorTemperatureMaximumMireds', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6381,8 +6466,8 @@ PROFILES['color_light']["devices"]['W3C'] = {
                         'TransitionTime': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'},
                         'ColorTemperatureMinimumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
                         'ColorTemperatureMaximumMireds': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'ColorTemperatureMinimumMireds', 'ColorTemperatureMaximumMireds', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -6496,8 +6581,7 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Color Light',
-    'room_id': '',
-    'profile_id': 'color_light',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -6551,7 +6635,7 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -6628,8 +6712,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'move': {
@@ -6637,8 +6721,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'step': {
@@ -6647,15 +6731,15 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stop': {
                     'name': 'stop',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToLevelWithOnOff': {
@@ -6663,8 +6747,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveWithOnOff': {
@@ -6672,8 +6756,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stepWithOnOff': {
@@ -6682,15 +6766,15 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stopWithOnOff': {
                     'name': 'stopWithOnOff',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -6831,8 +6915,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                             'value_schema': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Shortest', '1': 'Longest', '2': 'Up', '3': 'Down'}}
                         },
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveHue': {
@@ -6840,8 +6924,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stepHue': {
@@ -6850,8 +6934,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToSaturation': {
@@ -6859,8 +6943,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Saturation', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveSaturation': {
@@ -6868,8 +6952,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stepSaturation': {
@@ -6878,8 +6962,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToHueAndSaturation': {
@@ -6888,8 +6972,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'Hue', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'Saturation', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToColor': {
@@ -6898,8 +6982,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'ColorX', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'ColorY', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveColor': {
@@ -6907,8 +6991,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'RateX', 'value_schema': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'}},
                         {'name': 'RateY', 'value_schema': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stepColor': {
@@ -6917,8 +7001,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepX', 'value_schema': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'}},
                         {'name': 'StepY', 'value_schema': {'minimum': -32768.0, 'maximum': 32767.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToColorTemperature': {
@@ -6926,8 +7010,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'ColorTemperatureMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'enhancedMoveToHue': {
@@ -6939,8 +7023,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                             'value_schema': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Shortest', '1': 'Longest', '2': 'Up', '3': 'Down'}}
                         },
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'enhancedMoveHue': {
@@ -6948,8 +7032,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Stop', '1': 'Up', '3': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'enhancedStepHue': {
@@ -6958,8 +7042,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [1, 3], 'x-enumLabels': {'1': 'Up', '3': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'enhancedMoveToHueAndSaturation': {
@@ -6968,15 +7052,15 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'EnhancedHue', 'value_schema': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}},
                         {'name': 'Saturation', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stopMoveStep': {
                     'name': 'stopMoveStep',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'moveColorTemperature': {
@@ -6986,8 +7070,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'Rate', 'value_schema': {'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMinimumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMaximumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 },
                 'stepColorTemperature': {
@@ -6998,8 +7082,8 @@ PROFILES['color_light']["devices"]['SmartThings'] = {
                         {'name': 'TransitionTime', 'value_schema': {'minimum': 0.0, 'maximum': 65534, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMinimumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
                         {'name': 'ColorTemperatureMaximumMireds', 'value_schema': {'minimum': 0.0, 'maximum': 65279, 'type': 'integer'}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 1.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -7116,8 +7200,7 @@ PROFILES['smart_plug']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Smart Plug',
-    'room_id': '',
-    'profile_id': 'smart_plug',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -7180,6 +7263,7 @@ PROFILES['smart_plug']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -7240,8 +7324,7 @@ PROFILES['smart_plug']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Smart Plug',
-    'room_id': '',
-    'profile_id': 'smart_plug',
+    'room': '',
     'td': {
         'title': 'Smart Plug',
         'properties': {
@@ -7265,7 +7348,7 @@ PROFILES['smart_plug']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -7299,8 +7382,7 @@ PROFILES['smart_plug']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Smart Plug',
-    'room_id': '',
-    'profile_id': 'smart_plug',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -7354,7 +7436,7 @@ PROFILES['smart_plug']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -7389,8 +7471,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Speaker',
-    'room_id': '',
-    'profile_id': 'speaker',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -7488,6 +7569,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7498,6 +7580,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7535,6 +7618,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7545,6 +7629,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7592,6 +7677,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7602,6 +7688,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7619,6 +7706,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7629,6 +7717,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7666,6 +7755,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7676,6 +7766,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7713,6 +7804,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7723,6 +7815,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7770,6 +7863,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7780,6 +7874,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7797,6 +7892,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -7807,6 +7903,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -8041,6 +8138,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                                     },
                                                     {'max_length': 1024, 'nullable': False, 'name': 'Value', 'property_type': 'string', 'data_type': 'string', 'field_id': 1, 'required': True},
                                                     {
+                                                        'default': [],
                                                         'nullable': False,
                                                         'items': {
                                                             'nullable': False,
@@ -8086,7 +8184,7 @@ PROFILES['speaker']["devices"]['Matter'] = {
                                     'field_id': 3,
                                     'required': False
                                 },
-                                {'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
+                                {'default': True, 'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
                             ]
                         },
                         {
@@ -8473,8 +8571,7 @@ PROFILES['speaker']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Speaker',
-    'room_id': '',
-    'profile_id': 'speaker',
+    'room': '',
     'td': {
         'title': 'Speaker',
         'properties': {
@@ -8590,8 +8687,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8605,8 +8702,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8621,8 +8718,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8633,7 +8730,7 @@ PROFILES['speaker']["devices"]['W3C'] = {
                 'title': 'Stop',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -8646,8 +8743,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8661,8 +8758,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8677,8 +8774,8 @@ PROFILES['speaker']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -8689,7 +8786,7 @@ PROFILES['speaker']["devices"]['W3C'] = {
                 'title': 'StopWithOnOff',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -8777,6 +8874,7 @@ PROFILES['speaker']["devices"]['W3C'] = {
                                             },
                                             'Value': {'type': 'string', 'maxLength': 1024},
                                             'ExternalIDList': {
+                                                                  'default': [],
                                                 'type': 'array',
                                                 'items': {
                                                     'type': 'object',
@@ -8797,7 +8895,7 @@ PROFILES['speaker']["devices"]['W3C'] = {
                         'AutoPlay': {'type': 'boolean'},
                         'Data': {'type': 'string'},
                         'PlaybackPreferences': {'type': 'object'},
-                        'UseCurrentContext': {'type': 'boolean'}
+                        'UseCurrentContext': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Search', 'AutoPlay'],
                     'additionalProperties': False
@@ -9047,8 +9145,7 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Speaker',
-    'room_id': '',
-    'profile_id': 'speaker',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -9097,8 +9194,8 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'move': {
@@ -9106,8 +9203,8 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'step': {
@@ -9116,15 +9213,15 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stop': {
                     'name': 'stop',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToLevelWithOnOff': {
@@ -9132,8 +9229,8 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveWithOnOff': {
@@ -9141,8 +9238,8 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stepWithOnOff': {
@@ -9151,15 +9248,15 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stopWithOnOff': {
                     'name': 'stopWithOnOff',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -9304,6 +9401,7 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                                                 },
                                                 'Value': {'type': 'string', 'maxLength': 1024},
                                                 'ExternalIDList': {
+                                                                      'default': [],
                                                     'type': 'array',
                                                     'items': {
                                                         'type': 'object',
@@ -9325,7 +9423,7 @@ PROFILES['speaker']["devices"]['SmartThings'] = {
                         {'name': 'AutoPlay', 'value_schema': {'type': 'boolean'}},
                         {'name': 'Data', 'optional': True, 'value_schema': {'type': 'string'}},
                         {'name': 'PlaybackPreferences', 'optional': True, 'value_schema': {'type': 'object'}},
-                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 },
                 'launchURL': {
@@ -9641,8 +9739,7 @@ PROFILES['television']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Television',
-    'room_id': '',
-    'profile_id': 'television',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -9813,6 +9910,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': [],
                                     'max_length': 255,
                                     'nullable': False,
                                     'items': {
@@ -9838,10 +9936,10 @@ PROFILES['television']["devices"]['Matter'] = {
                                                 'field_id': 1,
                                                 'required': True
                                             },
-                                            {'nullable': False, 'name': 'Name', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': False},
-                                            {'nullable': False, 'name': 'CallSign', 'property_type': 'string', 'data_type': 'string', 'field_id': 3, 'required': False},
-                                            {'nullable': False, 'name': 'AffiliateCallSign', 'property_type': 'string', 'data_type': 'string', 'field_id': 4, 'required': False},
-                                            {'nullable': False, 'name': 'Identifier', 'property_type': 'string', 'data_type': 'string', 'field_id': 5, 'required': False},
+                                            {'default': '', 'nullable': False, 'name': 'Name', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': False},
+                                            {'default': '', 'nullable': False, 'name': 'CallSign', 'property_type': 'string', 'data_type': 'string', 'field_id': 3, 'required': False},
+                                            {'default': '', 'nullable': False, 'name': 'AffiliateCallSign', 'property_type': 'string', 'data_type': 'string', 'field_id': 4, 'required': False},
+                                            {'default': '', 'nullable': False, 'name': 'Identifier', 'property_type': 'string', 'data_type': 'string', 'field_id': 5, 'required': False},
                                             {
                                                 'enum_values': [0, 1, 2, 3],
                                                 'enum_labels': {'0': 'Satellite', '1': 'Cable', '2': 'Terrestrial', '3': 'OTT'},
@@ -9864,9 +9962,11 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': False
                                 },
                                 {
+                                    'default': None,
                                     'nullable': True,
                                     'fields': [
                                         {
+                                            'default': 0,
                                             'minimum': 0,
                                             'maximum': 65535,
                                             'nullable': False,
@@ -9876,8 +9976,8 @@ PROFILES['television']["devices"]['Matter'] = {
                                             'field_id': 0,
                                             'required': False
                                         },
-                                        {'max_length': 8192, 'nullable': False, 'name': 'After', 'property_type': 'string', 'data_type': 'string', 'field_id': 1, 'required': False},
-                                        {'max_length': 8192, 'nullable': False, 'name': 'Before', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': False}
+                                        {'default': '', 'max_length': 8192, 'nullable': False, 'name': 'After', 'property_type': 'string', 'data_type': 'string', 'field_id': 1, 'required': False},
+                                        {'default': '', 'max_length': 8192, 'nullable': False, 'name': 'Before', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': False}
                                     ],
                                     'name': 'PageToken',
                                     'property_type': 'object',
@@ -9886,6 +9986,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': False
                                 },
                                 {
+                                    'default': None,
                                     'minimum': 0,
                                     'maximum': 7,
                                     'nullable': True,
@@ -9896,6 +9997,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': False
                                 },
                                 {
+                                    'default': [],
                                     'max_length': 255,
                                     'nullable': False,
                                     'items': {'nullable': False, 'name': 'item', 'property_type': 'opaque', 'data_type': 'ref_AdditionalInfoStruct'},
@@ -10610,6 +10712,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                     },
                                                     {'max_length': 1024, 'nullable': False, 'name': 'Value', 'property_type': 'string', 'data_type': 'string', 'field_id': 1, 'required': True},
                                                     {
+                                                        'default': [],
                                                         'nullable': False,
                                                         'items': {
                                                             'nullable': False,
@@ -10655,6 +10758,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                             'fields': [
                                                 {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                 {
+                                                    'default': None,
                                                     'nullable': True,
                                                     'items': {
                                                         'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -10713,6 +10817,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                 'fields': [
                                                     {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                     {
+                                                        'default': None,
                                                         'nullable': True,
                                                         'items': {
                                                             'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -10775,7 +10880,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'field_id': 3,
                                     'required': False
                                 },
-                                {'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
+                                {'default': True, 'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
                             ]
                         },
                         {
@@ -10974,6 +11079,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                             'fields': [
                                                 {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                 {
+                                                    'default': None,
                                                     'nullable': True,
                                                     'items': {
                                                         'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -11032,6 +11138,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                 'fields': [
                                                     {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                     {
+                                                        'default': None,
                                                         'nullable': True,
                                                         'items': {
                                                             'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -11379,6 +11486,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11389,6 +11497,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11426,6 +11535,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11436,6 +11546,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11483,6 +11594,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11493,6 +11605,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11510,6 +11623,7 @@ PROFILES['television']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11520,6 +11634,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11557,6 +11672,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11567,6 +11683,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11604,6 +11721,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11614,6 +11732,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11661,6 +11780,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11671,6 +11791,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11688,6 +11809,7 @@ PROFILES['television']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -11698,6 +11820,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0.0,
                                     'maximum': 3.0,
                                     'nullable': False,
@@ -12166,6 +12289,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                     },
                                                     {'max_length': 1024, 'nullable': False, 'name': 'Value', 'property_type': 'string', 'data_type': 'string', 'field_id': 1, 'required': True},
                                                     {
+                                                        'default': [],
                                                         'nullable': False,
                                                         'items': {
                                                             'nullable': False,
@@ -12211,6 +12335,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                             'fields': [
                                                 {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                 {
+                                                    'default': None,
                                                     'nullable': True,
                                                     'items': {
                                                         'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -12269,6 +12394,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                 'fields': [
                                                     {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                     {
+                                                        'default': None,
                                                         'nullable': True,
                                                         'items': {
                                                             'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -12331,7 +12457,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                     'field_id': 3,
                                     'required': False
                                 },
-                                {'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
+                                {'default': True, 'nullable': False, 'name': 'UseCurrentContext', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
                             ]
                         },
                         {
@@ -12530,6 +12656,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                             'fields': [
                                                 {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                 {
+                                                    'default': None,
                                                     'nullable': True,
                                                     'items': {
                                                         'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -12588,6 +12715,7 @@ PROFILES['television']["devices"]['Matter'] = {
                                                 'fields': [
                                                     {'max_length': 32, 'nullable': False, 'name': 'LanguageCode', 'property_type': 'string', 'data_type': 'string', 'field_id': 0, 'required': True},
                                                     {
+                                                        'default': None,
                                                         'nullable': True,
                                                         'items': {
                                                             'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -12838,8 +12966,7 @@ PROFILES['television']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Television',
-    'room_id': '',
-    'profile_id': 'television',
+    'room': '',
     'td': {
         'title': 'Television',
         'properties': {
@@ -13611,6 +13738,7 @@ PROFILES['television']["devices"]['W3C'] = {
                         'StartTime': {'minimum': 0, 'maximum': 4294967295, 'type': 'integer'},
                         'EndTime': {'minimum': 0, 'maximum': 4294967295, 'type': 'integer'},
                         'ChannelList': {
+                                           'default': [],
                             'type': 'array',
                             'maxItems': 255,
                             'items': {
@@ -13618,10 +13746,10 @@ PROFILES['television']["devices"]['W3C'] = {
                                 'properties': {
                                     'MajorNumber': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
                                     'MinorNumber': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
-                                    'Name': {'type': 'string'},
-                                    'CallSign': {'type': 'string'},
-                                    'AffiliateCallSign': {'type': 'string'},
-                                    'Identifier': {'type': 'string'},
+                                    'Name': {'default': '', 'type': 'string'},
+                                    'CallSign': {'default': '', 'type': 'string'},
+                                    'AffiliateCallSign': {'default': '', 'type': 'string'},
+                                    'Identifier': {'default': '', 'type': 'string'},
                                     'Type': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Satellite', '1': 'Cable', '2': 'Terrestrial', '3': 'OTT'}}
                                 },
                                 'required': ['MajorNumber', 'MinorNumber'],
@@ -13629,13 +13757,14 @@ PROFILES['television']["devices"]['W3C'] = {
                             }
                         },
                         'PageToken': {
+                                         'default': None,
                             'oneOf': [
                                 {
                                     'type': 'object',
                                     'properties': {
-                                        'Limit': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
-                                        'After': {'type': 'string', 'maxLength': 8192},
-                                        'Before': {'type': 'string', 'maxLength': 8192}
+                                        'Limit': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'},
+                                        'After': {'default': '', 'type': 'string', 'maxLength': 8192},
+                                        'Before': {'default': '', 'type': 'string', 'maxLength': 8192}
                                     },
                                     'required': [],
                                     'additionalProperties': False
@@ -13643,8 +13772,8 @@ PROFILES['television']["devices"]['W3C'] = {
                                 {'type': 'null'}
                             ]
                         },
-                        'RecordingFlag': {'oneOf': [{'minimum': 0, 'maximum': 7, 'type': 'integer'}, {'type': 'null'}]},
-                        'ExternalIDList': {'type': 'array', 'maxItems': 255, 'items': {}},
+                        'RecordingFlag': {'default': None, 'oneOf': [{'minimum': 0, 'maximum': 7, 'type': 'integer'}, {'type': 'null'}]},
+                        'ExternalIDList': {'default': [], 'type': 'array', 'maxItems': 255, 'items': {}},
                         'Data': {'type': 'string', 'maxLength': 8092}
                     },
                     'required': ['StartTime', 'EndTime'],
@@ -13890,6 +14019,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             },
                                             'Value': {'type': 'string', 'maxLength': 1024},
                                             'ExternalIDList': {
+                                                                  'default': [],
                                                 'type': 'array',
                                                 'items': {
                                                     'type': 'object',
@@ -13919,6 +14049,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             'properties': {
                                                 'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                 'Characteristics': {
+                                                                       'default': None,
                                                     'oneOf': [
                                                         {
                                                             'type': 'array',
@@ -13967,6 +14098,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -14011,7 +14143,7 @@ PROFILES['television']["devices"]['W3C'] = {
                             'required': ['TextTrack', 'AudioTracks'],
                             'additionalProperties': False
                         },
-                        'UseCurrentContext': {'type': 'boolean'}
+                        'UseCurrentContext': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Search', 'AutoPlay'],
                     'additionalProperties': False
@@ -14138,6 +14270,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             'properties': {
                                                 'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                 'Characteristics': {
+                                                                       'default': None,
                                                     'oneOf': [
                                                         {
                                                             'type': 'array',
@@ -14186,6 +14319,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -14318,8 +14452,8 @@ PROFILES['television']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14333,8 +14467,8 @@ PROFILES['television']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14349,8 +14483,8 @@ PROFILES['television']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14361,7 +14495,7 @@ PROFILES['television']["devices"]['W3C'] = {
                 'title': 'Stop',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -14374,8 +14508,8 @@ PROFILES['television']["devices"]['W3C'] = {
                     'properties': {
                         'Level': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['Level', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14389,8 +14523,8 @@ PROFILES['television']["devices"]['W3C'] = {
                     'properties': {
                         'MoveMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'Rate': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['MoveMode', 'Rate', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14405,8 +14539,8 @@ PROFILES['television']["devices"]['W3C'] = {
                         'StepMode': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}},
                         'StepSize': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
                         'TransitionTime': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]},
-                        'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
-                        'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
+                        'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'},
+                        'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}
                     },
                     'required': ['StepMode', 'StepSize', 'TransitionTime', 'OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
@@ -14417,7 +14551,7 @@ PROFILES['television']["devices"]['W3C'] = {
                 'title': 'StopWithOnOff',
                 'input': {
                     'type': 'object',
-                    'properties': {'OptionsMask': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                    'properties': {'OptionsMask': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}, 'OptionsOverride': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
                     'required': ['OptionsMask', 'OptionsOverride'],
                     'additionalProperties': False
                 },
@@ -14503,6 +14637,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             },
                                             'Value': {'type': 'string', 'maxLength': 1024},
                                             'ExternalIDList': {
+                                                                  'default': [],
                                                 'type': 'array',
                                                 'items': {
                                                     'type': 'object',
@@ -14532,6 +14667,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             'properties': {
                                                 'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                 'Characteristics': {
+                                                                       'default': None,
                                                     'oneOf': [
                                                         {
                                                             'type': 'array',
@@ -14580,6 +14716,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -14624,7 +14761,7 @@ PROFILES['television']["devices"]['W3C'] = {
                             'required': ['TextTrack', 'AudioTracks'],
                             'additionalProperties': False
                         },
-                        'UseCurrentContext': {'type': 'boolean'}
+                        'UseCurrentContext': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Search', 'AutoPlay'],
                     'additionalProperties': False
@@ -14751,6 +14888,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                             'properties': {
                                                 'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                 'Characteristics': {
+                                                                       'default': None,
                                                     'oneOf': [
                                                         {
                                                             'type': 'array',
@@ -14799,6 +14937,7 @@ PROFILES['television']["devices"]['W3C'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -14975,8 +15114,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Television',
-    'room_id': '',
-    'profile_id': 'television',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -15057,6 +15195,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                             'name': 'ChannelList',
                             'optional': True,
                             'value_schema': {
+                                                'default': [],
                                 'type': 'array',
                                 'maxItems': 255,
                                 'items': {
@@ -15064,10 +15203,10 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                     'properties': {
                                         'MajorNumber': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
                                         'MinorNumber': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
-                                        'Name': {'type': 'string'},
-                                        'CallSign': {'type': 'string'},
-                                        'AffiliateCallSign': {'type': 'string'},
-                                        'Identifier': {'type': 'string'},
+                                        'Name': {'default': '', 'type': 'string'},
+                                        'CallSign': {'default': '', 'type': 'string'},
+                                        'AffiliateCallSign': {'default': '', 'type': 'string'},
+                                        'Identifier': {'default': '', 'type': 'string'},
                                         'Type': {'type': 'integer', 'enum': [0, 1, 2, 3], 'x-enumLabels': {'0': 'Satellite', '1': 'Cable', '2': 'Terrestrial', '3': 'OTT'}}
                                     },
                                     'required': ['MajorNumber', 'MinorNumber'],
@@ -15079,13 +15218,14 @@ PROFILES['television']["devices"]['SmartThings'] = {
                             'name': 'PageToken',
                             'optional': True,
                             'value_schema': {
+                                                'default': None,
                                 'oneOf': [
                                     {
                                         'type': 'object',
                                         'properties': {
-                                            'Limit': {'minimum': 0, 'maximum': 65535, 'type': 'integer'},
-                                            'After': {'type': 'string', 'maxLength': 8192},
-                                            'Before': {'type': 'string', 'maxLength': 8192}
+                                            'Limit': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'},
+                                            'After': {'default': '', 'type': 'string', 'maxLength': 8192},
+                                            'Before': {'default': '', 'type': 'string', 'maxLength': 8192}
                                         },
                                         'required': [],
                                         'additionalProperties': False
@@ -15094,8 +15234,8 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                 ]
                             }
                         },
-                        {'name': 'RecordingFlag', 'optional': True, 'value_schema': {'oneOf': [{'minimum': 0, 'maximum': 7, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'ExternalIDList', 'optional': True, 'value_schema': {'type': 'array', 'maxItems': 255, 'items': {}}},
+                        {'name': 'RecordingFlag', 'optional': True, 'value_schema': {'default': None, 'oneOf': [{'minimum': 0, 'maximum': 7, 'type': 'integer'}, {'type': 'null'}]}},
+                        {'name': 'ExternalIDList', 'optional': True, 'value_schema': {'default': [], 'type': 'array', 'maxItems': 255, 'items': {}}},
                         {'name': 'Data', 'optional': True, 'value_schema': {'type': 'string', 'maxLength': 8092}}
                     ]
                 }
@@ -15675,6 +15815,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 },
                                                 'Value': {'type': 'string', 'maxLength': 1024},
                                                 'ExternalIDList': {
+                                                                      'default': [],
                                                     'type': 'array',
                                                     'items': {
                                                         'type': 'object',
@@ -15708,6 +15849,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -15756,6 +15898,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                     'properties': {
                                                         'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                         'Characteristics': {
+                                                                               'default': None,
                                                             'oneOf': [
                                                                 {
                                                                     'type': 'array',
@@ -15801,7 +15944,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                 'additionalProperties': False
                             }
                         },
-                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 },
                 'launchURL': {
@@ -15929,6 +16072,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -15977,6 +16121,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                     'properties': {
                                                         'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                         'Characteristics': {
+                                                                               'default': None,
                                                             'oneOf': [
                                                                 {
                                                                     'type': 'array',
@@ -16177,8 +16322,8 @@ PROFILES['television']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'move': {
@@ -16186,8 +16331,8 @@ PROFILES['television']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'step': {
@@ -16196,15 +16341,15 @@ PROFILES['television']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stop': {
                     'name': 'stop',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveToLevelWithOnOff': {
@@ -16212,8 +16357,8 @@ PROFILES['television']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'Level', 'value_schema': {'minimum': 0.0, 'maximum': 254, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'moveWithOnOff': {
@@ -16221,8 +16366,8 @@ PROFILES['television']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'MoveMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'Rate', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stepWithOnOff': {
@@ -16231,15 +16376,15 @@ PROFILES['television']["devices"]['SmartThings'] = {
                         {'name': 'StepMode', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Up', '1': 'Down'}}},
                         {'name': 'StepSize', 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
                         {'name': 'TransitionTime', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 65535.0, 'type': 'integer'}, {'type': 'null'}]}},
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 },
                 'stopWithOnOff': {
                     'name': 'stopWithOnOff',
                     'arguments': [
-                        {'name': 'OptionsMask', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
-                        {'name': 'OptionsOverride', 'value_schema': {'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
+                        {'name': 'OptionsMask', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}},
+                        {'name': 'OptionsOverride', 'value_schema': {'default': 0, 'minimum': 0.0, 'maximum': 3.0, 'type': 'integer'}}
                     ]
                 }
             }
@@ -16642,6 +16787,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 },
                                                 'Value': {'type': 'string', 'maxLength': 1024},
                                                 'ExternalIDList': {
+                                                                      'default': [],
                                                     'type': 'array',
                                                     'items': {
                                                         'type': 'object',
@@ -16675,6 +16821,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -16723,6 +16870,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                     'properties': {
                                                         'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                         'Characteristics': {
+                                                                               'default': None,
                                                             'oneOf': [
                                                                 {
                                                                     'type': 'array',
@@ -16768,7 +16916,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                 'additionalProperties': False
                             }
                         },
-                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'UseCurrentContext', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 },
                 'launchURL': {
@@ -16896,6 +17044,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                 'properties': {
                                                     'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                     'Characteristics': {
+                                                                           'default': None,
                                                         'oneOf': [
                                                             {
                                                                 'type': 'array',
@@ -16944,6 +17093,7 @@ PROFILES['television']["devices"]['SmartThings'] = {
                                                     'properties': {
                                                         'LanguageCode': {'type': 'string', 'maxLength': 32},
                                                         'Characteristics': {
+                                                                               'default': None,
                                                             'oneOf': [
                                                                 {
                                                                     'type': 'array',
@@ -17160,8 +17310,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Door Lock',
-    'room_id': '',
-    'profile_id': 'door_lock',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -17334,8 +17483,9 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'field_id': 1,
                                     'required': True
                                 },
-                                {'max_length': 10, 'nullable': True, 'name': 'UserName', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': True},
+                                {'default': '', 'max_length': 10, 'nullable': True, 'name': 'UserName', 'property_type': 'string', 'data_type': 'string', 'field_id': 2, 'required': True},
                                 {
+                                    'default': 4294967295,
                                     'minimum': 0.0,
                                     'maximum': 4294967295.0,
                                     'nullable': True,
@@ -17346,6 +17496,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 1,
                                     'enum_values': [0, 1, 3],
                                     'enum_labels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'},
                                     'nullable': True,
@@ -17356,6 +17507,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                     'enum_labels': {
                                         '0': 'UnrestrictedUser',
@@ -17377,6 +17529,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1, 2],
                                     'enum_labels': {'0': 'Single', '1': 'Dual', '2': 'Tri'},
                                     'nullable': True,
@@ -17462,6 +17615,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                             'required': True
                                         },
                                         {
+                                            'default': 0,
                                             'minimum': 0,
                                             'maximum': 65535,
                                             'nullable': False,
@@ -17490,6 +17644,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 1,
                                     'enum_values': [0, 1, 3],
                                     'enum_labels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'},
                                     'nullable': True,
@@ -17500,6 +17655,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                     'enum_labels': {
                                         '0': 'UnrestrictedUser',
@@ -17551,6 +17707,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                             'required': True
                                         },
                                         {
+                                            'default': 0,
                                             'minimum': 0,
                                             'maximum': 65535,
                                             'nullable': False,
@@ -17598,6 +17755,7 @@ PROFILES['door_lock']["devices"]['Matter'] = {
                                             'required': True
                                         },
                                         {
+                                            'default': 0,
                                             'minimum': 0,
                                             'maximum': 65535,
                                             'nullable': False,
@@ -17627,8 +17785,7 @@ PROFILES['door_lock']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Door Lock',
-    'room_id': '',
-    'profile_id': 'door_lock',
+    'room': '',
     'td': {
         'title': 'Door Lock',
         'properties': {
@@ -17706,12 +17863,14 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                     'properties': {
                         'OperationType': {'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Add', '1': 'Clear', '2': 'Modify'}},
                         'UserIndex': {'minimum': 1, 'maximum': 1, 'type': 'integer'},
-                        'UserName': {'oneOf': [{'type': 'string', 'maxLength': 10}, {'type': 'null'}]},
-                        'UserUniqueID': {'oneOf': [{'minimum': 0.0, 'maximum': 4294967295.0, 'type': 'integer'}, {'type': 'null'}]},
+                        'UserName': {'default': '', 'oneOf': [{'type': 'string', 'maxLength': 10}, {'type': 'null'}]},
+                        'UserUniqueID': {'default': 4294967295, 'oneOf': [{'minimum': 0.0, 'maximum': 4294967295.0, 'type': 'integer'}, {'type': 'null'}]},
                         'UserStatus': {
+                                          'default': 1,
                             'oneOf': [{'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'}}, {'type': 'null'}]
                         },
                         'UserType': {
+                                        'default': 0,
                             'oneOf': [
                                 {
                                     'type': 'integer',
@@ -17732,7 +17891,7 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                                 {'type': 'null'}
                             ]
                         },
-                        'CredentialRule': {'oneOf': [{'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Single', '1': 'Dual', '2': 'Tri'}}, {'type': 'null'}]}
+                        'CredentialRule': {'default': 0, 'oneOf': [{'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Single', '1': 'Dual', '2': 'Tri'}}, {'type': 'null'}]}
                     },
                     'required': ['OperationType', 'UserIndex', 'UserName', 'UserUniqueID', 'UserStatus', 'UserType', 'CredentialRule'],
                     'additionalProperties': False
@@ -17783,7 +17942,7 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                                         '8': 'AliroNonEvictableEndpointKey'
                                     }
                                 },
-                                'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                             },
                             'required': ['CredentialType', 'CredentialIndex'],
                             'additionalProperties': False
@@ -17791,9 +17950,11 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                         'CredentialData': {'type': 'string'},
                         'UserIndex': {'oneOf': [{'minimum': 0, 'maximum': 65535, 'type': 'integer'}, {'type': 'null'}]},
                         'UserStatus': {
+                                          'default': 1,
                             'oneOf': [{'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'}}, {'type': 'null'}]
                         },
                         'UserType': {
+                                        'default': 0,
                             'oneOf': [
                                 {
                                     'type': 'integer',
@@ -17843,7 +18004,7 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                                         '8': 'AliroNonEvictableEndpointKey'
                                     }
                                 },
-                                'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                             },
                             'required': ['CredentialType', 'CredentialIndex'],
                             'additionalProperties': False
@@ -17879,7 +18040,7 @@ PROFILES['door_lock']["devices"]['W3C'] = {
                                                 '8': 'AliroNonEvictableEndpointKey'
                                             }
                                         },
-                                        'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                        'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                                     },
                                     'required': ['CredentialType', 'CredentialIndex'],
                                     'additionalProperties': False
@@ -17901,8 +18062,7 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Door Lock',
-    'room_id': '',
-    'profile_id': 'door_lock',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'lock',
@@ -18030,17 +18190,19 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                     'arguments': [
                         {'name': 'OperationType', 'value_schema': {'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Add', '1': 'Clear', '2': 'Modify'}}},
                         {'name': 'UserIndex', 'value_schema': {'minimum': 1, 'maximum': 1, 'type': 'integer'}},
-                        {'name': 'UserName', 'value_schema': {'oneOf': [{'type': 'string', 'maxLength': 10}, {'type': 'null'}]}},
-                        {'name': 'UserUniqueID', 'value_schema': {'oneOf': [{'minimum': 0.0, 'maximum': 4294967295.0, 'type': 'integer'}, {'type': 'null'}]}},
+                        {'name': 'UserName', 'value_schema': {'default': '', 'oneOf': [{'type': 'string', 'maxLength': 10}, {'type': 'null'}]}},
+                        {'name': 'UserUniqueID', 'value_schema': {'default': 4294967295, 'oneOf': [{'minimum': 0.0, 'maximum': 4294967295.0, 'type': 'integer'}, {'type': 'null'}]}},
                         {
                             'name': 'UserStatus',
                             'value_schema': {
+                                                'default': 1,
                                 'oneOf': [{'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'}}, {'type': 'null'}]
                             }
                         },
                         {
                             'name': 'UserType',
                             'value_schema': {
+                                                'default': 0,
                                 'oneOf': [
                                     {
                                         'type': 'integer',
@@ -18064,7 +18226,7 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                         },
                         {
                             'name': 'CredentialRule',
-                            'value_schema': {'oneOf': [{'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Single', '1': 'Dual', '2': 'Tri'}}, {'type': 'null'}]}
+                            'value_schema': {'default': 0, 'oneOf': [{'type': 'integer', 'enum': [0, 1, 2], 'x-enumLabels': {'0': 'Single', '1': 'Dual', '2': 'Tri'}}, {'type': 'null'}]}
                         }
                     ]
                 },
@@ -18094,7 +18256,7 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                                             '8': 'AliroNonEvictableEndpointKey'
                                         }
                                     },
-                                    'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                    'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                                 },
                                 'required': ['CredentialType', 'CredentialIndex'],
                                 'additionalProperties': False
@@ -18105,12 +18267,14 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                         {
                             'name': 'UserStatus',
                             'value_schema': {
+                                                'default': 1,
                                 'oneOf': [{'type': 'integer', 'enum': [0, 1, 3], 'x-enumLabels': {'0': 'Available', '1': 'OccupiedEnabled', '3': 'OccupiedDisabled'}}, {'type': 'null'}]
                             }
                         },
                         {
                             'name': 'UserType',
                             'value_schema': {
+                                                'default': 0,
                                 'oneOf': [
                                     {
                                         'type': 'integer',
@@ -18157,7 +18321,7 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                                             '8': 'AliroNonEvictableEndpointKey'
                                         }
                                     },
-                                    'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                    'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                                 },
                                 'required': ['CredentialType', 'CredentialIndex'],
                                 'additionalProperties': False
@@ -18190,7 +18354,7 @@ PROFILES['door_lock']["devices"]['SmartThings'] = {
                                                     '8': 'AliroNonEvictableEndpointKey'
                                                 }
                                             },
-                                            'CredentialIndex': {'minimum': 0, 'maximum': 65535, 'type': 'integer'}
+                                            'CredentialIndex': {'default': 0, 'minimum': 0, 'maximum': 65535, 'type': 'integer'}
                                         },
                                         'required': ['CredentialType', 'CredentialIndex'],
                                         'additionalProperties': False
@@ -18217,8 +18381,7 @@ PROFILES['window_covering']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Window Covering',
-    'room_id': '',
-    'profile_id': 'window_covering',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -18372,8 +18535,7 @@ PROFILES['window_covering']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Window Covering',
-    'room_id': '',
-    'profile_id': 'window_covering',
+    'room': '',
     'td': {
         'title': 'Window Covering',
         'properties': {
@@ -18481,8 +18643,7 @@ PROFILES['window_covering']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Window Covering',
-    'room_id': '',
-    'profile_id': 'window_covering',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'covering',
@@ -18615,8 +18776,7 @@ PROFILES['fan']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Fan',
-    'room_id': '',
-    'profile_id': 'fan',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -18756,6 +18916,7 @@ PROFILES['fan']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1],
                                     'enum_labels': {'0': 'Increase', '1': 'Decrease'},
                                     'nullable': False,
@@ -18765,8 +18926,8 @@ PROFILES['fan']["devices"]['Matter'] = {
                                     'field_id': 0,
                                     'required': True
                                 },
-                                {'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
-                                {'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
+                                {'default': False, 'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
+                                {'default': True, 'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
                             ]
                         }
                     ]
@@ -18780,8 +18941,7 @@ PROFILES['fan']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Fan',
-    'room_id': '',
-    'profile_id': 'fan',
+    'room': '',
     'td': {
         'title': 'Fan',
         'properties': {
@@ -18828,9 +18988,9 @@ PROFILES['fan']["devices"]['W3C'] = {
                 'input': {
                     'type': 'object',
                     'properties': {
-                        'Direction': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
-                        'Wrap': {'type': 'boolean'},
-                        'LowestOff': {'type': 'boolean'}
+                        'Direction': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
+                        'Wrap': {'default': False, 'type': 'boolean'},
+                        'LowestOff': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Direction'],
                     'additionalProperties': False
@@ -18845,8 +19005,7 @@ PROFILES['fan']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Fan',
-    'room_id': '',
-    'profile_id': 'fan',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -18959,9 +19118,9 @@ PROFILES['fan']["devices"]['SmartThings'] = {
                 'step': {
                     'name': 'step',
                     'arguments': [
-                        {'name': 'Direction', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
-                        {'name': 'Wrap', 'optional': True, 'value_schema': {'type': 'boolean'}},
-                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'Direction', 'value_schema': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
+                        {'name': 'Wrap', 'optional': True, 'value_schema': {'default': False, 'type': 'boolean'}},
+                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 }
             }
@@ -18980,8 +19139,7 @@ PROFILES['air_purifier']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Air Purifier',
-    'room_id': '',
-    'profile_id': 'air_purifier',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -19081,6 +19239,7 @@ PROFILES['air_purifier']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1],
                                     'enum_labels': {'0': 'Increase', '1': 'Decrease'},
                                     'nullable': False,
@@ -19090,8 +19249,8 @@ PROFILES['air_purifier']["devices"]['Matter'] = {
                                     'field_id': 0,
                                     'required': True
                                 },
-                                {'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
-                                {'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
+                                {'default': False, 'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
+                                {'default': True, 'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
                             ]
                         }
                     ]
@@ -19105,8 +19264,7 @@ PROFILES['air_purifier']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Air Purifier',
-    'room_id': '',
-    'profile_id': 'air_purifier',
+    'room': '',
     'td': {
         'title': 'Air Purifier',
         'properties': {
@@ -19149,9 +19307,9 @@ PROFILES['air_purifier']["devices"]['W3C'] = {
                 'input': {
                     'type': 'object',
                     'properties': {
-                        'Direction': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
-                        'Wrap': {'type': 'boolean'},
-                        'LowestOff': {'type': 'boolean'}
+                        'Direction': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
+                        'Wrap': {'default': False, 'type': 'boolean'},
+                        'LowestOff': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Direction'],
                     'additionalProperties': False
@@ -19166,8 +19324,7 @@ PROFILES['air_purifier']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Air Purifier',
-    'room_id': '',
-    'profile_id': 'air_purifier',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -19264,9 +19421,9 @@ PROFILES['air_purifier']["devices"]['SmartThings'] = {
                 'step': {
                     'name': 'step',
                     'arguments': [
-                        {'name': 'Direction', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
-                        {'name': 'Wrap', 'optional': True, 'value_schema': {'type': 'boolean'}},
-                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'Direction', 'value_schema': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
+                        {'name': 'Wrap', 'optional': True, 'value_schema': {'default': False, 'type': 'boolean'}},
+                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 }
             }
@@ -19285,8 +19442,7 @@ PROFILES['thermostat']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Thermostat',
-    'room_id': '',
-    'profile_id': 'thermostat',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -19406,8 +19562,7 @@ PROFILES['thermostat']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Thermostat',
-    'room_id': '',
-    'profile_id': 'thermostat',
+    'room': '',
     'td': {
         'title': 'Thermostat',
         'properties': {
@@ -19478,8 +19633,7 @@ PROFILES['thermostat']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Thermostat',
-    'room_id': '',
-    'profile_id': 'thermostat',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'temperature',
@@ -19621,8 +19775,7 @@ PROFILES['air_conditioner']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Air Conditioner',
-    'room_id': '',
-    'profile_id': 'air_conditioner',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -19806,6 +19959,7 @@ PROFILES['air_conditioner']["devices"]['Matter'] = {
                             'timed': False,
                             'fields': [
                                 {
+                                    'default': 0,
                                     'enum_values': [0, 1],
                                     'enum_labels': {'0': 'Increase', '1': 'Decrease'},
                                     'nullable': False,
@@ -19815,8 +19969,8 @@ PROFILES['air_conditioner']["devices"]['Matter'] = {
                                     'field_id': 0,
                                     'required': True
                                 },
-                                {'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
-                                {'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
+                                {'default': False, 'nullable': False, 'name': 'Wrap', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 1, 'required': False},
+                                {'default': True, 'nullable': False, 'name': 'LowestOff', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False}
                             ]
                         }
                     ]
@@ -19830,8 +19984,7 @@ PROFILES['air_conditioner']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Air Conditioner',
-    'room_id': '',
-    'profile_id': 'air_conditioner',
+    'room': '',
     'td': {
         'title': 'Air Conditioner',
         'properties': {
@@ -19922,9 +20075,9 @@ PROFILES['air_conditioner']["devices"]['W3C'] = {
                 'input': {
                     'type': 'object',
                     'properties': {
-                        'Direction': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
-                        'Wrap': {'type': 'boolean'},
-                        'LowestOff': {'type': 'boolean'}
+                        'Direction': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}},
+                        'Wrap': {'default': False, 'type': 'boolean'},
+                        'LowestOff': {'default': True, 'type': 'boolean'}
                     },
                     'required': ['Direction'],
                     'additionalProperties': False
@@ -19939,8 +20092,7 @@ PROFILES['air_conditioner']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Air Conditioner',
-    'room_id': '',
-    'profile_id': 'air_conditioner',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -20142,9 +20294,9 @@ PROFILES['air_conditioner']["devices"]['SmartThings'] = {
                 'step': {
                     'name': 'step',
                     'arguments': [
-                        {'name': 'Direction', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
-                        {'name': 'Wrap', 'optional': True, 'value_schema': {'type': 'boolean'}},
-                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'Direction', 'value_schema': {'default': 0, 'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'Increase', '1': 'Decrease'}}},
+                        {'name': 'Wrap', 'optional': True, 'value_schema': {'default': False, 'type': 'boolean'}},
+                        {'name': 'LowestOff', 'optional': True, 'value_schema': {'default': True, 'type': 'boolean'}}
                     ]
                 }
             }
@@ -20167,8 +20319,7 @@ PROFILES['washer']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Washer',
-    'room_id': '',
-    'profile_id': 'washer',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -20940,8 +21091,7 @@ PROFILES['washer']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Washer',
-    'room_id': '',
-    'profile_id': 'washer',
+    'room': '',
     'td': {
         'title': 'Washer',
         'properties': {
@@ -21627,8 +21777,7 @@ PROFILES['washer']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Washer',
-    'room_id': '',
-    'profile_id': 'washer',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'laundryWasherMode',
@@ -22349,8 +22498,7 @@ PROFILES['dryer']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Dryer',
-    'room_id': '',
-    'profile_id': 'dryer',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -23033,8 +23181,7 @@ PROFILES['dryer']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Dryer',
-    'room_id': '',
-    'profile_id': 'dryer',
+    'room': '',
     'td': {
         'title': 'Dryer',
         'properties': {
@@ -23685,8 +23832,7 @@ PROFILES['dryer']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Dryer',
-    'room_id': '',
-    'profile_id': 'dryer',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'operationalState',
@@ -24367,8 +24513,7 @@ PROFILES['dishwasher']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Dishwasher',
-    'room_id': '',
-    'profile_id': 'dishwasher',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -25140,8 +25285,7 @@ PROFILES['dishwasher']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Dishwasher',
-    'room_id': '',
-    'profile_id': 'dishwasher',
+    'room': '',
     'td': {
         'title': 'Dishwasher',
         'properties': {
@@ -25827,8 +25971,7 @@ PROFILES['dishwasher']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Dishwasher',
-    'room_id': '',
-    'profile_id': 'dishwasher',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'dishwasherMode',
@@ -26553,8 +26696,7 @@ PROFILES['robot_vacuum']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Robot Vacuum',
-    'room_id': '',
-    'profile_id': 'robot_vacuum',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -27360,8 +27502,7 @@ PROFILES['robot_vacuum']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Robot Vacuum',
-    'room_id': '',
-    'profile_id': 'robot_vacuum',
+    'room': '',
     'td': {
         'title': 'Robot Vacuum',
         'properties': {
@@ -27956,8 +28097,7 @@ PROFILES['robot_vacuum']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Robot Vacuum',
-    'room_id': '',
-    'profile_id': 'robot_vacuum',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'rVCRunMode',
@@ -28605,8 +28745,7 @@ PROFILES['water_valve']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Water Valve',
-    'room_id': '',
-    'profile_id': 'water_valve',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -28730,8 +28869,7 @@ PROFILES['water_valve']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Water Valve',
-    'room_id': '',
-    'profile_id': 'water_valve',
+    'room': '',
     'td': {
         'title': 'Water Valve',
         'properties': {
@@ -28800,8 +28938,7 @@ PROFILES['water_valve']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Water Valve',
-    'room_id': '',
-    'profile_id': 'water_valve',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'valveConfigurationAndControl',
@@ -28893,8 +29030,7 @@ PROFILES['heater']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Heater',
-    'room_id': '',
-    'profile_id': 'heater',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -28993,8 +29129,7 @@ PROFILES['heater']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Heater',
-    'room_id': '',
-    'profile_id': 'heater',
+    'room': '',
     'td': {
         'title': 'Heater',
         'properties': {
@@ -29056,8 +29191,7 @@ PROFILES['heater']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Heater',
-    'room_id': '',
-    'profile_id': 'heater',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'temperature',
@@ -29182,8 +29316,7 @@ PROFILES['refrigerator']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Refrigerator',
-    'room_id': '',
-    'profile_id': 'refrigerator',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -29352,8 +29485,7 @@ PROFILES['refrigerator']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Refrigerator',
-    'room_id': '',
-    'profile_id': 'refrigerator',
+    'room': '',
     'td': {
         'title': 'Refrigerator',
         'properties': {
@@ -29439,8 +29571,7 @@ PROFILES['refrigerator']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Refrigerator',
-    'room_id': '',
-    'profile_id': 'refrigerator',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'refrigeratorAndTemperatureControlledCabinetMode',
@@ -29539,8 +29670,7 @@ PROFILES['oven']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Oven',
-    'room_id': '',
-    'profile_id': 'oven',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -30366,8 +30496,7 @@ PROFILES['oven']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Oven',
-    'room_id': '',
-    'profile_id': 'oven',
+    'room': '',
     'td': {
         'title': 'Oven',
         'properties': {
@@ -31088,8 +31217,7 @@ PROFILES['oven']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Oven',
-    'room_id': '',
-    'profile_id': 'oven',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'temperatureControl',
@@ -31849,8 +31977,7 @@ PROFILES['microwave']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Microwave',
-    'room_id': '',
-    'profile_id': 'microwave',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -32009,6 +32136,7 @@ PROFILES['microwave']["devices"]['Matter'] = {
                                     'required': False
                                 },
                                 {
+                                    'default': 30,
                                     'minimum': 0,
                                     'maximum': 4294967295,
                                     'nullable': False,
@@ -32028,7 +32156,7 @@ PROFILES['microwave']["devices"]['Matter'] = {
                                     'field_id': 2,
                                     'required': False
                                 },
-                                {'nullable': False, 'name': 'StartAfterSetting', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
+                                {'default': False, 'nullable': False, 'name': 'StartAfterSetting', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 4, 'required': False}
                             ]
                         }
                     ]
@@ -32720,8 +32848,7 @@ PROFILES['microwave']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Microwave',
-    'room_id': '',
-    'profile_id': 'microwave',
+    'room': '',
     'td': {
         'title': 'Microwave',
         'properties': {
@@ -33404,9 +33531,9 @@ PROFILES['microwave']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'CookMode': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'},
-                        'CookTime': {'minimum': 0, 'maximum': 4294967295, 'type': 'integer'},
+                        'CookTime': {'default': 30, 'minimum': 0, 'maximum': 4294967295, 'type': 'integer'},
                         'PowerSetting': {'minimum': 10, 'maximum': 100, 'type': 'integer'},
-                        'StartAfterSetting': {'type': 'boolean'}
+                        'StartAfterSetting': {'default': False, 'type': 'boolean'}
                     },
                     'required': [],
                     'additionalProperties': False
@@ -33425,8 +33552,7 @@ PROFILES['microwave']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Microwave',
-    'room_id': '',
-    'profile_id': 'microwave',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'microwaveOvenMode',
@@ -33514,9 +33640,9 @@ PROFILES['microwave']["devices"]['SmartThings'] = {
                     'name': 'setCookingParameters',
                     'arguments': [
                         {'name': 'CookMode', 'optional': True, 'value_schema': {'minimum': 0.0, 'maximum': 255.0, 'type': 'integer'}},
-                        {'name': 'CookTime', 'optional': True, 'value_schema': {'minimum': 0, 'maximum': 4294967295, 'type': 'integer'}},
+                        {'name': 'CookTime', 'optional': True, 'value_schema': {'default': 30, 'minimum': 0, 'maximum': 4294967295, 'type': 'integer'}},
                         {'name': 'PowerSetting', 'optional': True, 'value_schema': {'minimum': 10, 'maximum': 100, 'type': 'integer'}},
-                        {'name': 'StartAfterSetting', 'optional': True, 'value_schema': {'type': 'boolean'}}
+                        {'name': 'StartAfterSetting', 'optional': True, 'value_schema': {'default': False, 'type': 'boolean'}}
                     ]
                 }
             }
@@ -34204,8 +34330,7 @@ PROFILES['pump']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Pump',
-    'room_id': '',
-    'profile_id': 'pump',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -34268,6 +34393,7 @@ PROFILES['pump']["devices"]['Matter'] = {
                                     'required': True
                                 },
                                 {
+                                    'default': 0,
                                     'minimum': 0,
                                     'maximum': 255,
                                     'nullable': False,
@@ -34504,8 +34630,7 @@ PROFILES['pump']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Pump',
-    'room_id': '',
-    'profile_id': 'pump',
+    'room': '',
     'td': {
         'title': 'Pump',
         'properties': {
@@ -34636,7 +34761,7 @@ PROFILES['pump']["devices"]['W3C'] = {
                     'type': 'object',
                     'properties': {
                         'EffectIdentifier': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}},
-                        'EffectVariant': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
+                        'EffectVariant': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}
                     },
                     'required': ['EffectIdentifier', 'EffectVariant'],
                     'additionalProperties': False
@@ -34670,8 +34795,7 @@ PROFILES['pump']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Pump',
-    'room_id': '',
-    'profile_id': 'pump',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'power',
@@ -34725,7 +34849,7 @@ PROFILES['pump']["devices"]['SmartThings'] = {
                     'name': 'offWithEffect',
                     'arguments': [
                         {'name': 'EffectIdentifier', 'value_schema': {'type': 'integer', 'enum': [0, 1], 'x-enumLabels': {'0': 'DelayedAllOff', '1': 'DyingLight'}}},
-                        {'name': 'EffectVariant', 'value_schema': {'minimum': 0, 'maximum': 255, 'type': 'integer'}}
+                        {'name': 'EffectVariant', 'value_schema': {'default': 0, 'minimum': 0, 'maximum': 255, 'type': 'integer'}}
                     ]
                 },
                 'onWithRecallGlobalScene': {'name': 'onWithRecallGlobalScene'},
@@ -34916,8 +35040,7 @@ PROFILES['water_heater']["devices"]['Matter'] = {
     'protocol': 'Matter',
     'device_id': '',
     'device_name': 'Water Heater',
-    'room_id': '',
-    'profile_id': 'water_heater',
+    'room': '',
     'endpoints': [
         {
             'endpoint_id': 1,
@@ -35008,7 +35131,7 @@ PROFILES['water_heater']["devices"]['Matter'] = {
                                             'field_id': 0,
                                             'required': True
                                         },
-                                        {'nullable': False, 'name': 'EmergencyBoost', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False},
+                                        {'default': False, 'nullable': False, 'name': 'EmergencyBoost', 'property_type': 'boolean', 'data_type': 'bool', 'field_id': 2, 'required': False},
                                         {
                                             'minimum': -32768,
                                             'maximum': 32767,
@@ -35223,8 +35346,7 @@ PROFILES['water_heater']["devices"]['W3C'] = {
     'protocol': 'W3C',
     'device_id': '',
     'device_name': 'Water Heater',
-    'room_id': '',
-    'profile_id': 'water_heater',
+    'room': '',
     'td': {
         'title': 'Water Heater',
         'properties': {
@@ -35319,7 +35441,7 @@ PROFILES['water_heater']["devices"]['W3C'] = {
                             'type': 'object',
                             'properties': {
                                 'Duration': {'minimum': 1, 'maximum': 4294967295, 'type': 'integer'},
-                                'EmergencyBoost': {'type': 'boolean'},
+                                'EmergencyBoost': {'default': False, 'type': 'boolean'},
                                 'TemporarySetpoint': {'minimum': -32768, 'maximum': 32767, 'type': 'integer'},
                                 'TargetPercentage': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
                             },
@@ -35368,8 +35490,7 @@ PROFILES['water_heater']["devices"]['SmartThings'] = {
     'protocol': 'SmartThings',
     'device_id': '',
     'device_name': 'Water Heater',
-    'room_id': '',
-    'profile_id': 'water_heater',
+    'room': '',
     'capabilities': [
         {
             'capability_name': 'waterHeaterManagement',
@@ -35433,7 +35554,7 @@ PROFILES['water_heater']["devices"]['SmartThings'] = {
                                 'type': 'object',
                                 'properties': {
                                     'Duration': {'minimum': 1, 'maximum': 4294967295, 'type': 'integer'},
-                                    'EmergencyBoost': {'type': 'boolean'},
+                                    'EmergencyBoost': {'default': False, 'type': 'boolean'},
                                     'TemporarySetpoint': {'minimum': -32768, 'maximum': 32767, 'type': 'integer'},
                                     'TargetPercentage': {'minimum': 0, 'maximum': 255, 'type': 'integer'}
                                 },

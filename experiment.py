@@ -18,7 +18,7 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
 
         consequence = []
         try:
-            user.main(simulator, task.user_utterance)
+            user.main(simulator, scenario.utterance)
         except Exception as e:
             consequence.append(str(e))
             debug(e)
@@ -81,6 +81,8 @@ if __name__ == "__main__":
             Model("gemma4:e4b-it-q4_K_M", reasoning=False),
             Model("lfm2.5:8b-a1b-q4_K_M", reasoning=False),
             Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
+            Model("ornith:9b-q4_K_M", reasoning=False),
+            Model("rnj-1:8b-instruct-q4_K_M"),
             # Tiny-size <=4b
             Model("granite4.2:3b-q4_K_M", reasoning=False),
             Model("gemma4:e2b-it-q4_K_M", reasoning=False),
