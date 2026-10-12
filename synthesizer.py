@@ -1,33 +1,33 @@
+import random
+import json
+from urllib.parse import quote
+from copy import deepcopy
+
+from time import perf_counter
+
 from settings import *
 from model import Model
 from schema import *
-from device_synthesizer import get_profiles, complete_profile_device, render_device
-import random
+from profiles import PROFILES
 from simulator import Simulator
 
 SCENE_PROMPT = ChatPromptTemplate.from_template(
-"""Create realistic rooms and DeviceDrafts by selecting profile_id from the catalog.
-Include only independently controlled devices needed for the full intent, covering every requested room. Equipment sharing one controlled plug needs no separate controls.
-Follow profile capabilities, not device names: a cooling-only AC is not a heater. Speaker On/Off is mute/unmute, not power.
-DeviceDraft.options lists user-specific information: plain content names (include artist/provider), robot cleaning areas, appliance modes or lighting presets. Preserve names or descriptive aliases such as 'my favorite Spotify playlist'; use [] otherwise. Do not list platform brands alone or invent preset capabilities.
-Pure control only: reject schedules, conditions, queries, shopping and pairing; ordinary assistant acknowledgements are not device requirements. Immediate preset activation is not scheduling.
-Content App supports content launch/playback, not shuffle, playlist edits or content recognition.
-Set solvable=false if any required function is unsupported; do not silently drop it. Unspecified ordinary control values may be concretized consistently in the task.
-Always explain the device/profile choices and any unsupported requirements in reason.
+"""Create realistic rooms and devices by selecting profile_id from the catalog, and explain the reason within 100 words.
+The devices MUST include the profiles needed for the user's full intent.
+Use options only for user-specific content, cleaning areas, appliance modes or lighting presets supported by the profile.
+The solvable flag MUST be false if the user's command cannot be fulfilled by the device profiles in the catalog.
+The solvable flag MUST be false if the user's command is about scheduled, conditioned, or informational commands.
 
-[Catalog] {catalog}
+[Catalog] {profiles}
 [Space] {space}
 [Command] {user_command}
 [Expected] {expected_behavior}
 """)
 
 TASK_PROMPT = ChatPromptTemplate.from_template(
-"""Create a pure-control Task preserving the full survey intent and explicit device/room/content targets.
-Cover every requested target with only necessary actions. Preserve explicit values; concretize unspecified ordinary values consistently and make those choices explicit in user_utterance.
-Use declared control_id and named arguments with their exact types, required fields and configured choices. Command scalars are direct values, never wrapped in a value object; only property writes use arguments.value.
-Select named content via its configured enum_labels/URL binding or matching search fields; a provider name alone is not content. Play resumes playback; presets use RecallScene, not brightness levels or startup settings.
-Respect units and enum meanings: SetpointRaiseLower.Amount uses 0.1 Celsius (increase 2 Celsius = 20); thermostat setpoints use 0.01 Celsius. Resolve unspecified temperature units plausibly and state the unit. Use relative commands for relative requests, not invented initial states.
-Return user_utterance and expected_actions, without automation or assistant acknowledgement actions.
+"""Create a device-control task preserving the full survey intent.
+The user_utterance MUST be natural, self-contained, and unambiguous utterance that the user would say to the AI agent.
+The expected_actions MUST cover every goal stated in the user_utterance.
 
 [Scene] {scene}
 [Command] {user_command}
@@ -39,35 +39,63 @@ class ValidationResult(BaseModel):
     reason: str
 
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
-"""Validate the generated scenario:
-1. user_utterance is a natural, self-contained pure-control request with clear targets and values.
-2. expected_actions match its full meaning: devices, rooms, content, values, units and enum meanings, without missing or unrelated actions.
-3. Scene devices are realistic products with plausible capabilities, names and room placements. Extra devices are allowed.
-API syntax is checked separately. Accept equivalent APIs and configured synthetic bindings; do not require live services. Reject only concrete issues, not stylistic preferences.
-Return valid and a brief reason.
+"""Validate the generated scenario, and explain the reason within 100 words.
+The user_utterance MUST be a natural, self-contained, and unambiguous device-control request with clear targets and values.
+The expected_actions MUST match its full meaning with the user_utterance: rooms, devices, actions, and arguments.
+The devices MUST be realistic products with plausible capabilities, names and room placements.
 
 [Scene] {scene}
 [Task] {task}
 """)
 
-def generate_device(device_spec: DeviceDraft, index: int) -> Device:
-    return render_device(complete_profile_device(device_spec, index), random.choice(DEVICE_FORMATS))
+def get_profiles():
+    return json.dumps({name: profile["description"] for name, profile in PROFILES.items()}, ensure_ascii=False)
 
-def generate_scenario(answer_dict: dict, device_count=5):
-    if device_count < 1:
-        raise ValueError("device_count must be positive")
+def generate_device(draft: DeviceDraft, protocol=None):
+    profile = PROFILES[draft.profile_id]
+    protocol = protocol or random.choice(tuple(profile["devices"]))
+    template = profile["devices"][protocol]
+    data = deepcopy(template)
+    data.update(draft.model_dump(include={"device_id", "device_name", "room_id", "profile_id"}))
+    if protocol == "W3C":
+        data["td"]["title"] = draft.device_name
+    if draft.options:
+        for path, kind in profile["options"][protocol]:
+            field = data
+            for key in path:
+                field = field[key]
+            if kind == "content":
+                values = [name if name.startswith(("https://", "http://")) else
+                          f"https://media.example.test/{quote(draft.device_id, safe='')}/{index}"
+                          for index, name in enumerate(draft.options)]
+            else:
+                values = list(range(len(draft.options)))
+                if "maximum" in field and values[-1] > field["maximum"]:
+                    raise ValueError("Too many options for the catalog argument domain")
+            enum, labels = ("enum_values", "enum_labels") if protocol == "Matter" else ("enum", "x-enumLabels")
+            field[enum] = values
+            field[labels] = {str(value): name for value, name in zip(values, draft.options)}
+    return {"Matter": MatterDevice, "W3C": W3CDevice, "SmartThings": SmartThingsDevice}[protocol].model_validate(data)
+
+def generate_scenario(answer_dict: dict):
+    start = perf_counter()
     debug(answer_dict)
 
     while True:
         try:
-            scene_spec = scene_generator.invoke(answer_dict)
-            if not scene_spec.solvable:
-                return {"model": model.name, "scene": scene_spec.reason}
-            
-            if len(scene_spec.devices) > device_count:
-                return {"model": model.name, "scene": "Too many devices are required"}
+            scene = None
+            task = None
 
-            devices = [generate_device(device, index) for index, device in enumerate(scene_spec.devices)]
+            scene_spec = scene_generator.invoke(answer_dict)
+            reason = scene_spec.reason
+            if not scene_spec.solvable:
+                break
+            
+            if len(scene_spec.devices) > 5:
+                reason = "Too many devices are required"
+                break
+
+            devices = [generate_device(device) for device in scene_spec.devices]
             scene = Scene.model_validate({
                 "rooms": scene_spec.rooms,
                 "devices": devices
@@ -83,25 +111,36 @@ def generate_scenario(answer_dict: dict, device_count=5):
 
             validation_result = validator.invoke({"scene": rendered_scene, "task": task})
             if not validation_result.valid:
-                return {"model": model.name, "scene": validation_result.reason}
+                reason = validation_result.reason
+                break
 
-            return {"model": model.name, "scene": scene.model_dump(), "task": task.model_dump()}
+            scene = scene.model_dump()
+            task = task.model_dump()
+            break
 
         except Exception as e:
             debug(e)
+
+    # TODO scale
+
+    # TODO mutation
+
+    debug(reason)
+
+    return {"model": model.name, "time": perf_counter() - start, "reason": reason, "scene": scene, "task": task}
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--model", type=str, required=False, default="gemma4:12b-it-q4_K_M", help="LLM to use")
-    argument_parser.add_argument("--devices", type=int, default=5)
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
-    catalog = get_profiles()
-    path = f"{DATASET_DIR}/dataset_D{args.devices}_M0.csv"
+    profiles = get_profiles()
+    debug(profiles)
+    path = f"{DATASET_DIR}/dataset_D5_M0.csv"
     model = Model(model=args.model, reasoning=False, temperature=None, context=32768)
-    scene_generator = create_generator(SCENE_PROMPT.partial(catalog=catalog), SceneSpec, model)
+    scene_generator = create_generator(SCENE_PROMPT.partial(profiles=profiles), SceneSpec, model)
     task_generator = create_generator(TASK_PROMPT, Task, model)
 
     validator = create_generator(VALIDATION_PROMPT, ValidationResult, model)
@@ -111,10 +150,12 @@ if __name__ == "__main__":
     synthesize_df = survey_df[len(df):]
 
     try:
+        model.setup()
         for answer in tqdm(synthesize_df.itertuples(index=False), total=len(synthesize_df), desc=f"Synthesize ({model.name})"):
-            scenario = generate_scenario(answer._asdict(), device_count=args.devices)
+            scenario = generate_scenario(answer._asdict())
             df = pd.concat([df, pd.DataFrame([scenario])], ignore_index=True)
             save_dataframe(df, path, ensure=False)
         save_dataframe(df, path, ensure=True)
+        model.wrapup()
     except KeyboardInterrupt:
         pass

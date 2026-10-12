@@ -44,16 +44,6 @@ DEBUG = False
 MAX_CONTEXT = 32768
 MAX_OUTPUT_TOKENS = 2048
 
-# RECRUIT
-
-RECRUIT_SCREENING_THRESHOLD = 0.0
-
-# Devices
-
-DEVICE_FORMATS = ["W3C", "SmartThings", "Matter"]
-
-SMARTTHINGS_API_URL = "https://api.smartthings.com/v1/devices"
-
 def get_random_device_id():
     return str(uuid.uuid4())
 

@@ -1,7 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator, create_model
-from typing import Annotated, List, Dict, Optional, Literal, Union
-from operator import getitem
-from catalog import DEVICE_TYPES, DeviceType, ClusterId, ProfileId
+from pydantic import BaseModel, Field, model_validator
+from typing import Annotated, List, Dict, Optional, Literal
+from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
 
@@ -31,7 +30,7 @@ class RoomSpec(BaseModel):
 
 class SceneSpec(BaseModel):
     rooms: List[RoomSpec] = Field(min_length=1)
-    devices: List[DeviceDraft] = Field(default_factory=list)
+    devices: List[DeviceDraft] = Field(min_length=1)
     solvable: bool
     reason: str
 
@@ -46,47 +45,19 @@ class SceneSpec(BaseModel):
             raise ValueError("Invalid room ID")
         return self
 
-class MatterEndpointSpec(BaseModel):
-    device_type: DeviceType
-    clusters: List[ClusterId] = Field(min_length=1)
-    commands: Dict[ClusterId, List[str]] = Field(default_factory=dict)
-    properties: Dict[ClusterId, List[str]] = Field(default_factory=dict)
-    allowed_features: Dict[ClusterId, List[str]] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def validate_selection(self) -> "MatterEndpointSpec":
-        if set(self.clusters) - DEVICE_TYPES[self.device_type]["clusters"].keys():
-            raise ValueError("Cluster is not available for this device type")
-        if (self.commands.keys() | self.properties.keys()) - set(self.clusters):
-            raise ValueError("Controls must belong to selected clusters")
-        return self
-
-class MatterDeviceSpec(BaseModel):
-    endpoints: List[MatterEndpointSpec] = Field(min_length=1)
-
-    @classmethod
-    def with_catalog(cls, catalog=DEVICE_TYPES):
-        endpoints = tuple(create_model(f"MatterEndpointSpec{index}", __base__=MatterEndpointSpec,
-            device_type=(getitem(Literal, name), ...),
-            clusters=(getitem(List, getitem(Literal, tuple(device["clusters"]))), Field(min_length=1)),
-            commands=(getitem(Dict, (getitem(Literal, tuple(device["clusters"])), List[str])), Field(default_factory=dict)),
-            properties=(getitem(Dict, (getitem(Literal, tuple(device["clusters"])), List[str])), Field(default_factory=dict)))
-            for index, (name, device) in enumerate(catalog.items()))
-        endpoint = getitem(Annotated, (getitem(Union, endpoints), Field(discriminator="device_type"))) if len(endpoints) > 1 else endpoints[0]
-        return create_model(cls.__name__, __base__=cls, endpoints=(getitem(List, endpoint), Field(min_length=1)))
-
 # Devices
 
 class Device(BaseModel):
     device_id: str
     device_name: str
     room_id: str
+    profile_id: Optional[ProfileId] = None
 
 class MatterCluster(BaseModel):
     cluster_id: int
     name: str
-    revision: int
-    feature_map: int
+    # revision: int
+    # feature_map: int
     attributes: List[Dict[str, Value]] = Field(default_factory=list)
     commands: List[Dict[str, Value]] = Field(default_factory=list)
 
@@ -97,17 +68,16 @@ class MatterEndpoint(BaseModel):
 
 class MatterDevice(Device):
     protocol: Literal["Matter"] = "Matter"
-    node_id: int = Field(ge=1)
+    # node_id: int = Field(ge=1)
     endpoints: List[MatterEndpoint] = Field(min_length=1)
-    profile_id: Optional[ProfileId] = None
 
 class W3CForm(BaseModel):
-    href: str
+    # href: str
     op: List[Literal["readproperty", "writeproperty", "invokeaction"]]
-    contentType: str = "application/json"
+    # contentType: str = "application/json"
 
 class W3CProperty(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = {"extra": "allow"}
     forms: List[W3CForm] = Field(min_length=1)
     readOnly: bool = False
     writeOnly: bool = False
@@ -118,35 +88,32 @@ class W3CAction(BaseModel):
     forms: List[W3CForm] = Field(min_length=1)
 
 class W3CThingDescription(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
-    context: str = Field(default="https://www.w3.org/2022/wot/td/v1.1", alias="@context")
-    id: str
+    # context: str = Field(default="https://www.w3.org/2022/wot/td/v1.1", alias="@context")
+    # id: str
     title: str
-    securityDefinitions: Dict[str, Dict[str, Value]]
-    security: List[str]
+    # securityDefinitions: Dict[str, Dict[str, Value]]
+    # security: List[str]
     properties: Dict[str, W3CProperty] = Field(default_factory=dict)
     actions: Dict[str, W3CAction] = Field(default_factory=dict)
 
 class W3CDevice(Device):
     protocol: Literal["W3C"] = "W3C"
-    profile_id: Optional[ProfileId] = None
     td: W3CThingDescription
 
 class SmartThingsArgument(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
     name: str
     optional: bool = False
-    value_schema: Dict[str, Value] = Field(alias="schema")
+    value_schema: Dict[str, Value]
 
 class SmartThingsCommand(BaseModel):
     name: str
     arguments: List[SmartThingsArgument] = Field(default_factory=list)
 
 class SmartThingsCapability(BaseModel):
-    id: str
-    name: str
-    version: int = 1
-    status: Literal["proposed"] = "proposed"
+    # id: str
+    capability_name: str
+    # version: int = 1
+    # status: Literal["proposed"] = "proposed"
     attributes: Dict[str, Dict[str, Value]] = Field(default_factory=dict)
     commands: Dict[str, SmartThingsCommand] = Field(default_factory=dict)
 
@@ -166,51 +133,66 @@ class SmartThingsProfile(BaseModel):
 
 class SmartThingsDevice(Device):
     protocol: Literal["SmartThings"] = "SmartThings"
-    profile_id: Optional[ProfileId] = None
-    profile: SmartThingsProfile
+    # profile: SmartThingsProfile
     capabilities: List[SmartThingsCapability] = Field(min_length=1)
 
 class Scene(BaseModel):
     rooms: List[RoomSpec] = Field(min_length=1)
-    devices: List[Annotated[MatterDevice | W3CDevice | SmartThingsDevice, Field(discriminator="protocol")]] = Field(min_length=1)
+    devices: List[
+        Annotated[MatterDevice | W3CDevice | SmartThingsDevice, Field(discriminator="protocol")]
+    ] = Field(min_length=1)
 
 # Task
 
-class ExpectedAction(BaseModel):
+class Action(BaseModel):
     device_id: str
     control_id: str
     arguments: Dict[str, Value] = Field(default_factory=dict)
+
+class Task(BaseModel):
+    user_utterance: str
+    expected_actions: List[Action] = Field(min_length=1)
+
+@tool
+def call_device_matter(
+    device_id: str, 
+    endpoint_id: int, 
+    cluster_id: int,
+    command_id: Optional[int] = None, 
+    attribute_id: Optional[int] = None,
+    arguments: Optional[Dict[str, Value]] = None, 
+    value: Value = None
+):
+    """Invoke command_id with arguments or write attribute_id with value; specify exactly one member ID."""
+
+@tool
+def call_device_w3c(
+    device_id: str, 
+    interaction: Literal["action", "property"], 
+    name: str,
+    arguments: Optional[Dict[str, Value]] = None, 
+    value: Value = None
+):
+    """Invoke a TD action with named arguments, or write a TD property with value."""
+
+@tool
+def call_device_smartthings(
+    device_id: str, 
+    capability: str, 
+    command: str,
+    arguments: List[Value]
+):
+    """Invoke a capability command with positional arguments in its declared order."""
+
+TOOLS = {"Matter": call_device_matter, "W3C": call_device_w3c, "SmartThings": call_device_smartthings}
 
 class AgentInstruction(BaseModel):
     device_id: str
     instruction: str = Field(description="A natural language instruction describing the task or action to perform on the device.")
 
-class Task(BaseModel):
-    user_utterance: str
-    expected_actions: List[ExpectedAction] = Field(min_length=1)
-
-@tool
-def call_device_matter(device_id: str, endpoint_id: int, cluster_id: int,
-                       command_id: Optional[int] = None, attribute_id: Optional[int] = None,
-                       arguments: Optional[Dict[str, Value]] = None, value: Value = None):
-    """Invoke command_id with arguments or write attribute_id with value; specify exactly one member ID."""
-
-@tool
-def call_device_w3c(device_id: str, interaction: Literal["action", "property"], name: str,
-                    arguments: Optional[Dict[str, Value]] = None, value: Value = None):
-    """Invoke a TD action with named arguments, or write a TD property with value."""
-
-@tool
-def call_device_smartthings(device_id: str, component: str, capability: str, command: str,
-                            arguments: List[Value]):
-    """Invoke a capability command with positional arguments in its declared order."""
-
 @tool(args_schema=AgentInstruction)
-def instruct_agent(device_id: str, instruction: str):
+def instruct_agent(
+    device_id: str, 
+    instruction: str
+):
     """Send an instruction to an agent to control its device."""
-
-# Rendering
-
-class DeviceRendering(BaseModel):
-    device_id: str
-    protocol: Literal["W3C", "SmartThings", "Matter"]
