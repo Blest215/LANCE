@@ -32,22 +32,19 @@ class ScenarioResources(BaseModel):
     inputs: List[InputResource] = Field(default_factory=list)
     applications: List[ApplicationResource] = Field(default_factory=list)
 
-class Room(BaseModel):
-    room_name: Literal[
+class DeviceDraft(BaseModel):
+    device_id: str
+    room: Literal[
         "living_room", "bedroom", "kitchen", "bathroom", "dining_room", "office", "study",
         "playroom", "family_room", "tv_room", "garage", "entryway", "garden", "backyard",
     ]
-
-class DeviceDraft(BaseModel):
-    device_id: str
-    room: Room
     profile: ProfileId
     resources: ScenarioResources = Field(default_factory=ScenarioResources)
 
 class Scene(BaseModel):
     solvable: bool
-    devices: List[DeviceDraft] = Field(min_length=1)
     description: str
+    devices: List[DeviceDraft] = Field(min_length=1)
 
 # Devices
 
@@ -151,7 +148,7 @@ class Task(BaseModel):
     expected_actions: List[Action] = Field(min_length=1)
 
 class UserUtterance(BaseModel):
-    user_utterance: str
+    user_utterance: str = Field(max_length=100)
 
 @tool
 def call_device_matter(

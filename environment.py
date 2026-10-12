@@ -94,8 +94,8 @@ def generate_device(draft: DeviceDraft, protocol=None):
     data = deepcopy(template)
 
     data["device_id"] = draft.device_id
-    data["device_name"] = f"{draft.room.room_name}_{draft.profile}"
-    data["room"] = draft.room.room_name
+    data["device_name"] = f"{draft.room}_{draft.profile}"
+    data["room"] = draft.room
     if protocol == "W3C":
         data["td"]["title"] = data["device_name"]
     elif protocol == "SmartThings":
@@ -372,15 +372,18 @@ def _protocol_control_ids(profile, device):
                     mapping[control_id(endpoint, cluster["cluster_id"], "write", attribute["attribute_id"])] = f"{capability.capability_name}/write{attribute['name']}"
     return mapping
 
-class Simulator:
-    def __init__(self, intent: Scene | dict, model: Model | None = None, protocol: str | None = None, seed: int | None = None):
-        self.intent = Scene.model_validate(intent)
+class Environment:
+    def __init__(self, devices: List[DeviceDraft], model: Model | None = None, protocol: str | None = None, seed: int | None = None):
         rng = random.Random(seed) if seed is not None else random
-        self.devices = [generate_device(draft, protocol or rng.choice(tuple(PROFILES[draft.profile]["devices"])))
-                        for draft in self.intent.devices]
+        self.devices = [
+            generate_device(draft, protocol or rng.choice(tuple(PROFILES[draft.profile]["devices"])))
+            for draft in devices
+        ]
         self.rooms = list(dict.fromkeys(device.room for device in self.devices))
-        self.control_maps = {device.device_id: _protocol_control_ids(draft.profile, device)
-                             for draft, device in zip(self.intent.devices, self.devices)}
+        self.control_maps = {
+            device.device_id: _protocol_control_ids(draft.profile, device)
+            for draft, device in zip(devices, self.devices)
+        }
         self.agents = {device.device_id: DeviceAgent(device, model) for device in self.devices}
 
     @property

@@ -3,7 +3,7 @@ from functools import wraps
 from time import perf_counter
 
 from settings import *
-from simulator import *
+from environment import *
 from model import Model
 
 def timed(method):
@@ -25,17 +25,17 @@ class UserAgent(ABC):
     def setup(self):
         pass
 
-    def main(self, simulator: Simulator, user_utterance: str):
-        descriptions = self.discovery(simulator, user_utterance)
+    def main(self, environment: Environment, user_utterance: str):
+        descriptions = self.discovery(environment, user_utterance)
         calls = self.plan(descriptions, user_utterance)
-        self.control(simulator, calls)
+        self.control(environment, calls)
 
     @timed
-    def discovery(self, simulator: Simulator, user_utterance: str):
-        return self.discovery_handler(simulator, user_utterance)
+    def discovery(self, environment: Environment, user_utterance: str):
+        return self.discovery_handler(environment, user_utterance)
 
     @abstractmethod
-    def discovery_handler(self, simulator: Simulator, user_utterance: str) -> Dict[str, str]:
+    def discovery_handler(self, environment: Environment, user_utterance: str) -> Dict[str, str]:
         pass
 
     @timed
@@ -48,49 +48,49 @@ class UserAgent(ABC):
         return sum([inject_id(device_id, result.tool_calls) for device_id, result in zip(descriptions, results)], [])
 
     @timed
-    def control(self, simulator: Simulator, calls: List[dict]):
-        return [self.control_handler(simulator, call["args"]) for call in calls]
+    def control(self, environment: Environment, calls: List[dict]):
+        return [self.control_handler(environment, call["args"]) for call in calls]
 
     @abstractmethod
-    def control_handler(self, simulator: Simulator, call: dict):
+    def control_handler(self, environment: Environment, call: dict):
         pass
 
 class CENTRALIZED(UserAgent):
     def setup(self):
         self.controller = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
-    def discovery_handler(self, simulator, user_utterance):
-        return simulator.discovery()
+    def discovery_handler(self, environment, user_utterance):
+        return environment.discovery()
 
-    def control_handler(self, simulator, call):
-        return simulator.call(**call)
+    def control_handler(self, environment, call):
+        return environment.call(**call)
 
 class NATURAL(UserAgent):
     def setup(self):
         self.controller = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
 
-    def discovery_handler(self, simulator, user_utterance):
-        return simulator.discovery()
+    def discovery_handler(self, environment, user_utterance):
+        return environment.discovery()
 
-    def control_handler(self, simulator, call):
-        return simulator.instruct(**call)
+    def control_handler(self, environment, call):
+        return environment.instruct(**call)
 
 class RECRUIT(UserAgent):
     def setup(self):
         self.controller = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
-    def discovery_handler(self, simulator, user_utterance):
-        return simulator.recruit(user_utterance, structured=True)
+    def discovery_handler(self, environment, user_utterance):
+        return environment.recruit(user_utterance, structured=True)
 
-    def control_handler(self, simulator, call):
-        return simulator.call(**call)
+    def control_handler(self, environment, call):
+        return environment.call(**call)
 
 class CONVERSATIONAL(UserAgent):
     def setup(self):
         self.controller = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
 
-    def discovery_handler(self, simulator, user_utterance):
-        return simulator.recruit(user_utterance, structured=False)
+    def discovery_handler(self, environment, user_utterance):
+        return environment.recruit(user_utterance, structured=False)
 
-    def control_handler(self, simulator, call):
-        return simulator.instruct(**call)
+    def control_handler(self, environment, call):
+        return environment.instruct(**call)

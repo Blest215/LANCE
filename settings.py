@@ -36,6 +36,8 @@ SURVEY_PATH = "survey_result.csv"
 
 DEBUG = False
 
+MAX_RETRY = 10
+
 # LLM
 
 MAX_CONTEXT = 32768
