@@ -157,11 +157,10 @@ if __name__ == "__main__":
     device_validator = create_generator(DEVICE_VALIDATION_PROMPT, ValidationResult, model)
 
     survey_df = pd.read_csv(SURVEY_PATH)
-    df = pd.DataFrame()
 
     num_devices = [0, 5, 10, 15, 20]
-    dfs = {num: pd.DataFrame() for num in num_devices}
     paths = {num: f"{DATASET_DIR}/dataset_D{num}_M0.csv" for num in num_devices}
+    dfs = {num: pd.DataFrame() for num in num_devices}
 
     try:
         model.setup()

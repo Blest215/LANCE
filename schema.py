@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field, ValidationError
+import re
+
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from typing import List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool
@@ -150,6 +152,11 @@ class Task(BaseModel):
 
 class UserUtterance(BaseModel):
     user_utterance: str = Field(max_length=100)
+
+    @field_validator("user_utterance")
+    @classmethod
+    def clean_utterance(cls, value: str) -> str:
+        return " ".join(re.sub(r"[()\[\]{}]", "", value).split())
 
 @tool
 def call_device_matter(

@@ -7,13 +7,17 @@ from settings import *
 from environment import *
 from model import Model
 
-class ScreeningResult(BaseModel):
-    relevant: bool = Field(description="Whether you can contribute to the task.")
-    proposal: str = Field(description="Short response message that describes what you can contribute to the task.")
+class Proposal(BaseModel):
+    description: str
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str) -> str:
+        return " ".join(re.sub(r"[()\[\]{}]", "", value).split())
 
 SCREENER_PROMPT = ChatPromptTemplate.from_template(
 """You are an AI agent controlling: {description}
-Can you contribute to this request? {request}""")
+Describe what can be done with the device.""")
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
 """You are an AI agent controlling: {description}
@@ -36,12 +40,12 @@ class UserAgent(ABC):
         self.model = model
         self.time_log = {"discovery": [], "plan": [], "control": []}
         self.token_log = {"discovery": [], "plan": [], "control": []}
-        self.setup()
 
-    def setup(self):
+    def setup(self, environment: Environment):
         pass
 
     def main(self, environment: Environment, user_utterance: str):
+        self.setup(environment)
         consequence = {}
         try:
             discovery = self.discovery(environment, user_utterance)
@@ -89,23 +93,20 @@ class UserAgent(ABC):
         pass
 
 class LANCE(UserAgent):
-    def setup(self):
+    def setup(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-        self.screener = create_generator(SCREENER_PROMPT, ScreeningResult, self.model)
+        self.proposer = create_generator(SCREENER_PROMPT, Proposal, self.model)
+        
+        descriptions = environment.discovery()
+        result = self.proposer.batch([{"description": description} for description in descriptions.values()])
+        self.proposals = {device_id: proposal.description for device_id, proposal in zip(descriptions.keys(), result)}
         self.controller = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
         }
 
     def discovery_handler(self, environment, user_utterance):
-        descriptions = environment.discovery()
-        result = self.screener.batch([
-            {"description": description, "request": user_utterance}
-            for description in descriptions.values()
-        ])
-        return {
-            agent_id: screen.proposal for agent_id, screen in zip(descriptions.keys(), result) if screen.relevant
-        }
+        return self.proposals
 
     def control_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])

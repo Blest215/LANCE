@@ -10,7 +10,7 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
     tokens = []
     scores = []
 
-    for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
+    for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:15}"):
         environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)])
         task = environment.compile_task(Task.model_validate(eval(scenario.task)))
         user = mode(model)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     representative_model = Model("qwen3.5:9b-q4_K_M", reasoning=False)
 
     configurations = [
-        ("dataset_D0_M0.csv", [CENTRALIZED, LANCE], [
+        ("dataset_D0_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
         ("dataset_D5_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
@@ -93,13 +93,13 @@ if __name__ == "__main__":
             Model("qwen3.5:0.8b-q8_0", reasoning=False),
             Model("llama3.2:1b-instruct-q4_K_M"),
         ]),
-        ("dataset_D10_M0.csv", [CENTRALIZED, LANCE], [
+        ("dataset_D10_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
-        ("dataset_D15_M0.csv", [CENTRALIZED, LANCE], [
+        ("dataset_D15_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
-        ("dataset_D20_M0.csv", [CENTRALIZED, LANCE], [
+        ("dataset_D20_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
     ]
