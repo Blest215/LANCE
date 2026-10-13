@@ -1,7 +1,8 @@
 from model import Model
 from settings import *
 from environment import *
-from LANCE import *
+from LANCE import LANCE
+from baseline import CENTRALIZED, Sasha, LLMind
 
 def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]):
     consequences = []
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         ("dataset_D0_M0.csv", [CENTRALIZED, LANCE], [
             representative_model,
         ]),
-        ("dataset_D5_M0.csv", [CENTRALIZED, LANCE], [
+        ("dataset_D5_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
             # Small-size <=8b
             Model("qwen3.5:9b-q4_K_M", reasoning=False),
             Model("gemma4:e4b-it-q4_K_M", reasoning=False),

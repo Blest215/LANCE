@@ -57,7 +57,6 @@ class UserAgent(ABC):
             debug(results)
         except Exception as e:
             consequence["exception"] = str(e)
-            debug(e)
         return consequence
 
     @log
@@ -74,29 +73,20 @@ class UserAgent(ABC):
 
     def plan_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
         return self.planner.invoke({"description": descriptions, "request": user_utterance}).tool_calls
-        results = self.planner.batch([
-            {"description": description, "request": user_utterance}
-            for description in descriptions.values()
-        ])
-        return sum([inject_id(device_id, result.tool_calls) for device_id, result in zip(descriptions, results)], [])
 
     @log
     def control(self, environment: Environment, calls: List[dict]) -> List:
-        return [self.control_handler(environment, call["args"]) for call in calls]
+        results = []
+        for call in calls:
+            try:
+                results.append(self.control_handler(environment, call["args"]))
+            except Exception as e:
+                results.append(str(e))
+        return results
 
     @abstractmethod
     def control_handler(self, environment: Environment, call: dict) -> List:
         pass
-
-class CENTRALIZED(UserAgent):
-    def setup(self):
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
-
-    def discovery_handler(self, environment, user_utterance):
-        return environment.discovery()
-
-    def control_handler(self, environment, call):
-        return environment.call(**call)
 
 class LANCE(UserAgent):
     def setup(self):
