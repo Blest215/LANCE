@@ -39,7 +39,10 @@ class UserAgent(ABC):
         pass
 
     @timed
-    def plan(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
+    def plan(self, descriptions: Dict[str, str], user_utterance: str):
+        return self.plan_handler(descriptions, user_utterance)
+
+    def plan_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
         return self.controller.invoke({"description": descriptions, "request": user_utterance}).tool_calls
         results = self.controller.batch([
             {"description": description, "request": user_utterance}

@@ -10,7 +10,7 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
         try:
-            environment = Environment([DeviceDraft.model_validate(device) for device in eval(scenario.devices)], model, seed=scenario.Index)
+            environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)], model)
             task = environment.compile_task(Task.model_validate(eval(scenario.task)))
             user = mode(model)
         except (SyntaxError, TypeError):
@@ -76,23 +76,32 @@ if __name__ == "__main__":
     configurations = [
         ("dataset_D5_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
             # Small-size <=8b
-            Model("granite4.2:8b-q4_K_M", reasoning=False),
             Model("qwen3.5:9b-q4_K_M", reasoning=False),
             Model("gemma4:e4b-it-q4_K_M", reasoning=False),
+            Model("granite4.2:8b-q4_K_M", reasoning=False),
             Model("lfm2.5:8b-a1b-q4_K_M", reasoning=False),
             Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
             Model("ornith:9b-q4_K_M", reasoning=False),
             Model("rnj-1:8b-instruct-q4_K_M"),
             # Tiny-size <=4b
-            Model("granite4.2:3b-q4_K_M", reasoning=False),
-            Model("gemma4:e2b-it-q4_K_M", reasoning=False),
-            Model("llama3.2:3b-instruct-q4_K_M"),
             Model("qwen3.5:4b-q4_K_M", reasoning=False),
+            Model("gemma4:e2b-it-q4_K_M", reasoning=False),
+            Model("granite4.2:3b-q4_K_M", reasoning=False),
             Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
+            Model("llama3.2:3b-instruct-q4_K_M"),
             # Micro-size <=2b
-            Model("llama3.2:1b-instruct-q4_K_M"),
             Model("qwen3.5:2b-q4_K_M", reasoning=False),
             Model("qwen3.5:0.8b-q8_0", reasoning=False),
+            Model("llama3.2:1b-instruct-q4_K_M"),
+        ]),
+        ("dataset_D10_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
+            Model("qwen3.5:9b-q4_K_M", reasoning=False),
+        ]),
+        ("dataset_D15_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
+            Model("qwen3.5:9b-q4_K_M", reasoning=False),
+        ]),
+        ("dataset_D20_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
+            Model("qwen3.5:9b-q4_K_M", reasoning=False),
         ]),
     ]
 

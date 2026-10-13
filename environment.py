@@ -4,7 +4,6 @@ from model import Model
 from collections import Counter
 from copy import deepcopy
 import json
-import random
 from urllib.parse import quote
 from profiles import PROFILES
 from pydantic import TypeAdapter
@@ -27,7 +26,7 @@ def _device_actions(data):
     return [(command["name"].lower(), {arg["name"]: arg["value_schema"] for arg in command.get("arguments", [])})
             for capability in data["capabilities"] for command in capability.get("commands", {}).values()]
 
-def _resource_options(data, resources: ScenarioResources):
+def _resource_options(data, resources: Resources):
     actions = _device_actions(data)
     bound = {}
 
@@ -55,10 +54,6 @@ def _resource_options(data, resources: ScenarioResources):
     inputs = [{"name": item.name, "Index": i} for i, item in enumerate(resources.inputs)]
     apps = [{"name": item.name, "ApplicationID": str(i), "CatalogVendorID": 65521}
             for i, item in enumerate(resources.applications, 1)]
-    maps = list(dict.fromkeys(item.map_name for item in resources.cleaning_areas if item.map_name))
-    for area in areas:
-        if "map_name" in area:
-            area["MapID"] = maps.index(area["map_name"]) + 1
 
     for name, fields in actions:
         if name == "launchurl" and media:
@@ -89,7 +84,7 @@ def _resource_options(data, resources: ScenarioResources):
 
 def generate_device(draft: DeviceDraft, protocol=None):
     profile = PROFILES[draft.profile]
-    protocol = protocol or random.choice(tuple(profile["devices"]))
+    protocol = protocol or draft.protocol
     template = profile["devices"][protocol]
     data = deepcopy(template)
 
@@ -285,7 +280,17 @@ class DeviceAgent:
 
     @property
     def description(self) -> str:
-        return self.spec.model_dump_json(exclude_none=True, exclude={"resources"} if not self.spec.resources else None)
+        data = self.spec.model_dump(exclude_none=True, exclude={"resources"} if not self.spec.resources else None)
+        if self.spec.protocol == "Matter":
+            for endpoint in data["endpoints"]:
+                for cluster in endpoint["clusters"]:
+                    cluster["attributes"] = [attr for attr in cluster["attributes"] if attr["writable"]]
+        elif self.spec.protocol == "W3C":
+            data["td"]["properties"] = {name: prop for name, prop in data["td"]["properties"].items() if not prop["readOnly"]}
+        else:
+            for capability in data["capabilities"]:
+                capability.pop("attributes", None)
+        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     
     def screen(self, request: str, structured: bool):
         result = self.screener.invoke({"description": self.description, "request": request})
@@ -373,12 +378,8 @@ def _protocol_control_ids(profile, device):
     return mapping
 
 class Environment:
-    def __init__(self, devices: List[DeviceDraft], model: Model | None = None, protocol: str | None = None, seed: int | None = None):
-        rng = random.Random(seed) if seed is not None else random
-        self.devices = [
-            generate_device(draft, protocol or rng.choice(tuple(PROFILES[draft.profile]["devices"])))
-            for draft in devices
-        ]
+    def __init__(self, devices: List[DeviceDraft], model: Model | None = None, protocol: str | None = None):
+        self.devices = [generate_device(draft, protocol) for draft in devices]
         self.rooms = list(dict.fromkeys(device.room for device in self.devices))
         self.control_maps = {
             device.device_id: _protocol_control_ids(draft.profile, device)

@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
+from random import choice
 
 class ContentResource(BaseModel):
     name: str
@@ -11,7 +12,6 @@ class ContentResource(BaseModel):
 
 class CleaningAreaResource(BaseModel):
     name: str
-    map_name: Optional[str] = None
 
 class ChannelResource(BaseModel):
     name: str
@@ -25,7 +25,7 @@ class InputResource(BaseModel):
 class ApplicationResource(BaseModel):
     name: str
 
-class ScenarioResources(BaseModel):
+class Resources(BaseModel):
     contents: List[ContentResource] = Field(default_factory=list)
     cleaning_areas: List[CleaningAreaResource] = Field(default_factory=list)
     channels: List[ChannelResource] = Field(default_factory=list)
@@ -34,12 +34,13 @@ class ScenarioResources(BaseModel):
 
 class DeviceDraft(BaseModel):
     device_id: str
+    protocol: Literal["Matter", "W3C", "SmartThings"] = Field(default_factory=lambda: choice(("Matter", "W3C", "SmartThings")))
     room: Literal[
         "living_room", "bedroom", "kitchen", "bathroom", "dining_room", "office", "study",
         "playroom", "family_room", "tv_room", "garage", "entryway", "garden", "backyard",
     ]
     profile: ProfileId
-    resources: ScenarioResources = Field(default_factory=ScenarioResources)
+    resources: Resources = Field(default_factory=Resources)
 
 class Scene(BaseModel):
     solvable: bool
