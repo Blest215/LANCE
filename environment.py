@@ -1,10 +1,8 @@
 from settings import *
 from schema import *
 from model import Model
-from collections import Counter
 from copy import deepcopy
 import json
-from urllib.parse import quote
 from profiles import PROFILES
 from pydantic import TypeAdapter
 
@@ -12,7 +10,7 @@ ARGUMENT_TYPES = {
     "integer": TypeAdapter(int),
     "number": TypeAdapter(float),
     "boolean": TypeAdapter(bool),
-    "string": TypeAdapter(str),
+    "string": TypeAdapter(str, config={"coerce_numbers_to_str": True}),
 }
 
 def _device_actions(data):
@@ -26,22 +24,35 @@ def _device_actions(data):
     return [(command["name"].lower(), {arg["name"]: arg["value_schema"] for arg in command.get("arguments", [])})
             for capability in data["capabilities"] for command in capability.get("commands", {}).values()]
 
-def _resource_options(data, resources: Resources):
+def _resource_options(data, resources: List[Resource]):
     actions = _device_actions(data)
     bound = {}
+    names = {name for name, _ in actions}
+    grouped = {kind: [item for item in resources if item.type == kind]
+               for kind in ("content", "channel", "cleaning_area", "input", "application")}
+    supported = {"content": "launchurl", "cleaning_area": "selectareas",
+                 "input": "selectinput", "application": "launchapp"}
+    unsupported = [key for key, command in supported.items() if grouped[key] and command not in names]
+    if any(("launchurl" not in names if channel.kind == "radio" else
+            not names.intersection({"changechannel", "changechannelbynumber"})) for channel in grouped["channel"]):
+        unsupported.append("channels")
+    if unsupported:
+        raise ValueError(f"Unsupported resources for {data['device_id']}: {', '.join(unsupported)}")
 
     def choices(field, entries, key):
         enum, labels = ("enum_values", "enum_labels") if data["protocol"] == "Matter" else ("enum", "x-enumLabels")
         values = list(dict.fromkeys(entry[key] for entry in entries))
         field[enum] = values
-        field[labels] = {str(entry[key]): entry["name"] for entry in entries}
+        field[labels] = {str(entry[key]): " · ".join(str(entry[part]) for part in
+                        ("name", "kind", "artist", "provider") if entry.get(part)) for entry in entries}
+        field["description"] = "Available resource choices: use the exact enum value matching the requested label."
 
-    contents = [item.model_dump(exclude_none=True) for item in resources.contents]
-    contents += [{"name": item.name, "kind": "radio"} for item in resources.channels if item.kind == "radio"]
-    media = [item | {"ContentURL": item["name"] if item["name"].startswith(("http://", "https://")) else
-             f"https://media.example.test/{quote(data['device_id'], safe='')}/{i}"} for i, item in enumerate(contents, 1)]
-    areas = [item.model_dump(exclude_none=True) | {"AreaID": i} for i, item in enumerate(resources.cleaning_areas, 1)]
-    tv_channels = [item for item in resources.channels if item.kind == "tv"]
+    contents = [item.model_dump(exclude_none=True) for item in grouped["content"]]
+    contents += [item.model_dump(exclude_none=True) for item in grouped["channel"] if item.kind == "radio"]
+    media = [{key: value for key, value in item.items() if key not in ("url", "major_number", "minor_number")}
+             | {"ContentURL": item["url"]} for item in contents]
+    areas = [item.model_dump(exclude_none=True) | {"AreaID": i} for i, item in enumerate(grouped["cleaning_area"], 1)]
+    tv_channels = [item for item in grouped["channel"] if item.kind == "tv"]
     used_numbers = {item.major_number for item in tv_channels if item.major_number is not None}
     channels = []
     for item in tv_channels:
@@ -51,9 +62,9 @@ def _resource_options(data, resources: Resources):
             used_numbers.add(number)
         channels.append(item.model_dump(exclude_none=True) | {"MajorNumber": number,
                         "MinorNumber": item.minor_number if item.minor_number is not None else 0})
-    inputs = [{"name": item.name, "Index": i} for i, item in enumerate(resources.inputs)]
+    inputs = [{"name": item.name, "Index": i} for i, item in enumerate(grouped["input"])]
     apps = [{"name": item.name, "ApplicationID": str(i), "CatalogVendorID": 65521}
-            for i, item in enumerate(resources.applications, 1)]
+            for i, item in enumerate(grouped["application"], 1)]
 
     for name, fields in actions:
         if name == "launchurl" and media:
@@ -68,6 +79,7 @@ def _resource_options(data, resources: Resources):
             bound["channels"] = channels
         elif name == "changechannel" and channels:
             choices(fields["Match"], [{"name": item["name"], "Match": item["name"]} for item in channels], "Match")
+            bound["channels"] = channels
         elif name == "selectinput" and inputs:
             choices(fields["Index"], inputs, "Index")
             bound["inputs"] = inputs
@@ -217,12 +229,35 @@ def _arguments(arguments, fields, coerce=False):
         raise ValueError("Invalid arguments")
     if arguments.keys() - fields.keys():
         raise ValueError("Unknown argument")
+    arguments = {name: value for name, value in arguments.items()
+                 if value is not None or fields[name].get("nullable")}
     arguments = {name: deepcopy(field.get("default")) for name, field in fields.items()
                  if "default" in field or (field.get("required") and field.get("nullable"))} | arguments
     if {name for name, field in fields.items() if field.get("required")} - arguments.keys():
         raise ValueError("Missing required argument")
     return {name: _normalize(_coerce(value, fields[name]) if coerce else value, fields[name])
             for name, value in arguments.items()}
+
+def _expected_value(value, field):
+    if value is None:
+        return None
+    if isinstance(value, dict) and "fields" in field:
+        fields = {item["name"]: item for item in field["fields"]}
+        return {name: _expected_value(item, fields[name]) for name, item in value.items()}
+    if isinstance(value, list) and "items" in field:
+        return [_expected_value(item, field["items"]) for item in value]
+    return _normalize(_coerce(value, field), field)
+
+def _contains(actual, expected):
+    if expected is None:
+        return True
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(
+            value is None or (name in actual and _contains(actual[name], value)) for name, value in expected.items())
+    if isinstance(expected, list):
+        return isinstance(actual, list) and len(actual) == len(expected) and all(
+            _contains(a, e) for a, e in zip(actual, expected))
+    return type(actual) is type(expected) and actual == expected
 
 def _render_argument(name, field):
     text = name + ("*" if field.get("required") and "default" not in field else "")
@@ -290,7 +325,7 @@ class DeviceAgent:
         if action.action_name not in self.controls:
             raise ValueError(f"Unsupported control: {action.action_name}")
         spec = self.controls[action.action_name]
-        arguments = _arguments(action.arguments, spec["arguments"])
+        arguments = _arguments(action.arguments, spec["arguments"], coerce=True)
         channels = self.spec.resources.get("channels", [])
         if spec["name"].lower() == "changechannelbynumber" and channels and not any(
             arguments["MajorNumber"] == channel["MajorNumber"] and arguments["MinorNumber"] == channel["MinorNumber"]
@@ -383,17 +418,54 @@ class Environment:
     def validate_action(self, action: Action):
         return self.get_agent(action.device_id).validate_action(self._resolve_action(action))
 
-    def assemble_action(self, action: Action) -> Action:
+    def assemble_action(self, action: Action, expected=False) -> Action:
         action = self._resolve_action(action)
         spec = self.get_agent(action.device_id).controls[action.action_name]
-        return self.validate_action(action.model_copy(update={
-            "arguments": _arguments(action.arguments, spec["arguments"], coerce=True)}))
+        if expected:
+            return action.model_copy(update={"arguments": {
+                name: _expected_value(value, spec["arguments"][name]) for name, value in action.arguments.items()}})
+        return self.validate_action(action)
 
     def compile_task(self, task: Task) -> Task:
-        return Task(expected_actions=[self.assemble_action(action) for action in task.expected_actions])
+        return Task(expected_actions=[self.assemble_action(action, expected=True) for action in task.expected_actions])
+
+    def validate_task_resources(self, task: Task):
+        targets = {
+            "launchurl": ("contents", ("ContentURL",)),
+            "selectareas": ("cleaning_areas", ("AreaID",)),
+            "changechannel": ("channels", ("name",)),
+            "changechannelbynumber": ("channels", ("MajorNumber", "MinorNumber")),
+            "selectinput": ("inputs", ("Index",)),
+            "launchapp": ("applications", ("ApplicationID", "CatalogVendorID")),
+            "stopapp": ("applications", ("ApplicationID", "CatalogVendorID")),
+            "hideapp": ("applications", ("ApplicationID", "CatalogVendorID")),
+        }
+        for action in self.compile_task(task).expected_actions:
+            agent = self.get_agent(action.device_id)
+            name = re.sub(r"_?\d+$", "", agent.controls[action.action_name]["name"]).lower()
+            if name not in targets:
+                continue
+            bucket, keys = targets[name]
+            arguments = action.arguments
+            if name == "selectareas":
+                selections = [{"AreaID": value} for value in arguments.get("NewAreas") or []]
+            elif name == "changechannel":
+                selections = [{"name": arguments.get("Match")}]
+            elif name in ("launchapp", "stopapp", "hideapp"):
+                if name != "launchapp" and arguments.get("Application") is None:
+                    continue
+                selections = [arguments.get("Application") or {}]
+            else:
+                selections = [arguments]
+            entries = agent.spec.resources.get(bucket, [])
+            if not selections or any(not any(all(
+                selection.get(key) is not None and selection[key] == entry[key] for key in keys
+            ) for entry in entries) for selection in selections):
+                raise ValueError(f"Unregistered resource target: {action.device_id}/{action.action_name}")
 
     def render(self) -> tuple[str, dict]:
-        lines, lookup = ["* = required; {...} = options; [min..max] = range; omitted arguments use defaults."], {}
+        lines, lookup = ["* = required; {...} = options; [min..max] = range; omitted arguments use defaults.",
+                         "Resources are available call targets; use their listed argument values, not names. ContentURL values are synthetic fixtures."], {}
         for device in self.devices:
             lines.append(f"device_id={device.device_id}, room={device.room}")
             if device.resources:
@@ -428,16 +500,27 @@ class Environment:
         return {agent.agent_id: agent.description for agent in self.agents.values()}
 
     def evaluate(self, task: Task):
-        def freeze(value):
-            if isinstance(value, dict):
-                return dict, tuple((tag, freeze(item)) for tag, item in sorted(value.items()))
-            if isinstance(value, list):
-                return list, tuple(map(freeze, value))
-            return type(value), value
+        actual = [self.validate_action(action) for action in self.action_calls]
+        expected = self.compile_task(task).expected_actions
+        candidates = []
+        for goal in expected:
+            candidates.append([i for i, action in enumerate(actual)
+                               if (action.device_id, action.action_name) == (goal.device_id, goal.action_name)
+                               and _contains(action.arguments, goal.arguments)])
 
-        def key(call):
-            call = self.validate_action(call)
-            return call.device_id, call.action_name, freeze(call.arguments)
-        actual = Counter(map(key, self.action_calls))
-        expected = Counter(map(key, self.compile_task(task).expected_actions))
-        return sum((actual & expected).values()) / len(task.expected_actions)
+        matched = {}
+        def match(goal, visited):
+            for action in candidates[goal]:
+                if action not in visited:
+                    visited.add(action)
+                    if action not in matched or match(matched[action], visited):
+                        matched[action] = goal
+                        return True
+            return False
+
+        correct = sum(match(goal, set()) for goal in range(len(expected)))
+        return {
+            "precision": correct / len(actual) if actual else 0.0,
+            "recall": correct / len(expected),
+            "accuracy": float(correct == len(expected) == len(actual)),
+        }

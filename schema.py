@@ -1,38 +1,62 @@
 import re
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
-from typing import List, Dict, Optional, Literal
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from typing import Annotated, List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
 from random import choice
+from urllib.parse import quote, urlencode
+
+def _media_url(name, kind, provider=None, artist=None):
+    path = "/".join(quote(value, safe="") for value in (provider or "local", kind, name))
+    return f"https://media.example.test/{path}" + ("?" + urlencode({"artist": artist}) if artist else "")
 
 class ContentResource(BaseModel):
-    name: str
+    type: Literal["content"] = "content"
+    name: str = Field(min_length=1)
     kind: Literal["song", "album", "playlist", "show", "video", "podcast", "other"]
-    provider: Optional[str] = None
+    provider: Optional[str] = Field(default=None, description="Content service, e.g. Spotify; not an artist or title.")
+    artist: Optional[str] = Field(default=None, description="Artist or creator, if specified.")
+    url: Optional[str] = Field(default=None, description="Leave null to generate a synthetic content URL automatically.")
+
+    @model_validator(mode="after")
+    def complete_url(self):
+        if not self.url:
+            self.url = _media_url(self.name, self.kind, self.provider, self.artist)
+        return self
 
 class CleaningAreaResource(BaseModel):
-    name: str
+    type: Literal["cleaning_area"] = "cleaning_area"
+    name: str = Field(min_length=1)
 
 class ChannelResource(BaseModel):
-    name: str
+    type: Literal["channel"] = "channel"
+    name: str = Field(min_length=1)
     kind: Literal["tv", "radio"]
+    provider: Optional[str] = None
+    url: Optional[str] = Field(default=None, description="Radio stream URL; leave null for automatic generation. Not used for TV channels.")
     major_number: Optional[int] = Field(default=None, ge=0, le=65535)
     minor_number: Optional[int] = Field(default=None, ge=0, le=65535)
 
+    @model_validator(mode="after")
+    def complete_url(self):
+        if self.kind == "radio" and not self.url:
+            self.url = _media_url(self.name, "radio", self.provider)
+        return self
+
 class InputResource(BaseModel):
-    name: str
+    type: Literal["input"] = "input"
+    name: str = Field(min_length=1)
 
 class ApplicationResource(BaseModel):
-    name: str
+    type: Literal["application"] = "application"
+    name: str = Field(min_length=1)
 
-class Resources(BaseModel):
-    contents: List[ContentResource] = Field(default_factory=list)
-    cleaning_areas: List[CleaningAreaResource] = Field(default_factory=list)
-    channels: List[ChannelResource] = Field(default_factory=list)
-    inputs: List[InputResource] = Field(default_factory=list)
-    applications: List[ApplicationResource] = Field(default_factory=list)
+Resource = Annotated[
+    ContentResource | CleaningAreaResource | ChannelResource | InputResource | ApplicationResource,
+    Field(discriminator="type"),
+]
 
 class DeviceDraft(BaseModel):
     device_id: str
@@ -42,7 +66,7 @@ class DeviceDraft(BaseModel):
         "playroom", "family_room", "tv_room", "garage", "entryway", "garden", "backyard",
     ]
     profile: ProfileId
-    resources: Resources = Field(default_factory=Resources)
+    resources: List[Resource] = Field(default_factory=list)
 
 class Scene(BaseModel):
     solvable: bool
@@ -145,7 +169,7 @@ class SmartThingsDevice(Device):
 class Action(BaseModel):
     device_id: str
     action_name: str
-    arguments: Dict[str, Value] = Field(default_factory=dict)
+    arguments: Dict[str, Value | None] = Field(default_factory=dict)
 
 class Task(BaseModel):
     expected_actions: List[Action] = Field(min_length=1)

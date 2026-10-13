@@ -24429,3 +24429,22 @@ PROFILES['water_heater']["devices"]['SmartThings'] = {
 
 # Profiles
 
+RESOURCE_SPECS = {
+    'speaker': {
+        'content': {'kinds': ['song', 'album', 'playlist', 'podcast'], 'description': 'Audio titles with artist/provider when known.'},
+        'channel': {'kinds': ['radio'], 'description': 'Named radio stations, played through a stream URL.'},
+    },
+    'television': {
+        'content': {'kinds': ['song', 'album', 'playlist', 'show', 'video', 'podcast'], 'description': 'Named media titles for URL playback.'},
+        'channel': {'kinds': ['tv', 'radio'], 'description': 'TV channels or radio stations; retain explicitly requested channel numbers.'},
+        'input': {'description': 'Connected inputs, e.g. HDMI 1.'},
+        'application': {'description': 'Installed media apps, e.g. Netflix.'},
+    },
+    'robot_vacuum': {
+        'cleaning_area': {'description': 'Named cleaning zones in the home, preferably using known rooms.'},
+    },
+}
+
+for profile_id, profile in PROFILES.items():
+    profile['resources'] = RESOURCE_SPECS.get(profile_id, {})
+

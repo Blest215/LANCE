@@ -8,7 +8,7 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
     consequences = []
     times = []
     tokens = []
-    scores = []
+    evaluations = []
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:15}"):
         environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)])
@@ -20,9 +20,9 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
         consequences.append(consequence)
         times.append(user.time_log)
         tokens.append(user.token_log)
-        scores.append(environment.evaluate(task))
+        evaluations.append(environment.evaluate(task))
 
-    return consequences, times, tokens, scores
+    return consequences, times, tokens, evaluations
 
 def simulation(code, dataset_file, models, modes):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
@@ -37,13 +37,14 @@ def simulation(code, dataset_file, models, modes):
             if get_column_name("CONSEQUENCES", model, mode.__name__) in done_columns:
                 continue
 
-            consequences, times, tokens, scores = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
+            consequences, times, tokens, evaluations = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
 
             result_df = pd.concat([result_df, pd.DataFrame({
                 get_column_name("CONSEQUENCES", model, mode.__name__): consequences,
                 get_column_name("TIME", model, mode.__name__): times,
                 get_column_name("TOKEN", model, mode.__name__): tokens,
-                get_column_name("SCORE", model, mode.__name__): scores,
+                **{get_column_name(metric.upper(), model, mode.__name__): [result[metric] for result in evaluations]
+                   for metric in ("precision", "recall", "accuracy")},
             })], axis=1)
             save_dataframe(result_df, path=result_path)
         model.wrapup()
