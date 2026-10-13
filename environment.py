@@ -266,17 +266,12 @@ def _named_controls(controls):
     return actions
 
 class DeviceAgent:
-    def __init__(self, spec: Device, model: Model | None = None):
+    def __init__(self, spec: Device):
         self.agent_id = spec.device_id
         self.spec = spec
         self.controls = device_controls(spec)
         self.handler = getattr(self, f"_{self.spec.protocol.lower()}_call")
         self.action_calls = []
-
-        self.model = model
-        if self.model is not None:
-            self.screener = create_generator(SCREENER_PROMPT, ScreeningResult, model)
-            self.controller = CONTROLLER_PROMPT | model.with_tools([TOOLS[spec.protocol]])
 
     @property
     def description(self) -> str:
@@ -291,17 +286,10 @@ class DeviceAgent:
             for capability in data["capabilities"]:
                 capability.pop("attributes", None)
         return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    
-    def screen(self, request: str, structured: bool):
-        result = self.screener.invoke({"description": self.description, "request": request})
-        return (self.description if structured else result.proposal) if result.relevant else None
 
-    def instruct(self, instruction: str):
-        result = self.controller.invoke({"description": self.description, "request": instruction})
-        return [
-            self.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
-            for tool_call in result.tool_calls
-        ]
+    @property
+    def protocol(self) -> str:
+        return self.spec.protocol
 
     def call(self, **request):
         action = self.handler(**request)
@@ -378,15 +366,15 @@ def _protocol_control_ids(profile, device):
     return mapping
 
 class Environment:
-    def __init__(self, devices: List[DeviceDraft], model: Model | None = None, protocol: str | None = None):
+    def __init__(self, devices: List[DeviceDraft], protocol: str | None = None):
         self.devices = [generate_device(draft, protocol) for draft in devices]
         self.rooms = list(dict.fromkeys(device.room for device in self.devices))
         self.control_maps = {
             device.device_id: _protocol_control_ids(draft.profile, device)
             for draft, device in zip(devices, self.devices)
         }
-        self.agents = {device.device_id: DeviceAgent(device, model) for device in self.devices}
-
+        self.agents = {device.device_id: DeviceAgent(device) for device in self.devices}
+    
     @property
     def controls(self):
         return {device_id: agent.controls for device_id, agent in self.agents.items()}
@@ -448,15 +436,8 @@ class Environment:
             request["arguments"] = action.arguments
         return self.call(action.device_id, **request)
 
-    def instruct(self, device_id: str, instruction: str):
-        return self.get_agent(device_id).instruct(instruction)
-
     def discovery(self):
         return {agent.agent_id: agent.description for agent in self.agents.values()}
-
-    def recruit(self, request: str, structured: bool):
-        result = {agent.agent_id: agent.screen(request, structured) for agent in self.agents.values()}
-        return {key: value for key, value in result.items() if value is not None}
 
     def evaluate(self, task: Task):
         def freeze(value):

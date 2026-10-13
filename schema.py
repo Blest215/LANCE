@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing import List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool

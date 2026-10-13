@@ -159,7 +159,7 @@ if __name__ == "__main__":
     survey_df = pd.read_csv(SURVEY_PATH)
     df = pd.DataFrame()
 
-    num_devices = [5, 10, 15, 20]
+    num_devices = [0, 5, 10, 15, 20]
     dfs = {num: pd.DataFrame() for num in num_devices}
     paths = {num: f"{DATASET_DIR}/dataset_D{num}_M0.csv" for num in num_devices}
 
@@ -170,6 +170,7 @@ if __name__ == "__main__":
             base_scenario = generate_scenario(answer_dict)
             debug(base_scenario)
             if base_scenario:
+
                 candidates = select_distractors(base_scenario["devices"])
                 for num in num_devices:
                     dfs[num] = pd.concat([dfs[num], pd.DataFrame([

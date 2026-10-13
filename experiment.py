@@ -9,21 +9,11 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
     scores = []
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
-        try:
-            environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)], model)
-            task = environment.compile_task(Task.model_validate(eval(scenario.task)))
-            user = mode(model)
-        except (SyntaxError, TypeError):
-            continue
+        environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)])
+        task = environment.compile_task(Task.model_validate(eval(scenario.task)))
+        user = mode(model)
 
-        consequence = []
-        try:
-            user.main(environment, scenario.utterance)
-        except Exception as e:
-            consequence.append(str(e))
-            debug(e)
-        finally:
-            consequence.extend(environment.action_calls)
+        consequence = user.main(environment, scenario.utterance)
 
         consequences.append(consequence)
         times.append(user.time_log)
@@ -73,8 +63,13 @@ if __name__ == "__main__":
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
 
+    representative_model = Model("qwen3.5:9b-q4_K_M", reasoning=False)
+
     configurations = [
-        ("dataset_D5_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
+        ("dataset_D0_M0.csv", [CENTRALIZED, LANCE], [
+            representative_model,
+        ]),
+        ("dataset_D5_M0.csv", [CENTRALIZED, LANCE], [
             # Small-size <=8b
             Model("qwen3.5:9b-q4_K_M", reasoning=False),
             Model("gemma4:e4b-it-q4_K_M", reasoning=False),
@@ -94,14 +89,14 @@ if __name__ == "__main__":
             Model("qwen3.5:0.8b-q8_0", reasoning=False),
             Model("llama3.2:1b-instruct-q4_K_M"),
         ]),
-        ("dataset_D10_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
-            Model("qwen3.5:9b-q4_K_M", reasoning=False),
+        ("dataset_D10_M0.csv", [CENTRALIZED, LANCE], [
+            representative_model,
         ]),
-        ("dataset_D15_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
-            Model("qwen3.5:9b-q4_K_M", reasoning=False),
+        ("dataset_D15_M0.csv", [CENTRALIZED, LANCE], [
+            representative_model,
         ]),
-        ("dataset_D20_M0.csv", [CENTRALIZED, NATURAL, RECRUIT, CONVERSATIONAL], [
-            Model("qwen3.5:9b-q4_K_M", reasoning=False),
+        ("dataset_D20_M0.csv", [CENTRALIZED, LANCE], [
+            representative_model,
         ]),
     ]
 

@@ -26,9 +26,23 @@ class UserAgent(ABC):
         pass
 
     def main(self, environment: Environment, user_utterance: str):
-        descriptions = self.discovery(environment, user_utterance)
-        calls = self.plan(descriptions, user_utterance)
-        self.control(environment, calls)
+        consequence = {}
+        try:
+            discovery = self.discovery(environment, user_utterance)
+            consequence["discovery"] = list(discovery.keys())
+            debug(discovery)
+
+            calls = self.plan(discovery, user_utterance)
+            consequence["calls"] = calls
+            debug(calls)
+
+            results = self.control(environment, calls)
+            consequence["results"] = results
+            debug(results)
+        except Exception as e:
+            consequence["exception"] = str(e)
+            debug(e)
+        return consequence
 
     @timed
     def discovery(self, environment: Environment, user_utterance: str):
@@ -39,28 +53,28 @@ class UserAgent(ABC):
         pass
 
     @timed
-    def plan(self, descriptions: Dict[str, str], user_utterance: str):
+    def plan(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
         return self.plan_handler(descriptions, user_utterance)
 
     def plan_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
-        return self.controller.invoke({"description": descriptions, "request": user_utterance}).tool_calls
-        results = self.controller.batch([
+        return self.planner.invoke({"description": descriptions, "request": user_utterance}).tool_calls
+        results = self.planner.batch([
             {"description": description, "request": user_utterance}
             for description in descriptions.values()
         ])
         return sum([inject_id(device_id, result.tool_calls) for device_id, result in zip(descriptions, results)], [])
 
     @timed
-    def control(self, environment: Environment, calls: List[dict]):
+    def control(self, environment: Environment, calls: List[dict]) -> List:
         return [self.control_handler(environment, call["args"]) for call in calls]
 
     @abstractmethod
-    def control_handler(self, environment: Environment, call: dict):
+    def control_handler(self, environment: Environment, call: dict) -> List:
         pass
 
 class CENTRALIZED(UserAgent):
     def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
         return environment.discovery()
@@ -68,32 +82,29 @@ class CENTRALIZED(UserAgent):
     def control_handler(self, environment, call):
         return environment.call(**call)
 
-class NATURAL(UserAgent):
+class LANCE(UserAgent):
     def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.screener = create_generator(SCREENER_PROMPT, ScreeningResult, self.model)
+        self.controller = {
+            protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
+            for protocol, tool in TOOLS.items()
+        }
 
     def discovery_handler(self, environment, user_utterance):
-        return environment.discovery()
+        descriptions = environment.discovery()
+        result = self.screener.batch([
+            {"description": description, "request": user_utterance}
+            for description in descriptions.values()
+        ])
+        return {
+            agent_id: screen.proposal for agent_id, screen in zip(descriptions.keys(), result) if screen.relevant
+        }
 
     def control_handler(self, environment, call):
-        return environment.instruct(**call)
-
-class RECRUIT(UserAgent):
-    def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
-
-    def discovery_handler(self, environment, user_utterance):
-        return environment.recruit(user_utterance, structured=True)
-
-    def control_handler(self, environment, call):
-        return environment.call(**call)
-
-class CONVERSATIONAL(UserAgent):
-    def setup(self):
-        self.controller = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-
-    def discovery_handler(self, environment, user_utterance):
-        return environment.recruit(user_utterance, structured=False)
-
-    def control_handler(self, environment, call):
-        return environment.instruct(**call)
+        agent = environment.get_agent(call["device_id"])
+        result = self.controller[agent.protocol].invoke({"description": agent.description, "request": call["instruction"]})
+        return [
+            agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
+            for tool_call in result.tool_calls
+        ]
