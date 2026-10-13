@@ -1,25 +1,41 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
+from langchain_core.callbacks import get_usage_metadata_callback
 
 from settings import *
 from environment import *
 from model import Model
 
-def timed(method):
+class ScreeningResult(BaseModel):
+    relevant: bool = Field(description="Whether you can contribute to the task.")
+    proposal: str = Field(description="Short response message that describes what you can contribute to the task.")
+
+SCREENER_PROMPT = ChatPromptTemplate.from_template(
+"""You are an AI agent controlling: {description}
+Can you contribute to this request? {request}""")
+
+CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
+"""You are an AI agent controlling: {description}
+Fulfill the request: {request}""")
+
+def log(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         start = perf_counter()
-        try:
-            return method(self, *args, **kwargs)
-        finally:
-            self.time_log[method.__name__].append(perf_counter() - start)
+        with get_usage_metadata_callback() as usage:
+            try:
+                return method(self, *args, **kwargs)
+            finally:
+                self.time_log[method.__name__].append(perf_counter() - start)
+                self.token_log[method.__name__].extend(list(usage.usage_metadata.values()))
     return wrapper
 
 class UserAgent(ABC):
     def __init__(self, model: Model):
         self.model = model
         self.time_log = {"discovery": [], "plan": [], "control": []}
+        self.token_log = {"discovery": [], "plan": [], "control": []}
         self.setup()
 
     def setup(self):
@@ -44,7 +60,7 @@ class UserAgent(ABC):
             debug(e)
         return consequence
 
-    @timed
+    @log
     def discovery(self, environment: Environment, user_utterance: str):
         return self.discovery_handler(environment, user_utterance)
 
@@ -52,7 +68,7 @@ class UserAgent(ABC):
     def discovery_handler(self, environment: Environment, user_utterance: str) -> Dict[str, str]:
         pass
 
-    @timed
+    @log
     def plan(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
         return self.plan_handler(descriptions, user_utterance)
 
@@ -64,7 +80,7 @@ class UserAgent(ABC):
         ])
         return sum([inject_id(device_id, result.tool_calls) for device_id, result in zip(descriptions, results)], [])
 
-    @timed
+    @log
     def control(self, environment: Environment, calls: List[dict]) -> List:
         return [self.control_handler(environment, call["args"]) for call in calls]
 

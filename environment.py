@@ -102,18 +102,6 @@ def generate_device(draft: DeviceDraft, protocol=None):
 
     return {"Matter": MatterDevice, "W3C": W3CDevice, "SmartThings": SmartThingsDevice}[protocol].model_validate(data)
 
-class ScreeningResult(BaseModel):
-    relevant: bool = Field(description="Whether you can contribute to the task.", ge=0, le=1)
-    proposal: str = Field(description="Short response message that describes what you can contribute to the task.")
-
-SCREENER_PROMPT = ChatPromptTemplate.from_template(
-"""You are an AI agent controlling: {description}
-Can you contribute to this request? {request}""")
-
-CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
-"""You are an AI agent controlling: {description}
-Fulfill the request: {request}""")
-
 def control_id(endpoint_id, cluster_id, operation, member_id):
     return f"{endpoint_id}/{cluster_id}/{operation}/{member_id}"
 

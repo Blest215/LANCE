@@ -6,6 +6,7 @@ from LANCE import *
 def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]):
     consequences = []
     times = []
+    tokens = []
     scores = []
 
     for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__}"):
@@ -17,9 +18,10 @@ def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]
 
         consequences.append(consequence)
         times.append(user.time_log)
+        tokens.append(user.token_log)
         scores.append(environment.evaluate(task))
 
-    return consequences, times, scores
+    return consequences, times, tokens, scores
 
 def simulation(code, dataset_file, models, modes):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
@@ -34,11 +36,12 @@ def simulation(code, dataset_file, models, modes):
             if get_column_name("CONSEQUENCES", model, mode.__name__) in done_columns:
                 continue
 
-            consequences, times, scores = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
+            consequences, times, tokens, scores = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
 
             result_df = pd.concat([result_df, pd.DataFrame({
                 get_column_name("CONSEQUENCES", model, mode.__name__): consequences,
                 get_column_name("TIME", model, mode.__name__): times,
+                get_column_name("TOKEN", model, mode.__name__): tokens,
                 get_column_name("SCORE", model, mode.__name__): scores,
             })], axis=1)
             save_dataframe(result_df, path=result_path)
