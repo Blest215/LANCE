@@ -39,7 +39,7 @@ Leave URLs null for automatic completion. Retain supplied channel numbers; other
 [Expected] {expected_behavior}
 """)
 
-TASK_PROMPT = ChatPromptTemplate.from_template(
+CRITERIA_PROMPT = ChatPromptTemplate.from_template(
 """Fulfill every described goal using listed device_ids, action_names and arguments within their options and ranges.
 Use only registered resource choices (including exact ContentURL); do not invent targets or replace selection with Play. Resource-target arguments must be concrete, not null.
 Specify requested values; use null for unrequested inputs when omission, defaults or null are allowed; supply other required executable values.
@@ -50,13 +50,13 @@ Specify requested values; use null for unrequested inputs when omission, default
 
 UTTERANCE_PROMPT = ChatPromptTemplate.from_template(
 """You are a smart-home user.
-Express the task as a natural, self-contained smart-home command with explicit rooms, targets and values.
+Express the criteria as a natural, self-contained smart-home command with explicit rooms, targets and values.
 Express only the user's goals; do not invent constraints for null arguments.
 Identify selected content by its resource name and artist/provider when needed, not its URL or ID.
 
 [Description] {description}
 [Devices] {devices}
-[Task] {task}
+[Criteria] {criteria}
 """)
 
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
@@ -73,7 +73,7 @@ Reject missing resources, invented URLs/IDs, or generic Play replacing a request
 [Expected] {expected_behavior}
 
 [Devices] {devices}
-[Task] {task}
+[Criteria] {criteria}
 [Utterance] {utterance}
 """)
 
@@ -121,6 +121,8 @@ def generate_scenario(answer_dict: dict):
             debug(scene)
             if not scene.solvable:
                 return
+            if len(scene.devices) > 5:
+                continue
 
             for device in scene.devices:
                 generate_resources(device, answer_dict)
@@ -128,25 +130,25 @@ def generate_scenario(answer_dict: dict):
             rendered_devices, action_lookup = environment.render()
             debug(rendered_devices)
 
-            draft = task_generator.invoke({"devices": rendered_devices, "description": scene.description})
-            task = Task(expected_actions=[environment.assemble_action(Action(
+            draft = criteria_generator.invoke({"devices": rendered_devices, "description": scene.description})
+            criteria = Criteria(expected_actions=[environment.assemble_action(Action(
                 device_id=action.device_id,
                 action_name=action_lookup[action.device_id][action.action_name]["control_id"],
                 arguments=action.arguments,
             ), expected=True) for action in draft.expected_actions])
-            debug(task)
+            debug(criteria)
 
-            environment.validate_task_resources(task)
-            for action in task.expected_actions:
+            environment.validate_criteria_resources(criteria)
+            for action in criteria.expected_actions:
                 environment.execute_action(action)
 
             utterance = utterance_generator.invoke({
-                "description": scene.description, "devices": rendered_devices, "task": draft
+                "description": scene.description, "devices": rendered_devices, "criteria": draft
             }).user_utterance
             debug(utterance)
 
             validation_result = validator.invoke(answer_dict | {
-                "devices": rendered_devices, "utterance": utterance, "task": draft
+                "devices": rendered_devices, "utterance": utterance, "criteria": draft
             })
             debug(validation_result.reason)
             if not validation_result.valid:
@@ -154,7 +156,7 @@ def generate_scenario(answer_dict: dict):
 
             return {"model": model.name, "description": scene.description, 
                     "devices": [device.model_dump() for device in scene.devices],
-                    "utterance": utterance, "task": task.model_dump()}
+                    "utterance": utterance, "criteria": criteria.model_dump()}
 
         except Exception as e:
             debug(e)
@@ -202,7 +204,7 @@ if __name__ == "__main__":
         profile: create_generator(RESOURCE_PROMPT, resource_schema(profile), model)
         for profile in PROFILES if PROFILES[profile]["resources"]
     }
-    task_generator = create_generator(TASK_PROMPT, Task, model)
+    criteria_generator = create_generator(CRITERIA_PROMPT, Criteria, model)
     utterance_generator = create_generator(UTTERANCE_PROMPT, UserUtterance, model)
 
     validator = create_generator(VALIDATION_PROMPT, ValidationResult, model)

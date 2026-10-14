@@ -13,6 +13,8 @@ ARGUMENT_TYPES = {
     "string": TypeAdapter(str, config={"coerce_numbers_to_str": True}),
 }
 
+IGNORED_EVALUATION_ARGUMENTS = {"DisplayString", "TransitionTime", "OptionsMask", "OptionsOverride", "Wrap", "LowestOff"}
+
 def _device_actions(data):
     if data["protocol"] == "Matter":
         return [(command["name"].lower(), {field["name"]: field for field in command["fields"]})
@@ -426,10 +428,10 @@ class Environment:
                 name: _expected_value(value, spec["arguments"][name]) for name, value in action.arguments.items()}})
         return self.validate_action(action)
 
-    def compile_task(self, task: Task) -> Task:
-        return Task(expected_actions=[self.assemble_action(action, expected=True) for action in task.expected_actions])
+    def compile_criteria(self, criteria: Criteria) -> Criteria:
+        return Criteria(expected_actions=[self.assemble_action(action, expected=True) for action in criteria.expected_actions])
 
-    def validate_task_resources(self, task: Task):
+    def validate_criteria_resources(self, criteria: Criteria):
         targets = {
             "launchurl": ("contents", ("ContentURL",)),
             "selectareas": ("cleaning_areas", ("AreaID",)),
@@ -440,7 +442,7 @@ class Environment:
             "stopapp": ("applications", ("ApplicationID", "CatalogVendorID")),
             "hideapp": ("applications", ("ApplicationID", "CatalogVendorID")),
         }
-        for action in self.compile_task(task).expected_actions:
+        for action in self.compile_criteria(criteria).expected_actions:
             agent = self.get_agent(action.device_id)
             name = re.sub(r"_?\d+$", "", agent.controls[action.action_name]["name"]).lower()
             if name not in targets:
@@ -499,12 +501,16 @@ class Environment:
     def discovery(self):
         return {agent.agent_id: agent.description for agent in self.agents.values()}
 
-    def evaluate(self, task: Task):
-        actual = [self.validate_action(action) for action in self.action_calls]
-        expected = self.compile_task(task).expected_actions
+    def evaluate(self, criteria: Criteria, action_calls: List[Action] | None = None):
+        consequence = [self.validate_action(action) for action in (self.action_calls if action_calls is None else action_calls)]
+        expected = self.compile_criteria(Criteria(expected_actions=[
+            action.model_copy(update={"arguments": {name: value for name, value in action.arguments.items()
+                                                    if name not in IGNORED_EVALUATION_ARGUMENTS}})
+            for action in criteria.expected_actions
+        ])).expected_actions
         candidates = []
         for goal in expected:
-            candidates.append([i for i, action in enumerate(actual)
+            candidates.append([i for i, action in enumerate(consequence)
                                if (action.device_id, action.action_name) == (goal.device_id, goal.action_name)
                                and _contains(action.arguments, goal.arguments)])
 
@@ -520,7 +526,7 @@ class Environment:
 
         correct = sum(match(goal, set()) for goal in range(len(expected)))
         return {
-            "precision": correct / len(actual) if actual else 0.0,
+            "precision": correct / len(consequence) if consequence else 0.0,
             "recall": correct / len(expected),
-            "accuracy": float(correct == len(expected) == len(actual)),
+            "accuracy": float(correct == len(expected) == len(consequence)),
         }

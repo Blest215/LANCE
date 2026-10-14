@@ -6,6 +6,7 @@ from langchain_core.callbacks import get_usage_metadata_callback
 from settings import *
 from environment import *
 from model import Model
+from schema import clean_text
 
 class Proposal(BaseModel):
     description: str
@@ -13,7 +14,7 @@ class Proposal(BaseModel):
     @field_validator("description")
     @classmethod
     def clean_description(cls, value: str) -> str:
-        return " ".join(re.sub(r"[()\[\]{}]", "", value).split())
+        return clean_text(value)
 
 SCREENER_PROMPT = ChatPromptTemplate.from_template(
 """You are an AI agent controlling: {description}
@@ -31,37 +32,45 @@ def log(method):
             try:
                 return method(self, *args, **kwargs)
             finally:
+                if method.__name__ not in self.time_log:
+                    self.time_log[method.__name__] = []
                 self.time_log[method.__name__].append(perf_counter() - start)
+                if method.__name__ not in self.token_log:
+                    self.token_log[method.__name__] = []
                 self.token_log[method.__name__].extend(list(usage.usage_metadata.values()))
     return wrapper
 
 class UserAgent(ABC):
     def __init__(self, model: Model):
         self.model = model
-        self.time_log = {"discovery": [], "plan": [], "control": []}
-        self.token_log = {"discovery": [], "plan": [], "control": []}
+        self.time_log = {}
+        self.token_log = {}
 
+    @log
     def setup(self, environment: Environment):
+        self.setup_handler(environment)
+
+    def setup_handler(self, environment: Environment):
         pass
 
     def main(self, environment: Environment, user_utterance: str):
         self.setup(environment)
-        consequence = {}
+        log = {}
         try:
             discovery = self.discovery(environment, user_utterance)
-            consequence["discovery"] = list(discovery.keys())
+            log["discovery"] = list(discovery.keys())
             debug(discovery)
 
             calls = self.plan(discovery, user_utterance)
-            consequence["calls"] = calls
+            log["calls"] = calls
             debug(calls)
 
             results = self.control(environment, calls)
-            consequence["results"] = results
+            log["results"] = results
             debug(results)
         except Exception as e:
-            consequence["exception"] = str(e)
-        return consequence
+            log["exception"] = str(e)
+        return log
 
     @log
     def discovery(self, environment: Environment, user_utterance: str):
@@ -93,7 +102,7 @@ class UserAgent(ABC):
         pass
 
 class LANCE(UserAgent):
-    def setup(self, environment):
+    def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
         self.proposer = create_generator(SCREENER_PROMPT, Proposal, self.model)
         

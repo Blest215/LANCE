@@ -1,7 +1,7 @@
 from LANCE import *
 
 class CENTRALIZED(UserAgent):
-    def setup(self, environment):
+    def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
@@ -14,7 +14,7 @@ class RAG(UserAgent):
     pass
 
 class Sasha(UserAgent):
-    def setup(self, environment):
+    def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
@@ -36,7 +36,7 @@ class Sasha(UserAgent):
         return environment.call(**call)
 
 class LLMind(UserAgent):
-    def setup(self, environment):
+    def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
         self.controller = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])

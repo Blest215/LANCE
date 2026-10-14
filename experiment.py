@@ -3,51 +3,56 @@ from settings import *
 from environment import *
 from LANCE import LANCE
 from baseline import CENTRALIZED, Sasha, LLMind
+from ast import literal_eval
 
-def simulate_scenarios(model: Model, mode, scenarios: List[pd.core.frame.pandas]):
-    consequences = []
-    times = []
-    tokens = []
-    evaluations = []
+def simulate_scenario(model: Model, mode, scenario):
+    environment = Environment([DeviceDraft.model_validate(draft) for draft in literal_eval(scenario.devices)])
+    user = mode(model)
+    log = user.main(environment, scenario.utterance)
+    return log, user.time_log, user.token_log, [action.model_dump() for action in environment.action_calls]
 
-    for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:15}"):
-        environment = Environment([DeviceDraft.model_validate(draft) for draft in eval(scenario.devices)])
-        task = environment.compile_task(Task.model_validate(eval(scenario.task)))
-        user = mode(model)
+def simulate_scenarios(model: Model, mode, scenarios):
+    return tuple(map(list, zip(*[
+        simulate_scenario(model, mode, scenario) 
+        for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:15}")
+    ])))
 
-        consequence = user.main(environment, scenario.utterance)
+def evaluate_scenario(scenario, consequence):
+    environment = Environment([DeviceDraft.model_validate(draft) for draft in literal_eval(scenario.devices)])
+    criteria = Criteria.model_validate(literal_eval(scenario.criteria))
+    action_calls = [Action.model_validate(action) for action in json.loads(consequence)]
+    return environment.evaluate(criteria, action_calls=action_calls)
 
-        consequences.append(consequence)
-        times.append(user.time_log)
-        tokens.append(user.token_log)
-        evaluations.append(environment.evaluate(task))
-
-    return consequences, times, tokens, evaluations
+def evaluate_scenarios(scenarios, consequences):
+    assert len(scenarios) == len(consequences)
+    return [evaluate_scenario(scenario, consequence) for scenario, consequence in zip(scenarios, consequences)]
 
 def simulation(code, dataset_file, models, modes):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
     result_path = f"{RESULT_DIR}/{code}/{dataset_file.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
-    done_columns = [column for column in parse_column(result_df, "CONSEQUENCES")]
+    scenarios = list(dataset_df.itertuples())
+    assert "ID" not in result_df or result_df["ID"].tolist() == dataset_df["ID"].tolist()
+    result_df["ID"] = dataset_df["ID"].tolist()
+    
     for model in models:
-        if not model.setup():
+        pending = [mode for mode in modes if get_column_name("CONSEQUENCES", model, mode.__name__) not in result_df]
+        if pending and not model.setup():
             continue
         for mode in modes:
-            if get_column_name("CONSEQUENCES", model, mode.__name__) in done_columns:
-                continue
-
-            consequences, times, tokens, evaluations = simulate_scenarios(model, mode, list(dataset_df.itertuples()))
-
-            result_df = pd.concat([result_df, pd.DataFrame({
-                get_column_name("CONSEQUENCES", model, mode.__name__): consequences,
-                get_column_name("TIME", model, mode.__name__): times,
-                get_column_name("TOKEN", model, mode.__name__): tokens,
-                **{get_column_name(metric.upper(), model, mode.__name__): [result[metric] for result in evaluations]
-                   for metric in ("precision", "recall", "accuracy")},
-            })], axis=1)
+            column = get_column_name("CONSEQUENCES", model, mode.__name__)
+            if column not in result_df:
+                logs, times, tokens, consequences = simulate_scenarios(model, mode, scenarios)
+                for key, values in (("LOGS", logs), ("TIME", times), ("TOKEN", tokens)):
+                    result_df[get_column_name(key, model, mode.__name__)] = values
+                result_df[column] = [json.dumps(actions, ensure_ascii=False) for actions in consequences]
+                save_dataframe(result_df, path=result_path)
+            evaluations = evaluate_scenarios(scenarios, result_df[column])
+            result_df[get_column_name("EVALUATION", model, mode.__name__)] = [json.dumps(value) for value in evaluations]
             save_dataframe(result_df, path=result_path)
-        model.wrapup()
+        if pending:
+            model.wrapup()
     
     save_dataframe(result_df, path=result_path, ensure=True)
     return result_path
@@ -68,7 +73,7 @@ if __name__ == "__main__":
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
 
-    representative_model = Model("qwen3.5:9b-q4_K_M", reasoning=False)
+    representative_model = Model("qwen3.5:4b-q4_K_M", reasoning=False)
 
     configurations = [
         ("dataset_D0_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [

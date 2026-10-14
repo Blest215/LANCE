@@ -8,6 +8,10 @@ from pydantic import JsonValue as Value
 from random import choice
 from urllib.parse import quote, urlencode
 
+def clean_text(value: str) -> str:
+    value = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda match: " " if match.group().isspace() else "", value)
+    return " ".join(value.split())
+
 def _media_url(name, kind, provider=None, artist=None):
     path = "/".join(quote(value, safe="") for value in (provider or "local", kind, name))
     return f"https://media.example.test/{path}" + ("?" + urlencode({"artist": artist}) if artist else "")
@@ -72,6 +76,11 @@ class Scene(BaseModel):
     solvable: bool
     description: str
     devices: List[DeviceDraft] = Field(min_length=1)
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str) -> str:
+        return clean_text(value)
 
 # Devices
 
@@ -164,23 +173,23 @@ class SmartThingsDevice(Device):
     # profile: SmartThingsProfile
     capabilities: List[SmartThingsCapability] = Field(min_length=1)
 
-# Task
+# Criteria
 
 class Action(BaseModel):
     device_id: str
     action_name: str
     arguments: Dict[str, Value | None] = Field(default_factory=dict)
 
-class Task(BaseModel):
+class Criteria(BaseModel):
     expected_actions: List[Action] = Field(min_length=1)
 
 class UserUtterance(BaseModel):
-    user_utterance: str = Field(max_length=100)
+    user_utterance: str
 
     @field_validator("user_utterance")
     @classmethod
     def clean_utterance(cls, value: str) -> str:
-        return " ".join(re.sub(r"[()\[\]{}]", "", value).split())
+        return clean_text(value)
 
 @tool
 def call_device_matter(
