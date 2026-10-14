@@ -1,6 +1,9 @@
 from LANCE import *
+from langchain_core.documents import Document
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_ollama import OllamaEmbeddings
 
-class CENTRALIZED(UserAgent):
+class Centralized(UserAgent):
     def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
@@ -11,7 +14,25 @@ class CENTRALIZED(UserAgent):
         return environment.call(**call)
 
 class RAG(UserAgent):
-    pass
+    def setup_handler(self, environment):
+        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        descriptions = environment.discovery()
+        self.vector_db = InMemoryVectorStore(OllamaEmbeddings(model=RAG_EMBEDDING_MODEL, num_ctx=MAX_CONTEXT))
+        self.num_devices = len(descriptions)
+        self.vector_db.add_documents([
+            Document(page_content=description, metadata={"device_id": device_id})
+            for device_id, description in descriptions.items()
+        ])
+
+    def discovery_handler(self, environment, user_utterance):
+        return {
+            document.metadata["device_id"]: document.page_content
+            for document, score in self.vector_db.similarity_search_with_score(user_utterance, k=self.num_devices)
+            if score >= RAG_SIMILARITY_THRESHOLD
+        }
+
+    def control_handler(self, environment, call):
+        return environment.call(**call)
 
 class Sasha(UserAgent):
     def setup_handler(self, environment):

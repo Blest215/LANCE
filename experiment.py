@@ -2,7 +2,7 @@ from model import Model
 from settings import *
 from environment import *
 from LANCE import LANCE
-from baseline import CENTRALIZED, Sasha, LLMind
+from baseline import Centralized, RAG, Sasha, LLMind
 from ast import literal_eval
 
 def simulate_scenario(model: Model, mode, scenario):
@@ -81,10 +81,10 @@ if __name__ == "__main__":
     representative_model = Model("qwen3.5:4b-q4_K_M", reasoning=False)
 
     configurations = [
-        ("dataset_D0_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
+        ("dataset_D0_M0.csv", [Centralized, RAG, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
-        ("dataset_D5_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
+        ("dataset_D5_M0.csv", [Centralized, RAG, Sasha, LLMind, LANCE], [
             # Small-size <=8b
             Model("qwen3.5:9b-q4_K_M", reasoning=False),
             Model("gemma4:e4b-it-q4_K_M", reasoning=False),
@@ -104,13 +104,13 @@ if __name__ == "__main__":
             Model("qwen3.5:0.8b-q8_0", reasoning=False),
             Model("llama3.2:1b-instruct-q4_K_M"),
         ]),
-        ("dataset_D10_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
+        ("dataset_D10_M0.csv", [Centralized, RAG, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
-        ("dataset_D15_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
+        ("dataset_D15_M0.csv", [Centralized, RAG, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
-        ("dataset_D20_M0.csv", [CENTRALIZED, Sasha, LLMind, LANCE], [
+        ("dataset_D20_M0.csv", [Centralized, RAG, Sasha, LLMind, LANCE], [
             representative_model,
         ]),
     ]
