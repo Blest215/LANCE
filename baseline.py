@@ -34,12 +34,22 @@ class RAG(UserAgent):
     def control_handler(self, environment, call):
         return environment.call(**call)
 
+class SashaSelection(BaseModel):
+    device_ids: List[str] = Field(default_factory=list)
+
+SASHA_FILTER_PROMPT = ChatPromptTemplate.from_template(
+"""Select the minimal set of devices needed to fulfill this request: {request}
+Available devices: {description}""")
+
 class Sasha(UserAgent):
     def setup_handler(self, environment):
+        self.filter = create_generator(SASHA_FILTER_PROMPT, SashaSelection, self.model)
         self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
-        return environment.discovery()
+        descriptions = environment.discovery()
+        selection = self.filter.invoke({"description": descriptions, "request": user_utterance})
+        return {device_id: descriptions[device_id] for device_id in selection.device_ids if device_id in descriptions}
 
     def plan_handler(self, descriptions, user_utterance):
         results = self.planner.batch([
