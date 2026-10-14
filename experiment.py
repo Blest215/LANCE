@@ -44,12 +44,17 @@ def simulation(code, dataset_file, models, modes):
             column = get_column_name("CONSEQUENCES", model, mode.__name__)
             if column not in result_df:
                 logs, times, tokens, consequences = simulate_scenarios(model, mode, scenarios)
-                for key, values in (("LOGS", logs), ("TIME", times), ("TOKEN", tokens)):
-                    result_df[get_column_name(key, model, mode.__name__)] = values
-                result_df[column] = [json.dumps(actions, ensure_ascii=False) for actions in consequences]
+                columns = {get_column_name(key, model, mode.__name__): values
+                           for key, values in (("LOGS", logs), ("TIME", times), ("TOKEN", tokens))}
+                columns[column] = [json.dumps(actions, ensure_ascii=False) for actions in consequences]
+                result_df = pd.concat([result_df, pd.DataFrame(columns, index=result_df.index)], axis=1).copy()
                 save_dataframe(result_df, path=result_path)
             evaluations = evaluate_scenarios(scenarios, result_df[column])
-            result_df[get_column_name("EVALUATION", model, mode.__name__)] = [json.dumps(value) for value in evaluations]
+            column = get_column_name("EVALUATION", model, mode.__name__)
+            result_df = pd.concat([
+                result_df.drop(columns=[column], errors="ignore"),
+                pd.DataFrame({column: [json.dumps(value) for value in evaluations]}, index=result_df.index),
+            ], axis=1).copy()
             save_dataframe(result_df, path=result_path)
         if pending:
             model.wrapup()

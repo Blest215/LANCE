@@ -1,6 +1,5 @@
 from settings import *
 from schema import *
-from model import Model
 from copy import deepcopy
 import json
 from profiles import PROFILES
@@ -68,43 +67,39 @@ def _resource_options(data, resources: List[Resource]):
     apps = [{"name": item.name, "ApplicationID": str(i), "CatalogVendorID": 65521}
             for i, item in enumerate(grouped["application"], 1)]
 
+    bindings = {
+        "launchurl": ("contents", media, ("ContentURL",)),
+        "selectareas": ("cleaning_areas", areas, ("AreaID",)),
+        "changechannelbynumber": ("channels", channels, ("MajorNumber", "MinorNumber")),
+        "changechannel": ("channels", channels, ("Match",)),
+        "selectinput": ("inputs", inputs, ("Index",)),
+    } | {name: ("applications", apps, ("ApplicationID", "CatalogVendorID"))
+         for name in ("launchapp", "stopapp", "hideapp")}
     for name, fields in actions:
-        if name == "launchurl" and media:
-            choices(fields["ContentURL"], media, "ContentURL")
-            bound["contents"] = media
-        elif name == "selectareas" and areas:
-            choices(fields["NewAreas"]["items"], areas, "AreaID")
-            bound["cleaning_areas"] = areas
-        elif name == "changechannelbynumber" and channels:
-            choices(fields["MajorNumber"], channels, "MajorNumber")
-            choices(fields["MinorNumber"], channels, "MinorNumber")
-            bound["channels"] = channels
-        elif name == "changechannel" and channels:
-            choices(fields["Match"], [{"name": item["name"], "Match": item["name"]} for item in channels], "Match")
-            bound["channels"] = channels
-        elif name == "selectinput" and inputs:
-            choices(fields["Index"], inputs, "Index")
-            bound["inputs"] = inputs
-        elif name in ("launchapp", "stopapp", "hideapp") and apps and "Application" in fields:
+        if name not in bindings:
+            continue
+        bucket, entries, keys = bindings[name]
+        if not entries:
+            continue
+        if bucket == "applications":
+            if "Application" not in fields:
+                continue
             application = fields["Application"]
-            if data["protocol"] == "Matter":
-                members = {field["name"]: field for field in application["fields"]}
-            else:
-                members = application["properties"]
-            choices(members["ApplicationID"], apps, "ApplicationID")
-            choices(members["CatalogVendorID"], apps, "CatalogVendorID")
-            bound["applications"] = apps
+            fields = ({field["name"]: field for field in application["fields"]}
+                      if data["protocol"] == "Matter" else application["properties"])
+        elif name == "selectareas":
+            fields = {"AreaID": fields["NewAreas"]["items"]}
+        bound[bucket] = entries
+        if name == "changechannel":
+            entries = [{"name": entry["name"], "Match": entry["name"]} for entry in entries]
+        for key in keys:
+            choices(fields[key], entries, key)
     data["resources"] = bound
 
 def generate_device(draft: DeviceDraft, protocol=None):
-    profile = PROFILES[draft.profile]
     protocol = protocol or draft.protocol
-    template = profile["devices"][protocol]
-    data = deepcopy(template)
-
-    data["device_id"] = draft.device_id
-    data["device_name"] = f"{draft.room}_{draft.profile}"
-    data["room"] = draft.room
+    data = deepcopy(PROFILES[draft.profile]["devices"][protocol]) | {
+        "device_id": draft.device_id, "device_name": f"{draft.room}_{draft.profile}", "room": draft.room}
     if protocol == "W3C":
         data["td"]["title"] = data["device_name"]
     elif protocol == "SmartThings":
@@ -134,17 +129,11 @@ def device_controls(device):
         return controls
     
     if isinstance(device, SmartThingsDevice):
-        for capability in device.capabilities:
-            for name, command in capability.commands.items():
-                controls[f"{capability.capability_name}/{name}"] = {
-                    "name": name,
-                    "call": {"capability": capability.capability_name, "command": name},
-                    "arguments": {
-                        arg.name: _schema_field(arg.value_schema, arg.name) | {"required": not arg.optional}
-                        for arg in command.arguments
-                    }
-                }
-        return controls
+        return {f"{capability.capability_name}/{name}": {
+                    "name": name, "call": {"capability": capability.capability_name, "command": name},
+                    "arguments": {arg.name: _schema_field(arg.value_schema, arg.name) | {"required": not arg.optional}
+                                  for arg in command.arguments}}
+                for capability in device.capabilities for name, command in capability.commands.items()}
     
     for endpoint in device.endpoints:
         for cluster in endpoint.clusters:
@@ -170,12 +159,10 @@ def _schema_field(schema, name):
     if nullable:
         schema = next(branch for branch in schema["oneOf"] if branch.get("type") != "null")
     field = {"name": name, "property_type": schema.get("type", "opaque"), "nullable": nullable} | default
-    for source, target in (("minimum", "minimum"), ("maximum", "maximum"), ("unit", "unit"),
-                            ("enum", "enum_values"), ("x-enumLabels", "enum_labels"),
-                            ("minLength", "min_length"), ("maxLength", "max_length"),
-                            ("minItems", "min_length"), ("maxItems", "max_length")):
-        if source in schema:
-            field[target] = schema[source]
+    aliases = {"enum": "enum_values", "x-enumLabels": "enum_labels", "minLength": "min_length",
+               "maxLength": "max_length", "minItems": "min_length", "maxItems": "max_length"}
+    field.update({aliases.get(key, key): schema[key]
+                  for key in ("minimum", "maximum", "unit", *aliases) if key in schema})
     if "properties" in schema:
         field["fields"] = list(_schema_arguments(schema).values())
     if "items" in schema:
@@ -200,7 +187,7 @@ def _normalize(value, field):
         raise ValueError(f"Invalid choice for {field['name']}")
     for low, high, actual in (("minimum", "maximum", value),
                                 ("min_length", "max_length", len(value) if isinstance(value, (str, list, dict)) else None)):
-        if (low in field and actual < field[low]) or (high in field and actual > field[high]):
+        if actual is not None and ((low in field and actual < field[low]) or (high in field and actual > field[high])):
             raise ValueError(f"Out of range: {field['name']}")
     if kind == "array":
         return [_normalize(item, field["items"]) for item in value]
@@ -366,29 +353,24 @@ class DeviceAgent:
         return self._action(identifier, dict(zip(fields, arguments)))
 
 def _protocol_control_ids(profile, device):
-    clusters = [(endpoint["endpoint_id"], cluster)
-                for endpoint in PROFILES[profile]["devices"]["Matter"]["endpoints"] for cluster in endpoint["clusters"]]
     if isinstance(device, MatterDevice):
         return {identifier: identifier for identifier in device_controls(device)}
-    mapping = {}
+    clusters = [(endpoint["endpoint_id"], cluster)
+                for endpoint in PROFILES[profile]["devices"]["Matter"]["endpoints"] for cluster in endpoint["clusters"]]
     if isinstance(device, W3CDevice):
-        actions = iter(device.td.actions)
-        properties = iter(name for name, prop in device.td.properties.items() if not prop.readOnly)
-        for endpoint, cluster in clusters:
-            for command in cluster.get("commands", []):
-                mapping[control_id(endpoint, cluster["cluster_id"], "invoke", command["command_id"])] = f"actions/{next(actions)}"
-            for attribute in cluster.get("attributes", []):
-                if attribute["writable"]:
-                    mapping[control_id(endpoint, cluster["cluster_id"], "write", attribute["attribute_id"])] = f"properties/{next(properties)}"
-    else:
-        for (endpoint, cluster), capability in zip(clusters, device.capabilities):
-            for command in cluster.get("commands", []):
-                name = command["name"][0].lower() + command["name"][1:]
-                mapping[control_id(endpoint, cluster["cluster_id"], "invoke", command["command_id"])] = f"{capability.capability_name}/{name}"
-            for attribute in cluster.get("attributes", []):
-                if attribute["writable"]:
-                    mapping[control_id(endpoint, cluster["cluster_id"], "write", attribute["attribute_id"])] = f"{capability.capability_name}/write{attribute['name']}"
-    return mapping
+        names = {"invoke": iter(f"actions/{name}" for name in device.td.actions),
+                 "write": iter(f"properties/{name}" for name, prop in device.td.properties.items() if not prop.readOnly)}
+        return {control_id(endpoint, cluster["cluster_id"], operation, member[f"{kind}_id"]): next(names[operation])
+                for endpoint, cluster in clusters
+                for operation, kind, members in (("invoke", "command", cluster.get("commands", [])),
+                                                  ("write", "attribute", [a for a in cluster.get("attributes", []) if a["writable"]]))
+                for member in members}
+    return {control_id(endpoint, cluster["cluster_id"], operation, member[f"{kind}_id"]):
+                f"{capability.capability_name}/{member['name'][0].lower() + member['name'][1:] if operation == 'invoke' else 'write' + member['name']}"
+            for (endpoint, cluster), capability in zip(clusters, device.capabilities)
+            for operation, kind, members in (("invoke", "command", cluster.get("commands", [])),
+                                              ("write", "attribute", [a for a in cluster.get("attributes", []) if a["writable"]]))
+            for member in members}
 
 class Environment:
     def __init__(self, devices: List[DeviceDraft], protocol: str | None = None):
@@ -422,11 +404,12 @@ class Environment:
 
     def assemble_action(self, action: Action, expected=False) -> Action:
         action = self._resolve_action(action)
-        spec = self.get_agent(action.device_id).controls[action.action_name]
-        if expected:
-            return action.model_copy(update={"arguments": {
-                name: _expected_value(value, spec["arguments"][name]) for name, value in action.arguments.items()}})
-        return self.validate_action(action)
+        agent = self.get_agent(action.device_id)
+        if not expected:
+            return agent.validate_action(action)
+        fields = agent.controls[action.action_name]["arguments"]
+        return action.model_copy(update={"arguments": {
+            name: _expected_value(value, fields[name]) for name, value in action.arguments.items()}})
 
     def compile_criteria(self, criteria: Criteria) -> Criteria:
         return Criteria(expected_actions=[self.assemble_action(action, expected=True) for action in criteria.expected_actions])
@@ -508,11 +491,9 @@ class Environment:
                                                     if name not in IGNORED_EVALUATION_ARGUMENTS}})
             for action in criteria.expected_actions
         ])).expected_actions
-        candidates = []
-        for goal in expected:
-            candidates.append([i for i, action in enumerate(consequence)
-                               if (action.device_id, action.action_name) == (goal.device_id, goal.action_name)
-                               and _contains(action.arguments, goal.arguments)])
+        candidates = [[i for i, action in enumerate(consequence)
+                       if (action.device_id, action.action_name) == (goal.device_id, goal.action_name)
+                       and _contains(action.arguments, goal.arguments)] for goal in expected]
 
         matched = {}
         def match(goal, visited):

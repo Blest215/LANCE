@@ -41,7 +41,7 @@ MAX_RETRY = 10
 # LLM
 
 MAX_CONTEXT = 32768
-MAX_OUTPUT_TOKENS = -1
+MAX_OUTPUT_TOKENS = 2048
 
 def get_agent_id(device_description):
     if "structured" in device_description:

@@ -12,12 +12,11 @@ from pydantic import create_model
 
 class ValidationResult(BaseModel):
     valid: bool
-    reason: str
 
 SCENE_PROMPT = ChatPromptTemplate.from_template(
-"""Describe every survey goal and select needed catalog profiles with unique device_ids and realistic rooms.
+"""Preserve the survey's control goals, targets, values, and space.
+Select only needed catalog profiles with unique device_ids.
 Set solvable=false if profiles cannot fulfill the goals.
-Leave device resources empty; they will be generated separately. Preserve requested resource names and details in the goal description.
 
 [Catalog] {profiles}
 [Space] {space}
@@ -26,10 +25,9 @@ Leave device resources empty; they will be generated separately. Preserve reques
 """)
 
 RESOURCE_PROMPT = ChatPromptTemplate.from_template(
-"""Populate this device's resources with at least one entry for EVERY listed resource type, even when unused by the goal.
-For target devices, preserve survey content, artists, providers, stations, areas, inputs and apps. Fill other choices with realistic examples; do not add goals.
-Use only listed kinds. Providers are services, not artists or titles. Give unnamed requested content a concrete natural title.
-Leave URLs null for automatic completion. Retain supplied channel numbers; otherwise leave them null. Cleaning areas must be plausible home zones.
+"""Generate 1–3 resources for EVERY listed type, including unused types. Prioritize requested targets and use only allowed kinds.
+For target devices, preserve survey names, artists, services and other resource details; concretize unnamed targets.
+Add realistic choices, not goals.
 
 [Device] {device}
 [Resource specs] {specs}
@@ -40,19 +38,16 @@ Leave URLs null for automatic completion. Retain supplied channel numbers; other
 """)
 
 CRITERIA_PROMPT = ChatPromptTemplate.from_template(
-"""Fulfill every described goal using listed device_ids, action_names and arguments within their options and ranges.
-Use only registered resource choices (including exact ContentURL); do not invent targets or replace selection with Play. Resource-target arguments must be concrete, not null.
-Specify requested values; use null for unrequested inputs when omission, defaults or null are allowed; supply other required executable values.
+"""Fulfill all goals with listed device_ids, action_names and valid arguments.
+Specify target values; use null for unrelated inputs when allowed, otherwise supply required values.
 
 [Devices] {devices}
 [Description] {description}
 """)
 
 UTTERANCE_PROMPT = ChatPromptTemplate.from_template(
-"""You are a smart-home user.
-Express the criteria as a natural, self-contained smart-home command with explicit rooms, targets and values.
-Express only the user's goals; do not invent constraints for null arguments.
-Identify selected content by its resource name and artist/provider when needed, not its URL or ID.
+"""Express every criterion as a natural, unambiguous control command with rooms, targets and exact goal values.
+Use readable device/resource names and needed artists/services, not IDs, URLs or API names. Distinguish similar devices.
 
 [Description] {description}
 [Devices] {devices}
@@ -60,13 +55,10 @@ Identify selected content by its resource name and artist/provider when needed, 
 """)
 
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
-"""Validate the scenario; explain within 100 words.
-Devices, utterance and expected actions must preserve all survey goals, targets and values.
-The utterance must be natural, self-contained, unambiguous and semantically match the expected actions.
-Requested values and target resources must have concrete arguments; unrequested inputs may be null.
-Every resource needed by the survey and utterance must exist on the target device, with matching title/kind/artist/provider and a concrete expected argument selecting it.
-Additional profile resource options need not be used; they must be realistic and must not introduce extra goals.
-Reject missing resources, invented URLs/IDs, or generic Play replacing a requested selection. Device names/settings are not resources. Reject unsupported lookup goals replaced with playback.
+"""Check survey fidelity, realistic devices and natural, unambiguous utterance.
+Utterance and actions must express the same control goals and exact target values. Unrequested inputs may be null.
+Requested resources must exist with matching names, kinds, artists/services and concrete selection arguments; unused choices are allowed.
+Reject substituted/extra/missing goals, automation, invented targets, generic Play replacing selection, startup settings replacing controls and invented mode meanings.
 
 [Space] {space}
 [Command] {user_command}
@@ -82,7 +74,7 @@ RESOURCE_MODELS = {"content": ContentResource, "channel": ChannelResource, "clea
 
 def resource_schema(profile):
     return create_model(f"{profile}Resources", **{
-        kind: (List[RESOURCE_MODELS[kind]], Field(min_length=1, description=json.dumps(spec)))
+        kind: (List[RESOURCE_MODELS[kind]], Field(min_length=1, max_length=3, description=json.dumps(spec)))
         for kind, spec in PROFILES[profile]["resources"].items()
     })
 
@@ -98,11 +90,11 @@ def generate_resources(device: DeviceDraft, survey: dict, target=True):
     device.resources = [resource for kind in specs for resource in getattr(generated, kind)]
     for kind, spec in specs.items():
         entries = [resource for resource in device.resources if resource.type == kind]
-        if not entries or any("kinds" in spec and resource.kind not in spec["kinds"] for resource in entries):
-            raise ValueError(f"Missing or invalid {kind} resources for {device.device_id}")
+        if any("kinds" in spec and resource.kind not in spec["kinds"] for resource in entries):
+            raise ValueError(f"Invalid {kind} resources for {device.device_id}")
 
 DEVICE_VALIDATION_PROMPT = ChatPromptTemplate.from_template(
-"""Check whether the profile's device is realistically placed in the room; explain briefly.
+"""Accept only an ordinary household placement for this profile and room.
 
 [Room] {room}
 [Profile] {profile}
@@ -143,14 +135,13 @@ def generate_scenario(answer_dict: dict):
                 environment.execute_action(action)
 
             utterance = utterance_generator.invoke({
-                "description": scene.description, "devices": rendered_devices, "criteria": draft
+                "description": scene.description, "devices": rendered_devices, "criteria": draft.model_dump(exclude_none=True)
             }).user_utterance
             debug(utterance)
 
             validation_result = validator.invoke(answer_dict | {
                 "devices": rendered_devices, "utterance": utterance, "criteria": draft
             })
-            debug(validation_result.reason)
             if not validation_result.valid:
                 continue
 
@@ -177,7 +168,6 @@ def scale_scenario(base_scenario: dict, num_device: int, candidates: list[tuple[
         validation = device_validator.invoke(
             {"room": room, "profile": {"name": profile, "description": PROFILES[profile]["description"]}}
         )
-        debug(validation.reason)
         if not validation.valid:
             continue
         device_id = next(f"{room}_{profile}_{i}" for i in range(1, len(ids) + 2) if f"{room}_{profile}_{i}" not in ids)

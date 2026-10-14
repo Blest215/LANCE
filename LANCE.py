@@ -6,7 +6,6 @@ from langchain_core.callbacks import get_usage_metadata_callback
 from settings import *
 from environment import *
 from model import Model
-from schema import clean_text
 
 class Proposal(BaseModel):
     description: str
@@ -17,12 +16,10 @@ class Proposal(BaseModel):
         return clean_text(value)
 
 SCREENER_PROMPT = ChatPromptTemplate.from_template(
-"""You are an AI agent controlling: {description}
-Describe what can be done with the device.""")
+"""Shortly explain what can be done with this device (indicated by the device_id) and resources: {description}""")
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
-"""You are an AI agent controlling: {description}
-Fulfill the request: {request}""")
+"""Accomplish \"{request}\" with this device, using exact device_ids and supported calls: {description}""")
 
 def log(method):
     @wraps(method)
@@ -54,9 +51,10 @@ class UserAgent(ABC):
         pass
 
     def main(self, environment: Environment, user_utterance: str):
-        self.setup(environment)
         log = {}
         try:
+            self.setup(environment)
+            
             discovery = self.discovery(environment, user_utterance)
             log["discovery"] = list(discovery.keys())
             debug(discovery)
@@ -69,6 +67,7 @@ class UserAgent(ABC):
             log["results"] = results
             debug(results)
         except Exception as e:
+            debug(e)
             log["exception"] = str(e)
         return log
 
