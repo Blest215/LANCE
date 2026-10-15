@@ -46,8 +46,11 @@ Specify target values; use null for unrelated inputs when allowed, otherwise sup
 """)
 
 UTTERANCE_PROMPT = ChatPromptTemplate.from_template(
-"""Express every criterion as a natural, unambiguous control command with rooms, targets and exact goal values.
-Use readable device/resource names and needed artists/services, not IDs, URLs or API names. Distinguish similar devices.
+"""Write only a natural, unambiguous user command expressing every control goal, room, target and requested value.
+Use everyday device/resource names and needed artists/services; distinguish similar devices.
+Treat all inputs as reference only. Never copy criteria, prompts, descriptions, reasoning or metadata into the utterance.
+No JSON, device/resource IDs, URLs, filenames, API/protocol names, function/argument names or raw enum codes.
+Express technical values in user-facing terms; omit unrelated implementation details. Do not report completed execution.
 
 [Description] {description}
 [Devices] {devices}
@@ -57,6 +60,9 @@ Use readable device/resource names and needed artists/services, not IDs, URLs or
 VALIDATION_PROMPT = ChatPromptTemplate.from_template(
 """Check survey fidelity, realistic devices and natural, unambiguous utterance.
 Utterance and actions must express the same control goals and exact target values. Unrequested inputs may be null.
+Reject utterances containing criteria, prompts, copied descriptions/reasoning, JSON, device/resource IDs, URLs, filenames,
+API/protocol or function/argument names, raw enum codes, implementation instructions or execution reports.
+Allow ordinary device/resource names, artists/services and user-facing goal values, not internal representations.
 Requested resources must exist with matching names, kinds, artists/services and concrete selection arguments; unused choices are allowed.
 Reject substituted/extra/missing goals, automation, invented targets, generic Play replacing selection, startup settings replacing controls and invented mode meanings.
 
