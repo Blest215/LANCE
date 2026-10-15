@@ -1,7 +1,7 @@
 from LANCE import *
 from langchain_core.documents import Document
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_ollama import OllamaEmbeddings
+from model import LoggedOllamaEmbeddings
 
 class Centralized(UserAgent):
     def setup_handler(self, environment):
@@ -17,7 +17,7 @@ class RAG(UserAgent):
     def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
         descriptions = environment.discovery()
-        self.vector_db = InMemoryVectorStore(OllamaEmbeddings(model=RAG_EMBEDDING_MODEL, num_ctx=MAX_CONTEXT))
+        self.vector_db = InMemoryVectorStore(LoggedOllamaEmbeddings(model=RAG_EMBEDDING_MODEL, num_ctx=MAX_CONTEXT, token_log=self.token_log))
         self.num_devices = len(descriptions)
         self.vector_db.add_documents([
             Document(page_content=description, metadata={"device_id": device_id})
@@ -48,14 +48,17 @@ class Sasha(UserAgent):
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
-        selection = self.filter.invoke({"description": descriptions, "request": user_utterance})
+        selection = self.filter.invoke(
+            {"description": descriptions, "request": user_utterance}, 
+            config=self.llm_config("discovery")
+        )
         return {device_id: descriptions[device_id] for device_id in selection.device_ids if device_id in descriptions}
 
     def plan_handler(self, descriptions, user_utterance):
         results = self.planner.batch([
             {"description": description, "request": user_utterance}
             for description in descriptions.values()
-        ])
+        ], config=[self.llm_config("plan", device_id) for device_id in descriptions])
         tool_calls = []
         for device_id, result in zip(descriptions.keys(), results):
             for tool_call in result.tool_calls:
@@ -79,7 +82,10 @@ class LLMind(UserAgent):
 
     def control_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
-        result = self.controller[agent.protocol].invoke({"description": agent.description, "request": call["instruction"]})
+        result = self.controller[agent.protocol].invoke(
+            {"description": agent.description, "request": call["instruction"]},
+            config=self.llm_config("control", agent.agent_id)
+        )
         return [
             agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
             for tool_call in result.tool_calls

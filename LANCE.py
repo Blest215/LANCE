@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
-from langchain_core.callbacks import get_usage_metadata_callback
 
 from settings import *
 from environment import *
-from model import Model
+from model import Model, CallLogger
 
 class Proposal(BaseModel):
     description: str
@@ -25,16 +24,12 @@ def log(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         start = perf_counter()
-        with get_usage_metadata_callback() as usage:
-            try:
-                return method(self, *args, **kwargs)
-            finally:
-                if method.__name__ not in self.time_log:
-                    self.time_log[method.__name__] = []
-                self.time_log[method.__name__].append(perf_counter() - start)
-                if method.__name__ not in self.token_log:
-                    self.token_log[method.__name__] = []
-                self.token_log[method.__name__].extend(list(usage.usage_metadata.values()))
+        stage = method.__name__
+        self.token_log.setdefault(stage, [])
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            self.time_log.setdefault(stage, []).append(perf_counter() - start)
     return wrapper
 
 class UserAgent(ABC):
@@ -42,6 +37,11 @@ class UserAgent(ABC):
         self.model = model
         self.time_log = {}
         self.token_log = {}
+
+    def llm_config(self, stage, device_id=None):
+        return {"callbacks": [CallLogger(
+            self.token_log.setdefault(stage, []), stage, str(self.model), device_id
+        )]}
 
     @log
     def setup(self, environment: Environment):
@@ -84,7 +84,10 @@ class UserAgent(ABC):
         return self.plan_handler(descriptions, user_utterance)
 
     def plan_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
-        return self.planner.invoke({"description": descriptions, "request": user_utterance}).tool_calls
+        return self.planner.invoke({
+            "description": descriptions, 
+            "request": user_utterance
+        }, config=self.llm_config("plan")).tool_calls
 
     @log
     def control(self, environment: Environment, calls: List[dict]) -> List:
@@ -106,7 +109,10 @@ class LANCE(UserAgent):
         self.proposer = create_generator(SCREENER_PROMPT, Proposal, self.model)
         
         descriptions = environment.discovery()
-        result = self.proposer.batch([{"description": description} for description in descriptions.values()])
+        result = self.proposer.batch(
+            [{"description": description} for description in descriptions.values()],
+            config=[self.llm_config("setup", device_id) for device_id in descriptions]
+        )
         self.proposals = {device_id: proposal.description for device_id, proposal in zip(descriptions.keys(), result)}
         self.controller = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
@@ -118,7 +124,10 @@ class LANCE(UserAgent):
 
     def control_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
-        result = self.controller[agent.protocol].invoke({"description": agent.description, "request": call["instruction"]})
+        result = self.controller[agent.protocol].invoke(
+            {"description": agent.description, "request": call["instruction"]},
+            config=self.llm_config("control", agent.agent_id)
+        )
         return [
             agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
             for tool_call in result.tool_calls
