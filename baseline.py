@@ -5,17 +5,17 @@ from model import LoggedOllamaEmbeddings
 
 class Centralized(UserAgent):
     def setup_handler(self, environment):
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
         return environment.discovery()
 
-    def control_handler(self, environment, call):
+    def orchestration_handler(self, environment, call):
         return environment.call(**call)
 
 class RAG(UserAgent):
     def setup_handler(self, environment):
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
         descriptions = environment.discovery()
         self.vector_db = InMemoryVectorStore(LoggedOllamaEmbeddings(model=RAG_EMBEDDING_MODEL, num_ctx=MAX_CONTEXT, token_log=self.token_log))
         self.num_devices = len(descriptions)
@@ -31,7 +31,7 @@ class RAG(UserAgent):
             if score >= RAG_SIMILARITY_THRESHOLD
         }
 
-    def control_handler(self, environment, call):
+    def orchestration_handler(self, environment, call):
         return environment.call(**call)
 
 class SashaSelection(BaseModel):
@@ -44,7 +44,7 @@ Available devices: {description}""")
 class Sasha(UserAgent):
     def setup_handler(self, environment):
         self.filter = create_generator(SASHA_FILTER_PROMPT, SashaSelection, self.model)
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
@@ -54,11 +54,11 @@ class Sasha(UserAgent):
         )
         return {device_id: descriptions[device_id] for device_id in selection.device_ids if device_id in descriptions}
 
-    def plan_handler(self, descriptions, user_utterance):
-        results = self.planner.batch([
+    def composition_handler(self, descriptions, user_utterance):
+        results = self.composer.batch([
             {"description": description, "request": user_utterance}
             for description in descriptions.values()
-        ], config=[self.llm_config("plan", device_id) for device_id in descriptions])
+        ], config=[self.llm_config("composition", device_id) for device_id in descriptions])
         tool_calls = []
         for device_id, result in zip(descriptions.keys(), results):
             for tool_call in result.tool_calls:
@@ -66,13 +66,13 @@ class Sasha(UserAgent):
                 tool_calls.append(tool_call)
         return tool_calls
 
-    def control_handler(self, environment, call):
+    def orchestration_handler(self, environment, call):
         return environment.call(**call)
 
 class LLMind(UserAgent):
     def setup_handler(self, environment):
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-        self.controller = {
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.orchestrators = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
         }
@@ -80,11 +80,11 @@ class LLMind(UserAgent):
     def discovery_handler(self, environment, user_utterance):
         return environment.discovery()
 
-    def control_handler(self, environment, call):
+    def orchestration_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
-        result = self.controller[agent.protocol].invoke(
+        result = self.orchestrators[agent.protocol].invoke(
             {"description": agent.description, "request": call["instruction"]},
-            config=self.llm_config("control", agent.agent_id)
+            config=self.llm_config("orchestration", agent.agent_id)
         )
         return [
             agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})

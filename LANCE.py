@@ -55,11 +55,11 @@ class UserAgent(ABC):
             log["discovery"] = list(discovery.keys())
             debug(discovery)
 
-            calls = self.plan(discovery, user_utterance)
+            calls = self.composition(discovery, user_utterance)
             log["calls"] = calls
             debug(calls)
 
-            results = self.control(environment, calls)
+            results = self.orchestration(environment, calls)
             log["results"] = results
             debug(results)
         except Exception as e:
@@ -76,34 +76,34 @@ class UserAgent(ABC):
         pass
 
     @log
-    def plan(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
-        return self.plan_handler(descriptions, user_utterance)
+    def composition(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
+        return self.composition_handler(descriptions, user_utterance)
 
-    def plan_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
-        return self.planner.invoke({
+    def composition_handler(self, descriptions: Dict[str, str], user_utterance: str) -> List[dict]:
+        return self.composer.invoke({
             "description": descriptions, 
             "request": user_utterance
-        }, config=self.llm_config("plan")).tool_calls
+        }, config=self.llm_config("composition")).tool_calls
 
     @log
-    def control(self, environment: Environment, calls: List[dict]) -> List:
+    def orchestration(self, environment: Environment, calls: List[dict]) -> List:
         results = []
         for call in calls:
             try:
-                results.append(self.control_handler(environment, call["args"]))
+                results.append(self.orchestration_handler(environment, call["args"]))
             except Exception as e:
                 results.append(str(e))
         return results
 
     @abstractmethod
-    def control_handler(self, environment: Environment, call: dict) -> List:
+    def orchestration_handler(self, environment: Environment, call: dict) -> List:
         pass
 
 class LANCE(UserAgent):
     def setup_handler(self, environment):
-        self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
         self.screener = Model("tev1:4b-q4_K_M")
-        self.controller = {
+        self.orchestrators = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
         }
@@ -117,11 +117,11 @@ class LANCE(UserAgent):
         return {device_id: description for (device_id, description), decision in zip(descriptions.items(), result)
                 if decision["answers"]["decision"]["noul"] >= 0.5}
 
-    def control_handler(self, environment, call):
+    def orchestration_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
-        result = self.controller[agent.protocol].invoke(
+        result = self.orchestrators[agent.protocol].invoke(
             {"description": agent.description, "request": call["instruction"]},
-            config=self.llm_config("control", agent.agent_id)
+            config=self.llm_config("orchestration", agent.agent_id)
         )
         return [
             agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})

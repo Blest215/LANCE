@@ -20,8 +20,8 @@ gap = 0.01
 
 modes = {"CENTRALIZED": "#1f77b4", "NATURAL": "#ff7f0e", "RECRUIT": "#2ca02c", "CONVERSATIONAL": "#984ea3"}
 mode_labels = {"CENTRALIZED": "Baseline", "NATURAL": "LANCE (natural)", "RECRUIT": "LANCE (recruit)", "CONVERSATIONAL": "LANCE"}
-stages = {"discovery": "OO", "plan": "", "control": ".."}
-stage_labels = {"discovery": "Discovery", "plan": "Composition", "control": "Orchestration"}
+stages = {"discovery": "OO", "composition": "", "orchestration": ".."}
+stage_labels = {"discovery": "Discovery", "composition": "Composition", "orchestration": "Orchestration"}
 
 model_names = {
     "lfm2.5-instruct:1.2b": "LFM2.5:1.2B-instruct",
@@ -84,13 +84,13 @@ def prepare_plot_data(df):
             time_data[model_name] = {}
 
         discovery_vals = sum([ast.literal_eval(value)["discovery"] for value in df[col]], [])
-        plan_vals = sum([ast.literal_eval(value)["plan"] for value in df[col]], [])
-        control_vals = sum([ast.literal_eval(value)["control"] for value in df[col]], [])
+        composition_vals = sum([ast.literal_eval(value)["composition"] for value in df[col]], [])
+        orchestration_vals = sum([ast.literal_eval(value)["orchestration"] for value in df[col]], [])
 
         time_data[model_name][mode] = {
             "discovery": float(np.mean(discovery_vals)) if len(discovery_vals) > 0 else 0.0,
-            "plan": float(np.mean(plan_vals)) if len(plan_vals) > 0 else 0.0,
-            "control": float(np.mean(control_vals)) if len(control_vals) > 0 else 0.0,
+            "composition": float(np.mean(composition_vals)) if len(composition_vals) > 0 else 0.0,
+            "orchestration": float(np.mean(orchestration_vals)) if len(orchestration_vals) > 0 else 0.0,
         }
 
     all_models = list(accuracy_data.keys())
