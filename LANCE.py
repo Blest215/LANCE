@@ -7,15 +7,10 @@ from environment import *
 from model import Model, CallLogger
 
 class Proposal(BaseModel):
-    description: str
-
-    @field_validator("description")
-    @classmethod
-    def clean_description(cls, value: str) -> str:
-        return clean_text(value)
+    relevance: bool
 
 SCREENER_PROMPT = ChatPromptTemplate.from_template(
-"""Shortly explain what can be done with this device (indicated by the device_id) and resources: {description}""")
+"""Determine whether you can contribute to the request \"{request}\" by using this device: {description}""")
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
 """Accomplish \"{request}\" with this device, using exact device_ids and supported calls: {description}""")
@@ -106,21 +101,19 @@ class UserAgent(ABC):
 class LANCE(UserAgent):
     def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-        self.proposer = create_generator(SCREENER_PROMPT, Proposal, self.model)
-        
-        descriptions = environment.discovery()
-        result = self.proposer.batch(
-            [{"description": description} for description in descriptions.values()],
-            config=[self.llm_config("setup", device_id) for device_id in descriptions]
-        )
-        self.proposals = {device_id: proposal.description for device_id, proposal in zip(descriptions.keys(), result)}
+        self.screener = create_generator(SCREENER_PROMPT, Proposal, self.model)
         self.controller = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
         }
 
     def discovery_handler(self, environment, user_utterance):
-        return self.proposals
+        descriptions = environment.discovery()
+        result = self.screener.batch(
+            [{"description": description, "request": user_utterance} for description in descriptions.values()],
+            config=[self.llm_config("setup", device_id) for device_id in descriptions]
+        )
+        return {device_id: descriptions[device_id] for device_id, proposal in zip(descriptions.keys(), result) if proposal.relevance}
 
     def control_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
