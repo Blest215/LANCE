@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
+from langchain_core.runnables import RunnableLambda
 
 from settings import *
 from environment import *
 from model import Model, CallLogger
 
-class Proposal(BaseModel):
-    relevance: bool
-
-SCREENER_PROMPT = ChatPromptTemplate.from_template(
-"""Determine whether you can contribute to the request \"{request}\" by using this device: {description}""")
+SCREENER_QUESTION = {
+    "type": "noul",
+    "instructions": "Can this device contribute to the user's request using its supported controls?",
+    "criteria": {"true": "Can fulfill at least part of the request", "false": "Cannot contribute to the request"},
+}
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
 """Accomplish \"{request}\" with this device, using exact device_ids and supported calls: {description}""")
@@ -101,7 +102,7 @@ class UserAgent(ABC):
 class LANCE(UserAgent):
     def setup_handler(self, environment):
         self.planner = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-        self.screener = create_generator(SCREENER_PROMPT, Proposal, self.model)
+        self.screener = Model("tev1:4b-q4_K_M")
         self.controller = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
@@ -109,11 +110,12 @@ class LANCE(UserAgent):
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
-        result = self.screener.batch(
-            [{"description": description, "request": user_utterance} for description in descriptions.values()],
-            config=[self.llm_config("setup", device_id) for device_id in descriptions]
-        )
-        return {device_id: descriptions[device_id] for device_id, proposal in zip(descriptions.keys(), result) if proposal.relevance}
+        result = RunnableLambda(lambda device_id: self.screener.decide(
+            state={"request": user_utterance, "description": descriptions[device_id]},
+            question=SCREENER_QUESTION, token_log=self.token_log, stage="discovery", device_id=device_id,
+        )).batch(list(descriptions))
+        return {device_id: description for (device_id, description), decision in zip(descriptions.items(), result)
+                if decision["answers"]["decision"]["noul"] >= 0.5}
 
     def control_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])
