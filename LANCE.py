@@ -7,12 +7,6 @@ from settings import *
 from environment import *
 from model import Model, CallLogger
 
-SCREENER_QUESTION = {
-    "type": "noul",
-    "instructions": "Can this device contribute to the user's request using its supported controls?",
-    "criteria": {"true": "Can fulfill at least part of the request", "false": "Cannot contribute to the request"},
-}
-
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
 """Accomplish \"{request}\" with this device, using exact device_ids and supported calls: {description}""")
 
@@ -98,6 +92,15 @@ class UserAgent(ABC):
     @abstractmethod
     def orchestration_handler(self, environment: Environment, call: dict) -> List:
         pass
+
+SCREENER_QUESTION = {
+    "type": "noul",
+    "instructions": "Can this device carry out a some of the requested tasks, matching its intended target, location, and resources?",
+    "criteria": {
+        "true": "Can carry out at least one requested task within its constraints",
+        "false": "Cannot carry out any requested task within its constraints",
+    },
+}
 
 class LANCE(UserAgent):
     def setup_handler(self, environment):
