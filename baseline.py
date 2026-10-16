@@ -55,10 +55,12 @@ class Sasha(UserAgent):
         return {device_id: descriptions[device_id] for device_id in selection.device_ids if device_id in descriptions}
 
     def composition_handler(self, descriptions, user_utterance):
-        results = self.composer.batch([
-            {"description": description, "request": user_utterance}
-            for description in descriptions.values()
-        ], config=[self.llm_config("composition", device_id) for device_id in descriptions])
+        results = []
+        for device_id, description in descriptions.items():
+            results.append(self.composer.invoke(
+                {"description": description, "request": user_utterance},
+                config=self.llm_config("composition", device_id),
+            ))
         tool_calls = []
         for device_id, result in zip(descriptions.keys(), results):
             for tool_call in result.tool_calls:

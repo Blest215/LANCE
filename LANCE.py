@@ -1,25 +1,31 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
-from langchain_core.runnables import RunnableLambda
 
 from settings import *
 from environment import *
 from model import Model, CallLogger
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
-"""Accomplish \"{request}\" with this device, using exact device_ids and supported calls: {description}""")
+"""Accomplish the user's request with the avilable devices, using exact device_ids and supported calls.
+
+[Request] {request}
+[Available Devices] {description}""")
 
 def log(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         start = perf_counter()
         stage = method.__name__
-        self.token_log.setdefault(stage, [])
+        calls = self.token_log.setdefault(stage, [])
+        durations = self.time_log.setdefault(stage, [])
+        first_call = len(calls)
         try:
             return method(self, *args, **kwargs)
         finally:
-            self.time_log.setdefault(stage, []).append(perf_counter() - start)
+            self.wall_time_log.setdefault(stage, []).append(perf_counter() - start)
+            durations.extend(record["elapsed"] for record in calls[first_call:]
+                             if record.get("elapsed") is not None)
     return wrapper
 
 class UserAgent(ABC):
@@ -27,6 +33,7 @@ class UserAgent(ABC):
         self.model = model
         self.time_log = {}
         self.token_log = {}
+        self.wall_time_log = {}
 
     def llm_config(self, stage, device_id=None):
         return {"callbacks": [CallLogger(
@@ -59,6 +66,8 @@ class UserAgent(ABC):
         except Exception as e:
             debug(e)
             log["exception"] = str(e)
+        log["wall_time"] = self.wall_time_log
+        log["timing_mode"] = "per_call"
         return log
 
     @log
@@ -113,12 +122,16 @@ class LANCE(UserAgent):
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
-        result = RunnableLambda(lambda device_id: self.screener.decide(
-            state={"request": user_utterance, "description": descriptions[device_id]},
-            question=SCREENER_QUESTION, token_log=self.token_log, stage="discovery", device_id=device_id,
-        )).batch(list(descriptions))
-        return {device_id: description for (device_id, description), decision in zip(descriptions.items(), result)
-                if decision["answers"]["decision"]["noul"] >= 0.5}
+        selected = {}
+        for device_id, description in descriptions.items():
+            decision = self.screener.decide(
+                state={"request": user_utterance, "description": description},
+                question=SCREENER_QUESTION, token_log=self.token_log,
+                stage="discovery", device_id=device_id,
+            )
+            if decision["answers"]["decision"]["noul"] >= 0.5:
+                selected[device_id] = description
+        return selected
 
     def orchestration_handler(self, environment, call):
         agent = environment.get_agent(call["device_id"])

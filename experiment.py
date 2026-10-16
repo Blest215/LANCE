@@ -28,11 +28,11 @@ def evaluate_scenarios(scenarios, consequences):
     return [evaluate_scenario(scenario, consequence) for scenario, consequence in zip(scenarios, consequences)]
 
 def simulation(code, dataset_file, models, modes, head=None, rerun_lance=False):
-    dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
+    dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()[:head if head else len(dataset_df)]
     result_path = f"{RESULT_DIR}/{code}/{dataset_file.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
-    scenarios = list(dataset_df.itertuples())[:head if head else len(dataset_df)]
+    scenarios = list(dataset_df.itertuples())
     assert "ID" not in result_df or result_df["ID"].tolist() == dataset_df["ID"].tolist()
     result_df["ID"] = dataset_df["ID"].tolist()
     
@@ -53,6 +53,7 @@ def simulation(code, dataset_file, models, modes, head=None, rerun_lance=False):
             evaluations = evaluate_scenarios(scenarios, result_df[column])
             column = get_column_name("EVALUATION", model, mode.__name__)
             result_df[column] = [json.dumps(value) for value in evaluations]
+            result_df = result_df.copy()
             save_dataframe(result_df, path=result_path)
         if pending:
             model.wrapup()
