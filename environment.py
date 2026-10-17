@@ -284,20 +284,49 @@ class DeviceAgent:
         self.controls = device_controls(spec)
         self.handler = getattr(self, f"_{self.spec.protocol.lower()}_call")
         self.action_calls = []
-
-    @property
-    def description(self) -> str:
         data = self.spec.model_dump(exclude_none=True, exclude={"resources"} if not self.spec.resources else None)
-        if self.spec.protocol == "Matter":
+        if self.protocol == "Matter":
             for endpoint in data["endpoints"]:
                 for cluster in endpoint["clusters"]:
                     cluster["attributes"] = [attr for attr in cluster["attributes"] if attr["writable"]]
-        elif self.spec.protocol == "W3C":
+        elif self.protocol == "W3C":
             data["td"]["properties"] = {name: prop for name, prop in data["td"]["properties"].items() if not prop["readOnly"]}
         else:
             for capability in data["capabilities"]:
                 capability.pop("attributes", None)
-        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        self._description_data = data
+        self._descriptions = {}
+        for control in [None, *self.controls]:
+            self.describe(control)
+
+    @property
+    def description(self) -> str:
+        return self.describe()
+
+    def describe(self, control=None) -> str:
+        if control in self._descriptions:
+            return self._descriptions[control]
+        data = deepcopy(self._description_data) if control is not None else self._description_data
+        if control is not None:
+            request = self.controls[control]["call"]
+            if self.protocol == "Matter":
+                data["endpoints"] = [endpoint for endpoint in data["endpoints"] if endpoint["endpoint_id"] == request["endpoint_id"]]
+                for endpoint in data["endpoints"]:
+                    endpoint["clusters"] = [cluster for cluster in endpoint["clusters"] if cluster["cluster_id"] == request["cluster_id"]]
+                    for cluster in endpoint["clusters"]:
+                        cluster["commands"] = [command for command in cluster["commands"] if command["command_id"] == request.get("command_id")]
+                        cluster["attributes"] = [attribute for attribute in cluster["attributes"] if attribute["attribute_id"] == request.get("attribute_id")]
+            elif self.protocol == "W3C":
+                for kind, interaction in (("actions", "action"), ("properties", "property")):
+                    data["td"][kind] = {name: spec for name, spec in data["td"][kind].items()
+                                        if interaction == request["interaction"] and name == request["name"]}
+            else:
+                data["capabilities"] = [capability for capability in data["capabilities"]
+                                        if capability["capability_name"] == request["capability"]]
+                for capability in data["capabilities"]:
+                    capability["commands"] = {request["command"]: capability["commands"][request["command"]]}
+        self._descriptions[control] = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        return self._descriptions[control]
 
     @property
     def protocol(self) -> str:
