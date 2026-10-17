@@ -27,8 +27,9 @@ def evaluate_scenarios(scenarios, consequences):
     assert len(scenarios) == len(consequences)
     return [evaluate_scenario(scenario, consequence) for scenario, consequence in zip(scenarios, consequences)]
 
-def simulation(code, dataset_file, models, modes, head=None, rerun_lance=False):
-    dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()[:head if head else len(dataset_df)]
+def simulation(code, dataset_file, models, modes, head=None, rerun_modes=[]):
+    dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
+    dataset_df = dataset_df[:head if head else len(dataset_df)]
     result_path = f"{RESULT_DIR}/{code}/{dataset_file.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
@@ -39,7 +40,7 @@ def simulation(code, dataset_file, models, modes, head=None, rerun_lance=False):
     for model in models:
         pending = [mode for mode in modes
                    if get_column_name("CONSEQUENCES", model, mode.__name__) not in result_df
-                   or (mode is LANCE and rerun_lance)]
+                   or mode.__name__ in rerun_modes]
         if pending and not model.setup():
             continue
         for mode in modes:
@@ -62,12 +63,13 @@ def simulation(code, dataset_file, models, modes, head=None, rerun_lance=False):
     return result_path
 
 if __name__ == "__main__":
+    modes = [Centralized, RAG, Sasha, LLMind, LANCE]
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--edge", action="store_true")
     argument_parser.add_argument("--resume", action="store_true")
-    argument_parser.add_argument("--LANCE", action="store_true")
+    argument_parser.add_argument("--rerun", nargs="+", choices=[mode.__name__ for mode in modes], default=[])
     argument_parser.add_argument("--head", type=int, required=False, default=None)
     args = argument_parser.parse_args()
     set_debug(args.debug)
@@ -80,7 +82,6 @@ if __name__ == "__main__":
         os.mkdir(f"{RESULT_DIR}/{code}")
 
     representative_model = Model("qwen3.5:4b-q4_K_M", reasoning=False)
-    modes = [Centralized, RAG, Sasha, LLMind, LANCE]
 
     configurations = [
         ("dataset_D0_M0.csv", modes, [representative_model]),
@@ -114,6 +115,6 @@ if __name__ == "__main__":
         for dataset_file, modes, models in configurations:
             if DATASET_FILENAME_PATTERN.match(dataset_file) and os.path.exists(f"{DATASET_DIR}/{dataset_file}"):
                 print(dataset_file)
-                simulation(code, dataset_file, models, modes, args.head, args.LANCE)
+                simulation(code, dataset_file, models, modes, args.head, args.rerun)
     except KeyboardInterrupt:
         pass

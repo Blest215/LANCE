@@ -93,13 +93,15 @@ class UserAgent(ABC):
         results = []
         for call in calls:
             try:
-                results.append(self.orchestration_handler(environment, call["args"]))
+                arguments = call["args"].copy()
+                agent = environment.get_agent(arguments.pop("device_id"))
+                results.append(self.orchestration_handler(agent, arguments))
             except Exception as e:
                 results.append(str(e))
         return results
 
     @abstractmethod
-    def orchestration_handler(self, environment: Environment, call: dict) -> List:
+    def orchestration_handler(self, agent: DeviceAgent, call: dict) -> List:
         pass
 
 SCREENER_QUESTION = {
@@ -133,8 +135,7 @@ class LANCE(UserAgent):
                 selected[device_id] = description
         return selected
 
-    def orchestration_handler(self, environment, call):
-        agent = environment.get_agent(call["device_id"])
+    def orchestration_handler(self, agent, call):
         result = self.orchestrators[agent.protocol].invoke(
             {"description": agent.description, "request": call["instruction"]},
             config=self.llm_config("orchestration", agent.agent_id)

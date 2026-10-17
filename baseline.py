@@ -10,8 +10,8 @@ class Centralized(UserAgent):
     def discovery_handler(self, environment, user_utterance):
         return environment.discovery()
 
-    def orchestration_handler(self, environment, call):
-        return environment.call(**call)
+    def orchestration_handler(self, agent, call):
+        return agent.call(**call)
 
 class RAG(UserAgent):
     def setup_handler(self, environment):
@@ -31,8 +31,8 @@ class RAG(UserAgent):
             if score >= RAG_SIMILARITY_THRESHOLD
         }
 
-    def orchestration_handler(self, environment, call):
-        return environment.call(**call)
+    def orchestration_handler(self, agent, call):
+        return agent.call(**call)
 
 class SashaSelection(BaseModel):
     device_ids: List[str] = Field(default_factory=list)
@@ -68,8 +68,8 @@ class Sasha(UserAgent):
                 tool_calls.append(tool_call)
         return tool_calls
 
-    def orchestration_handler(self, environment, call):
-        return environment.call(**call)
+    def orchestration_handler(self, agent, call):
+        return agent.call(**call)
 
 class LLMind(UserAgent):
     def setup_handler(self, environment):
@@ -82,8 +82,7 @@ class LLMind(UserAgent):
     def discovery_handler(self, environment, user_utterance):
         return environment.discovery()
 
-    def orchestration_handler(self, environment, call):
-        agent = environment.get_agent(call["device_id"])
+    def orchestration_handler(self, agent, call):
         result = self.orchestrators[agent.protocol].invoke(
             {"description": agent.description, "request": call["instruction"]},
             config=self.llm_config("orchestration", agent.agent_id)

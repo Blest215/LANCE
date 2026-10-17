@@ -308,6 +308,27 @@ class DeviceAgent:
         self.action_calls.append(action)
         return action
 
+    def call_control(self, control, arguments):
+        """Encode a named control's arguments using the device's existing API template."""
+        spec = self.controls[control]
+        request = spec["call"].copy()
+        if "attribute_id" in request or request.get("interaction") == "property":
+            request["value"] = arguments["value"]
+        elif "capability" in request:
+            arguments = arguments.copy()
+            names = list(spec["arguments"])
+            while names and names[-1] not in arguments:
+                names.pop()
+            for name in names:
+                if name not in arguments and "default" in spec["arguments"][name]:
+                    arguments[name] = deepcopy(spec["arguments"][name]["default"])
+            if any(name not in arguments for name in names):
+                raise ValueError("Cannot omit an intermediate SmartThings positional argument")
+            request["arguments"] = [arguments[name] for name in names]
+        else:
+            request["arguments"] = arguments
+        return self.call(**request)
+
     def validate_action(self, action: Action):
         if action.device_id != self.agent_id:
             raise ValueError(f"INVALID DEVICE ID: {action.device_id}")
@@ -466,20 +487,7 @@ class Environment:
 
     def execute_action(self, action: Action) -> Action:
         action = self.validate_action(action)
-        spec = self.get_agent(action.device_id).controls[action.action_name]
-        request = spec["call"].copy()
-        if "attribute_id" in request or request.get("interaction") == "property":
-            request["value"] = action.arguments["value"]
-        elif "capability" in request:
-            names = list(spec["arguments"])
-            while names and names[-1] not in action.arguments:
-                names.pop()
-            if any(name not in action.arguments for name in names):
-                raise ValueError("Cannot omit an intermediate SmartThings positional argument")
-            request["arguments"] = [action.arguments[name] for name in names]
-        else:
-            request["arguments"] = action.arguments
-        return self.call(action.device_id, **request)
+        return self.get_agent(action.device_id).call_control(action.action_name, action.arguments)
 
     def discovery(self):
         return {agent.agent_id: agent.description for agent in self.agents.values()}
