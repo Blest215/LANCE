@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
+import json
+import re
 
 from settings import *
 from environment import *
@@ -122,10 +124,12 @@ class LANCE(UserAgent):
     def setup_handler(self, environment):
         self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
         self.screener = Model(self.decision_model)
-        self.orchestrators = {
-            protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
-            for protocol, tool in TOOLS.items()
-        }
+        self.orchestrators = {}
+        for device_id, agent in environment.agents.items():
+            tools = [_control_tool(control, spec, i) for i, (control, spec) in enumerate(agent.controls.items())]
+            if tools:
+                mapping = {tool["function"]["name"]: control for tool, control in zip(tools, agent.controls)}
+                self.orchestrators[device_id] = CONTROLLER_PROMPT | self.model.with_tools(tools), mapping
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
@@ -141,11 +145,37 @@ class LANCE(UserAgent):
         return selected
 
     def orchestration_handler(self, agent, call):
-        result = self.orchestrators[agent.protocol].invoke(
-            {"description": agent.description, "request": call["instruction"]},
-            config=self.llm_config("orchestration", agent.agent_id)
-        )
-        return [
-            agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
-            for tool_call in result.tool_calls
-        ]
+        if not agent.controls:
+            return []
+        orchestrator, mapping = self.orchestrators[agent.agent_id]
+        result = orchestrator.invoke({"description": agent.description, "request": call["instruction"]},
+                                     config=self.llm_config("orchestration", agent.agent_id))
+        return [agent.call_control(mapping[c["name"]], c["args"]) for c in result.tool_calls]
+
+
+def _argument_schema(field):
+    schema = {"type": field["property_type"]} if field["property_type"] != "opaque" else {}
+    for source, target in (("enum_values", "enum"), ("minimum", "minimum"), ("maximum", "maximum"),
+                           ("default", "default"), ("min_length", "minItems" if field["property_type"] == "array" else "minLength"),
+                           ("max_length", "maxItems" if field["property_type"] == "array" else "maxLength")):
+        if source in field:
+            schema[target] = field[source]
+    if "fields" in field:
+        schema.update(type="object", properties={f["name"]: _argument_schema(f) for f in field["fields"]},
+                      required=[f["name"] for f in field["fields"] if f.get("required")], additionalProperties=False)
+    if "items" in field:
+        schema["items"] = _argument_schema(field["items"])
+    details = {key: field[key] for key in ("unit", "enum_labels") if key in field}
+    if details:
+        schema["description"] = json.dumps(details, ensure_ascii=False)
+    if field.get("nullable"):
+        schema = {"anyOf": [schema, {"type": "null"}]}
+    return schema
+
+
+def _control_tool(control, spec, index):
+    name = re.sub(r"[^a-zA-Z0-9_-]", "_", spec["name"])[:48]
+    return {"type": "function", "function": {
+        "name": f"{name}_{index}", "description": f"{spec['name']} ({control})",
+        "parameters": _argument_schema({"property_type": "object", "fields": [field | {"name": name} for name, field in spec["arguments"].items()]}),
+    }}

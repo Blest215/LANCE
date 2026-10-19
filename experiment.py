@@ -94,6 +94,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("--rerun", nargs="+", choices=[mode.__name__ for mode in modes], default=[])
     argument_parser.add_argument("--head", type=int, required=False, default=None)
     argument_parser.add_argument("--lance-sweep", action="store_true")
+    argument_parser.add_argument("--detail", action="store_true")
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
@@ -113,27 +114,30 @@ if __name__ == "__main__":
             ("dataset_D10_M0.csv", modes, [representative_model]),
             ("dataset_D15_M0.csv", modes, [representative_model]),
             ("dataset_D20_M0.csv", modes, [representative_model]),
-            ("dataset_D5_M0.csv", modes, [
-                # Micro-size <=2b
-                Model("qwen3.5:0.8b-q8_0", reasoning=False),
-                Model("llama3.2:1b-instruct-q4_K_M"),
-                Model("qwen3.5:2b-q4_K_M", reasoning=False),
-                # Tiny-size <=4b
-                Model("gemma4:e2b-it-q4_K_M", reasoning=False),
-                Model("llama3.2:3b-instruct-q4_K_M"),
-                Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
-                Model("granite4.2:3b-q4_K_M", reasoning=False),
-                Model("qwen3.5:4b-q4_K_M", reasoning=False),
-                Model("nemotron-3-nano:4b-q8_0", reasoning=False),
-                # Small-size <=8b
-                Model("gemma4:e4b-it-q4_K_M", reasoning=False),
-                Model("granite4.2:8b-q4_K_M", reasoning=False),
-                Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
-                Model("rnj-1:8b-instruct-q4_K_M"),
-                Model("qwen3.5:9b-q4_K_M", reasoning=False),
-                Model("ornith:9b-q4_K_M", reasoning=False),
-            ]),
         ]
+        if args.detail:
+            configurations.append(
+                ("dataset_D5_M0.csv", modes, [
+                    # Micro-size <=2b
+                    Model("qwen3.5:0.8b-q8_0", reasoning=False),
+                    Model("llama3.2:1b-instruct-q4_K_M"),
+                    Model("qwen3.5:2b-q4_K_M", reasoning=False),
+                    # Tiny-size <=4b
+                    Model("gemma4:e2b-it-q4_K_M", reasoning=False),
+                    Model("llama3.2:3b-instruct-q4_K_M"),
+                    Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
+                    Model("granite4.2:3b-q4_K_M", reasoning=False),
+                    Model("qwen3.5:4b-q4_K_M", reasoning=False),
+                    Model("nemotron-3-nano:4b-q8_0", reasoning=False),
+                    # Small-size <=8b
+                    Model("gemma4:e4b-it-q4_K_M", reasoning=False),
+                    Model("granite4.2:8b-q4_K_M", reasoning=False),
+                    Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
+                    Model("qwen3.5:9b-q4_K_M", reasoning=False),
+                    Model("ornith:9b-q4_K_M", reasoning=False),
+                ])
+            )
+
         for dataset_file, modes, models in configurations:
             if DATASET_FILENAME_PATTERN.match(dataset_file) and os.path.exists(f"{DATASET_DIR}/{dataset_file}"):
                 print(dataset_file)
