@@ -94,6 +94,11 @@ class Model:
             })
             response.raise_for_status()
             result = response.json()
+            record["question_type"] = question["type"]
+            record["question"] = question["instructions"]
+            if "criteria" in question:
+                record["criteria"] = question["criteria"]
+            record["answer"] = result.get("answers", {}).get("decision")
             usage = result.get("usage", {})
             record["input_tokens"] = usage.get("input_tokens", 0)
             record["output_tokens"] = usage.get("output_tokens", 0)

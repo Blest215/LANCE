@@ -114,9 +114,14 @@ SCREENER_QUESTION = {
 }
 
 class LANCE(UserAgent):
+    def __init__(self, model, decision_model="tev1:4b-q4_K_M", noul_threshold=0.5):
+        super().__init__(model)
+        self.decision_model = decision_model
+        self.noul_threshold = noul_threshold
+
     def setup_handler(self, environment):
         self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
-        self.screener = Model("tev1:4b-q4_K_M")
+        self.screener = Model(self.decision_model)
         self.orchestrators = {
             protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
             for protocol, tool in TOOLS.items()
@@ -131,7 +136,7 @@ class LANCE(UserAgent):
                 question=SCREENER_QUESTION, token_log=self.token_log,
                 stage="discovery", device_id=device_id,
             )
-            if decision["answers"]["decision"]["noul"] >= 0.5:
+            if decision["answers"]["decision"]["noul"] >= self.noul_threshold:
                 selected[device_id] = description
         return selected
 
