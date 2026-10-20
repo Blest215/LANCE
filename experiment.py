@@ -34,7 +34,7 @@ def evaluate_scenarios(scenarios, consequences):
     assert len(scenarios) == len(consequences)
     return [evaluate_scenario(scenario, consequence) for scenario, consequence in zip(scenarios, consequences)]
 
-def simulation(code, dataset_file, models, modes, head=None, rerun_modes=[], result_file=None):
+def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_modes=[], result_file=None):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
     dataset_df = dataset_df[:head if head else len(dataset_df)]
     result_path = f"{RESULT_DIR}/{code}/{result_file or dataset_file.replace('dataset', 'result')}"
@@ -69,7 +69,7 @@ def simulation(code, dataset_file, models, modes, head=None, rerun_modes=[], res
     save_dataframe(result_df, path=result_path, ensure=True)
     return result_path
 
-def lance_settings_sweep(code, model, head=None, rerun=False):
+def lance_settings_sweep(code, models: List[Model], head=None, rerun=False):
     for decision_model_name in DECISION_MODELS:
         decision_model = Model(decision_model_name)
         modes = []        
@@ -79,9 +79,9 @@ def lance_settings_sweep(code, model, head=None, rerun=False):
             modes.append(mode)
         if not decision_model.setup():
             continue
-        simulation(code, "dataset_D20_M0.csv", [model], modes, head,
-                   rerun_modes=[mode.__name__ for mode in modes] if rerun else [],
-                   result_file=LANCE_SETTINGS_RESULT)
+        simulation(code, "dataset_D20_M0.csv", models, modes, head,
+                rerun_modes=[mode.__name__ for mode in modes] if rerun else [],
+                result_file=LANCE_SETTINGS_RESULT)
         decision_model.wrapup()
 
 if __name__ == "__main__":
@@ -105,15 +105,19 @@ if __name__ == "__main__":
     if not os.path.exists(f"{RESULT_DIR}/{code}"):
         os.mkdir(f"{RESULT_DIR}/{code}")
 
-    representative_model = Model("qwen3.5:4b-q4_K_M", reasoning=False)
+    representative_models = [
+        Model("gemma4:e4b-it-q4_K_M", reasoning=False),
+        Model("qwen3.5:4b-q4_K_M", reasoning=False),
+        Model("nemotron-3-nano:4b-q4_K_M", reasoning=False),
+    ]
 
     try:
         configurations = [
-            ("dataset_D0_M0.csv", modes, [representative_model]),
-            ("dataset_D5_M0.csv", modes, [representative_model]),
-            ("dataset_D10_M0.csv", modes, [representative_model]),
-            ("dataset_D15_M0.csv", modes, [representative_model]),
-            ("dataset_D20_M0.csv", modes, [representative_model]),
+            ("dataset_D0_M0.csv", modes, representative_models),
+            ("dataset_D5_M0.csv", modes, representative_models),
+            ("dataset_D10_M0.csv", modes, representative_models),
+            ("dataset_D15_M0.csv", modes, representative_models),
+            ("dataset_D20_M0.csv", modes, representative_models),
         ]
         if args.detail:
             configurations.append(
@@ -128,7 +132,7 @@ if __name__ == "__main__":
                     Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
                     Model("granite4.2:3b-q4_K_M", reasoning=False),
                     Model("qwen3.5:4b-q4_K_M", reasoning=False),
-                    Model("nemotron-3-nano:4b-q8_0", reasoning=False),
+                    Model("nemotron-3-nano:4b-q4_K_M", reasoning=False),
                     # Small-size <=8b
                     Model("gemma4:e4b-it-q4_K_M", reasoning=False),
                     Model("granite4.2:8b-q4_K_M", reasoning=False),
@@ -144,6 +148,6 @@ if __name__ == "__main__":
                 simulation(code, dataset_file, models, modes, args.head, args.rerun)
 
         if args.lance_sweep:
-            lance_settings_sweep(code, representative_model, args.head, "LANCE" in args.rerun)
+            lance_settings_sweep(code, representative_models, args.head, "LANCE" in args.rerun)
     except KeyboardInterrupt:
         pass
