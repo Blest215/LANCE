@@ -43,7 +43,7 @@ MAX_RETRY = 10
 MAX_CONTEXT = 32768
 MAX_OUTPUT_TOKENS = 2048
 
-RAG_EMBEDDING_MODEL = "embeddinggemma-2:270m-q8_0-text"
+RAG_EMBEDDING_MODEL = "nomic-embed-text:137m-v1.5-fp16"
 RAG_SIMILARITY_THRESHOLD = 0.5
 
 def get_agent_id(device_description):
@@ -112,7 +112,7 @@ def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseMode
     prompt_template = prompt if isinstance(prompt, ChatPromptTemplate) else ChatPromptTemplate.from_template(prompt)
     if pydantic_object == str:
         return prompt_template | model.instantiate() | StrOutputParser()
-    if "qwen3.5" in model.model:
+    if "cloud" in model.model:
         parser = JsonOutputParser() if isinstance(pydantic_object, dict) else PydanticOutputParser(pydantic_object=pydantic_object)
         return ChatPromptTemplate.from_messages([
             ("system", "[Format]\n{format}"),

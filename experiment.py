@@ -98,7 +98,7 @@ if __name__ == "__main__":
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
-    modes = [Centralized, RAG, Sasha, LLMind, LANCE] if not args.edge else [LANCE_no_decision]
+    modes = [Centralized, RAG, Sasha, LLMind, LANCE] if not args.edge else [LANCE]
 
     # Get experiment code
     remove_empty_results()
@@ -110,8 +110,10 @@ if __name__ == "__main__":
     representative_models = [
         Model("gemma4:e2b-it-q4_K_M", reasoning=False),
         Model("qwen3.5:4b-q4_K_M", reasoning=False),
-        Model("ornith-1.5:9b", reasoning=False),
-    ] if not args.edge else [Model("gemma4:e2b-it-q4_K_M", reasoning=False)]
+        Model("beam:cloud", reasoning=False),
+        Model("minimax-m3.1-flash:cloud", reasoning=False),
+        Model("gemma4:31b-cloud", reasoning=False),
+    ] if not args.edge else [Model("beam:cloud", reasoning=False)]
 
     try:
         configurations = [(
@@ -123,8 +125,8 @@ if __name__ == "__main__":
             configurations.append((
                 ["dataset_D5_M0.csv"], modes, [
                     # Micro-size <=2b
-                    Model("qwen3.5:0.8b-q8_0", reasoning=False),
                     Model("functiongemma:270m-it-q8_0"),
+                    Model("qwen3.5:0.8b-q8_0", reasoning=False),
                     Model("qwen3.5:2b-q4_K_M", reasoning=False),
                     # Tiny-size <=4b
                     Model("gemma4:e2b-it-q4_K_M", reasoning=False),

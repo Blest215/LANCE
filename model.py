@@ -108,7 +108,8 @@ class Model:
     def setup(self) -> bool:
         try:
             return self.instantiate().invoke("Hello, are you alive?").response_metadata["done"]
-        except Exception:
+        except Exception as e:
+            debug(e)
             return False
     
     def wrapup(self):
