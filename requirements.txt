@@ -5,3 +5,4 @@ langchain-ollama==1.1.0
 pandas==3.0.6
 tqdm==4.70.1
 matplotlib==3.11.2
+dotenv==0.9.9

@@ -1,12 +1,12 @@
 from model import Model
 from settings import *
 from environment import *
-from LANCE import LANCE
-from baseline import Centralized, RAG, Sasha, LLMind
+from LANCE import *
+from baseline import *
 from ast import literal_eval
 from functools import partial
 
-DECISION_MODELS = ["tev1:4b-q4_K_M", "tev1:0.8b-q8_0", "nimble:9b-q4_K_M"]
+DECISION_MODELS = ["d1-omni:600m-q8_0", "tev1:0.8b-q8_0", "tev1:4b-q4_K_M", "nimble-v3:9b-q4_K_M"]
 NOUL_THRESHOLDS = [i / 10 for i in range(1, 10)]
 LANCE_SETTINGS_RESULT = "result_D20_M0_LANCE_settings.csv"
 
@@ -14,14 +14,14 @@ def simulate_scenario(model: Model, mode, scenario):
     environment = Environment([DeviceDraft.model_validate(draft) for draft in literal_eval(scenario.devices)])
     user = mode(model)
     log = user.main(environment, scenario.utterance)
-    if isinstance(user, LANCE):
+    if isinstance(user, LANCE) and not isinstance(user, LANCE_no_decision):
         log["configuration"] = {"decision_model": user.screener.model, "noul_threshold": user.noul_threshold}
     return log, user.time_log, user.token_log, [action.model_dump() for action in environment.action_calls]
 
 def simulate_scenarios(model: Model, mode, scenarios):
     return tuple(map(list, zip(*[
         simulate_scenario(model, mode, scenario) 
-        for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:15}")
+        for scenario in tqdm(scenarios, total=len(scenarios), desc=f"Simulation {str(model):40} {mode.__name__:20}")
     ])))
 
 def evaluate_scenario(scenario, consequence):
@@ -85,18 +85,20 @@ def lance_settings_sweep(code, models: List[Model], head=None, rerun=False):
         decision_model.wrapup()
 
 if __name__ == "__main__":
-    modes = [Centralized, RAG, Sasha, LLMind, LANCE]
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--debug", action="store_true")
     argument_parser.add_argument("--code", type=str, required=False, default="")
     argument_parser.add_argument("--edge", action="store_true")
     argument_parser.add_argument("--resume", action="store_true")
-    argument_parser.add_argument("--rerun", nargs="+", choices=[mode.__name__ for mode in modes], default=[])
+    argument_parser.add_argument("--rerun", nargs="+", default=[])
     argument_parser.add_argument("--head", type=int, required=False, default=None)
     argument_parser.add_argument("--lance-sweep", action="store_true")
-    argument_parser.add_argument("--detail", action="store_true")
+    argument_parser.add_argument("--models", action="store_true")
+    argument_parser.add_argument("--ablation", action="store_true")
     args = argument_parser.parse_args()
     set_debug(args.debug)
+
+    modes = [Centralized, RAG, Sasha, LLMind, LANCE] if not args.edge else [LANCE_no_decision]
 
     # Get experiment code
     remove_empty_results()
@@ -106,25 +108,23 @@ if __name__ == "__main__":
         os.mkdir(f"{RESULT_DIR}/{code}")
 
     representative_models = [
-        Model("gemma4:e4b-it-q4_K_M", reasoning=False),
+        Model("gemma4:e2b-it-q4_K_M", reasoning=False),
         Model("qwen3.5:4b-q4_K_M", reasoning=False),
-        Model("nemotron-3-nano:4b-q4_K_M", reasoning=False),
-    ]
+        Model("ornith-1.5:9b", reasoning=False),
+    ] if not args.edge else [Model("gemma4:e2b-it-q4_K_M", reasoning=False)]
 
     try:
-        configurations = [
-            ("dataset_D0_M0.csv", modes, representative_models),
-            ("dataset_D5_M0.csv", modes, representative_models),
-            ("dataset_D10_M0.csv", modes, representative_models),
-            ("dataset_D15_M0.csv", modes, representative_models),
-            ("dataset_D20_M0.csv", modes, representative_models),
-        ]
-        if args.detail:
-            configurations.append(
-                ("dataset_D5_M0.csv", modes, [
+        configurations = [(
+            ["dataset_D0_M0.csv", "dataset_D5_M0.csv", "dataset_D10_M0.csv", "dataset_D15_M0.csv", "dataset_D20_M0.csv"],
+            modes,
+            representative_models
+        )]
+        if args.models:
+            configurations.append((
+                ["dataset_D5_M0.csv"], modes, [
                     # Micro-size <=2b
                     Model("qwen3.5:0.8b-q8_0", reasoning=False),
-                    Model("llama3.2:1b-instruct-q4_K_M"),
+                    Model("functiongemma:270m-it-q8_0"),
                     Model("qwen3.5:2b-q4_K_M", reasoning=False),
                     # Tiny-size <=4b
                     Model("gemma4:e2b-it-q4_K_M", reasoning=False),
@@ -138,12 +138,18 @@ if __name__ == "__main__":
                     Model("granite4.2:8b-q4_K_M", reasoning=False),
                     Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
                     Model("qwen3.5:9b-q4_K_M", reasoning=False),
-                    Model("ornith:9b-q4_K_M", reasoning=False),
-                ])
-            )
+                    Model("ornith-1.5:9b", reasoning=False),
+                ]
+            ))
+        if args.ablation:
+            configurations.append((
+                ["dataset_D0_M0.csv", "dataset_D5_M0.csv", "dataset_D10_M0.csv", "dataset_D15_M0.csv", "dataset_D20_M0.csv"],
+                [LANCE_no_decision, LANCE_no_discovery, LANCE_no_separation, LANCE_no_instruction],
+                representative_models
+            ))
 
-        for dataset_file, modes, models in configurations:
-            if DATASET_FILENAME_PATTERN.match(dataset_file) and os.path.exists(f"{DATASET_DIR}/{dataset_file}"):
+        for dataset_files, modes, models in configurations:
+            for dataset_file in dataset_files:
                 print(dataset_file)
                 simulation(code, dataset_file, models, modes, args.head, args.rerun)
 

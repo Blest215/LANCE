@@ -9,7 +9,8 @@ from environment import *
 from model import Model, CallLogger
 
 CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
-"""Accomplish the user's request with the avilable devices, using exact device_ids and supported calls.
+"""Accomplish the requested tasks with the available devices for the intended targets, locations, and resources.
+using exact device_ids and supported calls.
 
 [Request] {request}
 [Available Devices] {description}""")
@@ -108,10 +109,10 @@ class UserAgent(ABC):
 
 SCREENER_QUESTION = {
     "type": "noul",
-    "instructions": "Can this device carry out a some of the requested tasks, matching its intended target, location, and resources?",
+    "instructions": "Can this device contribute to some of the requested tasks?",
     "criteria": {
-        "true": "Can carry out at least one requested task within its constraints",
-        "false": "Cannot carry out any requested task within its constraints",
+        "true": "Can contribute to at least one requested task within its constraints",
+        "false": "Cannot contribute to any requested task within its constraints",
     },
 }
 
@@ -121,22 +122,25 @@ class LANCE(UserAgent):
         self.decision_model = decision_model
         self.noul_threshold = noul_threshold
 
+    def _get_orchestrators(self, environment: Environment):
+        orchestrators = {}
+        for device_id, agent in environment.agents.items():
+            tools = [_control_tool(control, spec, i) for i, (control, spec) in enumerate(agent.controls.items())]
+            mapping = {tool["function"]["name"]: control for tool, control in zip(tools, agent.controls)}
+            orchestrators[device_id] = CONTROLLER_PROMPT | self.model.with_tools(tools), mapping
+        return orchestrators
+
     def setup_handler(self, environment):
         self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
         self.screener = Model(self.decision_model)
-        self.orchestrators = {}
-        for device_id, agent in environment.agents.items():
-            tools = [_control_tool(control, spec, i) for i, (control, spec) in enumerate(agent.controls.items())]
-            if tools:
-                mapping = {tool["function"]["name"]: control for tool, control in zip(tools, agent.controls)}
-                self.orchestrators[device_id] = CONTROLLER_PROMPT | self.model.with_tools(tools), mapping
+        self.orchestrators = self._get_orchestrators(environment)
 
     def discovery_handler(self, environment, user_utterance):
         descriptions = environment.discovery()
         selected = {}
         for device_id, description in descriptions.items():
             decision = self.screener.decide(
-                state={"request": user_utterance, "description": description},
+                state={"request": user_utterance, "device": description},
                 question=SCREENER_QUESTION, token_log=self.token_log,
                 stage="discovery", device_id=device_id,
             )
@@ -145,13 +149,71 @@ class LANCE(UserAgent):
         return selected
 
     def orchestration_handler(self, agent, call):
-        if not agent.controls:
-            return []
         orchestrator, mapping = self.orchestrators[agent.agent_id]
-        result = orchestrator.invoke({"description": agent.description, "request": call["instruction"]},
-                                     config=self.llm_config("orchestration", agent.agent_id))
-        return [agent.call_control(mapping[c["name"]], c["args"]) for c in result.tool_calls]
+        result = orchestrator.invoke(
+            {"description": agent.description, "request": call["instruction"]},
+            config=self.llm_config("orchestration", agent.agent_id)
+        )
+        return [agent.call_control(mapping[call["name"]], call["args"]) for call in result.tool_calls]
 
+SCREENER_PROMPT = ChatPromptTemplate.from_template(
+"""Can this device contribute to some of the requested tasks?
+true: Can contribute to at least one requested task within its constraints
+false: Cannot contribute to any requested task within its constraints
+
+[Request] {request}
+[Device] {description}""")
+
+class Screen(BaseModel):
+    decision: bool
+
+class LANCE_no_decision(LANCE):
+    def setup_handler(self, environment):
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.screener = create_generator(SCREENER_PROMPT, Screen, self.model)
+        self.orchestrators = self._get_orchestrators(environment)
+
+    def discovery_handler(self, environment, user_utterance):
+        descriptions = environment.discovery()
+        selected = {}
+        for device_id, description in descriptions.items():
+            if self.screener.invoke(
+                {"request": user_utterance, "description": description},
+                config=self.llm_config("discovery", device_id),
+            ).decision:
+                selected[device_id] = description
+        return selected
+
+class LANCE_no_discovery(LANCE):
+    def discovery_handler(self, environment, user_utterance):
+        return environment.discovery()
+
+class LANCE_no_separation(LANCE):
+    def setup_handler(self, environment):
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools([instruct_agent])
+        self.screener = Model(self.decision_model)
+        self.orchestrators = {
+            protocol: CONTROLLER_PROMPT | self.model.with_tools([tool])
+            for protocol, tool in TOOLS.items()
+        }
+
+    def orchestration_handler(self, agent, call):
+        result = self.orchestrators[agent.protocol].invoke(
+            {"description": agent.description, "request": call["instruction"]},
+            config=self.llm_config("orchestration", agent.agent_id)
+        )
+        return [
+            agent.call(**{name: value for name, value in tool_call["args"].items() if name != "device_id"})
+            for tool_call in result.tool_calls
+        ]
+
+class LANCE_no_instruction(LANCE):
+    def setup_handler(self, environment):
+        self.composer = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
+        self.screener = Model(self.decision_model)
+
+    def orchestration_handler(self, agent, call):
+        return agent.call(**call)
 
 def _argument_schema(field):
     schema = {"type": field["property_type"]} if field["property_type"] != "opaque" else {}
@@ -171,7 +233,6 @@ def _argument_schema(field):
     if field.get("nullable"):
         schema = {"anyOf": [schema, {"type": "null"}]}
     return schema
-
 
 def _control_tool(control, spec, index):
     name = re.sub(r"[^a-zA-Z0-9_-]", "_", spec["name"])[:48]

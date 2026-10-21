@@ -43,7 +43,7 @@ MAX_RETRY = 10
 MAX_CONTEXT = 32768
 MAX_OUTPUT_TOKENS = 2048
 
-RAG_EMBEDDING_MODEL = "nomic-embed-text"
+RAG_EMBEDDING_MODEL = "embeddinggemma-2:270m-q8_0-text"
 RAG_SIMILARITY_THRESHOLD = 0.5
 
 def get_agent_id(device_description):
