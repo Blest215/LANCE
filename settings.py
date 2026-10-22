@@ -108,16 +108,15 @@ def remove_empty_results():
         if not os.listdir(f"{RESULT_DIR}/{result_code}"):            
             os.rmdir(f"{RESULT_DIR}/{result_code}")
 
-def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | dict | str, model):
+def create_generator(prompt: str | ChatPromptTemplate, pydantic_object: BaseModel | str, model):
     prompt_template = prompt if isinstance(prompt, ChatPromptTemplate) else ChatPromptTemplate.from_template(prompt)
     if pydantic_object == str:
         return prompt_template | model.instantiate() | StrOutputParser()
     if "cloud" in model.model:
-        parser = JsonOutputParser() if isinstance(pydantic_object, dict) else PydanticOutputParser(pydantic_object=pydantic_object)
+        parser = PydanticOutputParser(pydantic_object=pydantic_object)
         return ChatPromptTemplate.from_messages([
             ("system", "[Format]\n{format}"),
             *prompt_template.messages,
-        ]).partial(format=json.dumps(pydantic_object) if isinstance(pydantic_object, dict)
-                   else parser.get_format_instructions()) | model.instantiate() | parser
+        ]).partial(**prompt_template.partial_variables).partial(format=parser.get_format_instructions()) | model.instantiate() | parser
         
     return prompt_template | model.with_structured_output(pydantic_object)

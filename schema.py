@@ -5,7 +5,6 @@ from typing import Annotated, List, Dict, Optional, Literal
 from profiles import ProfileId
 from langchain.tools import tool
 from pydantic import JsonValue as Value
-from random import choice
 from urllib.parse import quote, urlencode
 
 def clean_text(value: str) -> str:
@@ -64,7 +63,7 @@ Resource = Annotated[
 
 class DeviceDraft(BaseModel):
     device_id: str
-    protocol: Literal["Matter", "W3C", "SmartThings"] = Field(default_factory=lambda: choice(("Matter", "W3C", "SmartThings")))
+    protocol: Optional[Literal["Matter", "W3C", "SmartThings"]] = Field(default=None)
     room: Literal[
         "living_room", "bedroom", "kitchen", "bathroom", "dining_room", "office", "study",
         "playroom", "family_room", "tv_room", "garage", "entryway", "garden", "backyard",
@@ -73,14 +72,7 @@ class DeviceDraft(BaseModel):
     resources: List[Resource] = Field(default_factory=list)
 
 class Scene(BaseModel):
-    solvable: bool
-    description: str
     devices: List[DeviceDraft] = Field(min_length=1)
-
-    @field_validator("description")
-    @classmethod
-    def clean_description(cls, value: str) -> str:
-        return clean_text(value)
 
 # Devices
 
