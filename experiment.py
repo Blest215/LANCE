@@ -36,34 +36,43 @@ def evaluate_scenarios(scenarios, consequences):
 
 def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_modes=[], result_file=None):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
-    dataset_df = dataset_df[:head if head else len(dataset_df)]
+    dataset_df = dataset_df[:head if head else len(dataset_df)].reset_index(drop=True)
     result_path = f"{RESULT_DIR}/{code}/{result_file or dataset_file.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
     scenarios = list(dataset_df.itertuples())
-    assert "ID" not in result_df or result_df["ID"].tolist() == dataset_df["ID"].tolist()
-    result_df["ID"] = dataset_df["ID"].tolist()
+    overlap = min(len(result_df), len(dataset_df))
+    assert "ID" not in result_df or result_df["ID"][:overlap].tolist() == dataset_df["ID"][:overlap].tolist()
+    result_df = result_df.reindex(range(max(len(result_df), len(dataset_df))))
+    result_df.loc[dataset_df.index, "ID"] = dataset_df["ID"]
     
     for model in models:
-        pending = [mode for mode in modes
-                   if get_column_name("CONSEQUENCES", model, mode.__name__) not in result_df
-                   or mode.__name__ in rerun_modes]
-        if pending and not model.setup():
+        pending = {}
+        for mode in modes:
+            column = get_column_name("CONSEQUENCES", model, mode.__name__)
+            pending[mode] = (dataset_df.index if column not in result_df or mode.__name__ in rerun_modes
+                             else dataset_df.index[result_df.loc[dataset_df.index, column].isna()])
+        has_pending = any(len(indices) for indices in pending.values())
+        if has_pending and not model.setup():
             continue
         for mode in modes:
             column = get_column_name("CONSEQUENCES", model, mode.__name__)
-            if mode in pending:
-                logs, times, tokens, consequences = simulate_scenarios(model, mode, scenarios)
+            indices = pending[mode]
+            if len(indices):
+                logs, times, tokens, consequences = simulate_scenarios(model, mode, [scenarios[i] for i in indices])
                 for key, values in (("LOGS", logs), ("TIME", times), ("TOKEN", tokens)):
-                    result_df[get_column_name(key, model, mode.__name__)] = values
-                result_df[column] = [json.dumps(actions, ensure_ascii=False) for actions in consequences]
+                    result_df.loc[indices, get_column_name(key, model, mode.__name__)] = pd.Series(
+                        [str(value) for value in values], index=indices)
+                result_df.loc[indices, column] = pd.Series(
+                    [json.dumps(actions, ensure_ascii=False) for actions in consequences], index=indices)
                 save_dataframe(result_df, path=result_path)
-            evaluations = evaluate_scenarios(scenarios, result_df[column])
+            evaluations = evaluate_scenarios(scenarios, result_df.loc[dataset_df.index, column])
             column = get_column_name("EVALUATION", model, mode.__name__)
-            result_df[column] = [json.dumps(value) for value in evaluations]
+            result_df.loc[dataset_df.index, column] = pd.Series(
+                [json.dumps(value) for value in evaluations], index=dataset_df.index)
             result_df = result_df.copy()
             save_dataframe(result_df, path=result_path)
-        if pending:
+        if has_pending:
             model.wrapup()
     
     save_dataframe(result_df, path=result_path, ensure=True)
@@ -110,8 +119,8 @@ if __name__ == "__main__":
     representative_models = [
         Model("gemma4:e2b-it-q4_K_M", reasoning=False),
         Model("qwen3.5:4b-q4_K_M", reasoning=False),
-        Model("beam:cloud", reasoning=False),
         Model("minimax-m3.1-flash:cloud", reasoning=False),
+        Model("beam:cloud", reasoning=False),
         Model("gemma4:31b-cloud", reasoning=False),
     ] if not args.edge else [Model("beam:cloud", reasoning=False)]
 
