@@ -6,9 +6,9 @@ from baseline import *
 from ast import literal_eval
 from functools import partial
 
-DECISION_MODELS = ["d1-omni:600m-q8_0", "tev1:0.8b-q8_0", "tev1:4b-q4_K_M", "nimble-v3:9b-q4_K_M"]
+DECISION_MODELS = ["kev:0.8b-q8_0", "tev1:0.8b-q8_0", "d1:3b-q8_0", "tev1:4b-q4_K_M", "nimble-v3:9b-q4_K_M"]
 NOUL_THRESHOLDS = [i / 10 for i in range(1, 10)]
-LANCE_SETTINGS_RESULT = "result_D20_M0_LANCE_settings.csv"
+LANCE_SETTINGS_RESULT = "result_D10_M0_LANCE_settings.csv"
 
 def simulate_scenario(model: Model, mode, scenario):
     environment = Environment([DeviceDraft.model_validate(draft) for draft in literal_eval(scenario.devices)])
@@ -34,9 +34,12 @@ def evaluate_scenarios(scenarios, consequences):
     assert len(scenarios) == len(consequences)
     return [evaluate_scenario(scenario, consequence) for scenario, consequence in zip(scenarios, consequences)]
 
-def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_modes=[], result_file=None):
+def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_modes=[], result_file=None, protocol=None):
     dataset_df = pd.read_csv(f"{DATASET_DIR}/{dataset_file}").dropna()
     dataset_df = dataset_df[:head if head else len(dataset_df)].reset_index(drop=True)
+    if protocol:
+        dataset_df["devices"] = dataset_df.devices.map(lambda value: repr([
+            draft | {"protocol": protocol} for draft in literal_eval(value)]))
     result_path = f"{RESULT_DIR}/{code}/{result_file or dataset_file.replace('dataset', 'result')}"
     result_df = pd.read_csv(result_path) if os.path.exists(result_path) else pd.DataFrame()
 
@@ -58,6 +61,9 @@ def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_
         for mode in modes:
             column = get_column_name("CONSEQUENCES", model, mode.__name__)
             indices = pending[mode]
+            evaluation_column = get_column_name("EVALUATION", model, mode.__name__)
+            if not len(indices) and evaluation_column in result_df and result_df.loc[dataset_df.index, evaluation_column].notna().all():
+                continue
             if len(indices):
                 logs, times, tokens, consequences = simulate_scenarios(model, mode, [scenarios[i] for i in indices])
                 for key, values in (("LOGS", logs), ("TIME", times), ("TOKEN", tokens)):
@@ -78,6 +84,14 @@ def simulation(code, dataset_file, models: List[Model], modes, head=None, rerun_
     save_dataframe(result_df, path=result_path, ensure=True)
     return result_path
 
+def protocol_experiments(code, models: List[Model], modes, head=None, rerun_modes=[]):
+    for protocol in ["Matter", "W3C", "SmartThings"]:
+        print(f"Protocol: {protocol}")
+        for d in [0, 5, 10, 15, 20]:
+            print(f"dataset_D{d}_M0.csv")
+            simulation(code, f"dataset_D{d}_M0.csv", models, modes, head, rerun_modes,
+                       result_file=f"result_D{d}_M0_{protocol}.csv", protocol=protocol)
+
 def lance_settings_sweep(code, models: List[Model], head=None, rerun=False):
     for decision_model_name in DECISION_MODELS:
         decision_model = Model(decision_model_name)
@@ -86,12 +100,13 @@ def lance_settings_sweep(code, models: List[Model], head=None, rerun=False):
             mode = partial(LANCE, decision_model=decision_model_name, noul_threshold=threshold)
             mode.__name__ = f"LANCE_{decision_model}_noul_{threshold:.1f}".replace(".", "_")
             modes.append(mode)
-        if not decision_model.setup():
-            continue
-        simulation(code, "dataset_D20_M0.csv", models, modes, head,
-                rerun_modes=[mode.__name__ for mode in modes] if rerun else [],
-                result_file=LANCE_SETTINGS_RESULT)
-        decision_model.wrapup()
+        print(f"Sweep: {decision_model_name}")
+        try:
+            simulation(code, "dataset_D10_M0.csv", models, modes, head,
+                    rerun_modes=[mode.__name__ for mode in modes] if rerun else [],
+                    result_file=LANCE_SETTINGS_RESULT)
+        finally:
+            decision_model.wrapup()
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser()
@@ -101,9 +116,10 @@ if __name__ == "__main__":
     argument_parser.add_argument("--resume", action="store_true")
     argument_parser.add_argument("--rerun", nargs="+", default=[])
     argument_parser.add_argument("--head", type=int, required=False, default=None)
-    argument_parser.add_argument("--lance-sweep", action="store_true")
     argument_parser.add_argument("--models", action="store_true")
     argument_parser.add_argument("--ablation", action="store_true")
+    argument_parser.add_argument("--sweep", action="store_true")
+    argument_parser.add_argument("--protocol", action="store_true")
     args = argument_parser.parse_args()
     set_debug(args.debug)
 
@@ -117,11 +133,13 @@ if __name__ == "__main__":
         os.mkdir(f"{RESULT_DIR}/{code}")
 
     representative_models = [
-        Model("gemma4:e2b-it-q4_K_M", reasoning=False),
         Model("qwen3.5:4b-q4_K_M", reasoning=False),
+        Model("gemma4:e2b-it-q4_K_M", reasoning=False),
+        Model("gemma4:e4b-it-q4_K_M", reasoning=False),
+        # Model("gemma4:12b-it-q4_K_M", reasoning=False),
+        # Model("gemma4:31b-cloud", reasoning=False),
         Model("minimax-m3.1-flash:cloud", reasoning=False),
         Model("beam:cloud", reasoning=False),
-        Model("gemma4:31b-cloud", reasoning=False),
     ] if not args.edge else [Model("beam:cloud", reasoning=False)]
 
     try:
@@ -132,31 +150,29 @@ if __name__ == "__main__":
         )]
         if args.models:
             configurations.append((
-                ["dataset_D5_M0.csv"], modes, [
-                    # Micro-size <=2b
-                    Model("functiongemma:270m-it-q8_0"),
+                ["dataset_D10_M0.csv"], modes, [
+                    # < 4B
                     Model("qwen3.5:0.8b-q8_0", reasoning=False),
                     Model("qwen3.5:2b-q4_K_M", reasoning=False),
-                    # Tiny-size <=4b
-                    Model("gemma4:e2b-it-q4_K_M", reasoning=False),
                     Model("llama3.2:3b-instruct-q4_K_M"),
-                    Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
                     Model("granite4.2:3b-q4_K_M", reasoning=False),
+                    Model("ministral-3:3b-instruct-2512-q4_K_M", reasoning=False),
+                    # < 8B
                     Model("qwen3.5:4b-q4_K_M", reasoning=False),
-                    Model("nemotron-3-nano:4b-q4_K_M", reasoning=False),
-                    # Small-size <=8b
+                    Model("gemma4:e2b-it-q4_K_M", reasoning=False),
                     Model("gemma4:e4b-it-q4_K_M", reasoning=False),
-                    Model("granite4.2:8b-q4_K_M", reasoning=False),
-                    Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
-                    Model("qwen3.5:9b-q4_K_M", reasoning=False),
+                    Model("nemotron-3.5-bolt:e4b-q4_K_M", reasoning=False),
                     Model("ornith-1.5:9b", reasoning=False),
+                    Model("qwen3.5:9b-q4_K_M", reasoning=False),
+                    # Model("granite4.2:8b-q4_K_M", reasoning=False),
+                    # Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
                 ]
             ))
         if args.ablation:
             configurations.append((
                 ["dataset_D0_M0.csv", "dataset_D5_M0.csv", "dataset_D10_M0.csv", "dataset_D15_M0.csv", "dataset_D20_M0.csv"],
                 [LANCE_no_decision, LANCE_no_discovery, LANCE_no_separation, LANCE_no_instruction],
-                representative_models
+                [Model("qwen3.5:4b-q4_K_M", reasoning=False)]
             ))
 
         for dataset_files, modes, models in configurations:
@@ -164,7 +180,9 @@ if __name__ == "__main__":
                 print(dataset_file)
                 simulation(code, dataset_file, models, modes, args.head, args.rerun)
 
-        if args.lance_sweep:
-            lance_settings_sweep(code, representative_models, args.head, "LANCE" in args.rerun)
+        if args.sweep:
+            lance_settings_sweep(code, [Model("qwen3.5:4b-q4_K_M", reasoning=False)], args.head, "LANCE" in args.rerun)
+        if args.protocol:
+            protocol_experiments(code, [Model("qwen3.5:4b-q4_K_M", reasoning=False)], modes, args.head, args.rerun)
     except KeyboardInterrupt:
         pass
