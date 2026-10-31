@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import wraps
+from hashlib import sha256
 from time import perf_counter
 import json
 import re
@@ -14,6 +15,9 @@ using exact device_ids and supported calls.
 
 [Request] {request}
 [Available Devices] {description}""")
+
+TOOL_CONTROLLER_PROMPT = ChatPromptTemplate.from_template(
+    CONTROLLER_PROMPT.messages[0].prompt.template.removesuffix("\n[Available Devices] {description}"))
 
 def log(method):
     @wraps(method)
@@ -122,12 +126,14 @@ class LANCE(UserAgent):
         self.decision_model = decision_model
         self.noul_threshold = noul_threshold
 
-    def _get_orchestrators(self, environment: Environment):
+    def _get_orchestrators(self, environment):
         orchestrators = {}
         for device_id, agent in environment.agents.items():
-            tools = [_control_tool(control, spec, i) for i, (control, spec) in enumerate(agent.controls.items())]
+            if not agent.controls:
+                continue
+            tools = [_descriptive_tool(agent, control, spec) for control, spec in agent.controls.items()]
             mapping = {tool["function"]["name"]: control for tool, control in zip(tools, agent.controls)}
-            orchestrators[device_id] = CONTROLLER_PROMPT | self.model.with_tools(tools), mapping
+            orchestrators[device_id] = TOOL_CONTROLLER_PROMPT | self.model.with_tools(tools), mapping
         return orchestrators
 
     def setup_handler(self, environment):
@@ -149,11 +155,11 @@ class LANCE(UserAgent):
         return selected
 
     def orchestration_handler(self, agent, call):
+        if not agent.controls:
+            return []
         orchestrator, mapping = self.orchestrators[agent.agent_id]
-        result = orchestrator.invoke(
-            {"description": agent.description, "request": call["instruction"]},
-            config=self.llm_config("orchestration", agent.agent_id)
-        )
+        result = orchestrator.invoke({"request": call["instruction"]},
+                                     config=self.llm_config("orchestration", agent.agent_id))
         return [agent.call_control(mapping[call["name"]], call["args"]) for call in result.tool_calls]
 
 SCREENER_PROMPT = ChatPromptTemplate.from_template(
@@ -209,11 +215,29 @@ class LANCE_no_separation(LANCE):
 
 class LANCE_no_instruction(LANCE):
     def setup_handler(self, environment):
-        self.composer = CONTROLLER_PROMPT | self.model.with_tools(TOOLS.values())
         self.screener = Model(self.decision_model)
+        self.tools, self.controls = {}, {}
+        for device_id, agent in environment.agents.items():
+            self.tools[device_id] = []
+            for control, spec in agent.controls.items():
+                tool = _descriptive_tool(agent, control, spec)
+                tool["function"]["name"] = f"d{sha256(device_id.encode()).hexdigest()[:8]}_{tool['function']['name']}"
+                self.tools[device_id].append(tool)
+                self.controls[tool["function"]["name"]] = device_id, control
+
+    def composition_handler(self, descriptions, user_utterance):
+        tools = [tool for device_id in descriptions for tool in self.tools[device_id]]
+        if not tools:
+            return []
+        composer = TOOL_CONTROLLER_PROMPT | self.model.with_tools(tools)
+        calls = composer.invoke({"request": user_utterance}, config=self.llm_config("composition")).tool_calls
+        return [call | {"args": {
+            "device_id": self.controls[call["name"]][0],
+            "control": self.controls[call["name"]][1], "arguments": call["args"],
+        }} for call in calls]
 
     def orchestration_handler(self, agent, call):
-        return agent.call(**call)
+        return agent.call_control(call["control"], call["arguments"])
 
 def _argument_schema(field):
     schema = {"type": field["property_type"]} if field["property_type"] != "opaque" else {}
@@ -227,16 +251,79 @@ def _argument_schema(field):
                       required=[f["name"] for f in field["fields"] if f.get("required")], additionalProperties=False)
     if "items" in field:
         schema["items"] = _argument_schema(field["items"])
-    details = {key: field[key] for key in ("unit", "enum_labels") if key in field}
+    if "title" in field:
+        schema["title"] = field["title"]
+    details = {key: field[key] for key in ("description", "semantics", "unit", "enum_labels") if key in field}
     if details:
         schema["description"] = json.dumps(details, ensure_ascii=False)
     if field.get("nullable"):
         schema = {"anyOf": [schema, {"type": "null"}]}
     return schema
 
-def _control_tool(control, spec, index):
-    name = re.sub(r"[^a-zA-Z0-9_-]", "_", spec["name"])[:48]
+def _control_tool(control, spec):
+    name = re.sub(r"[^a-zA-Z0-9_-]", "_", spec["name"])[:40]
+    fields = [field | {"name": key, "title": field.get("title") or (
+        re.sub(r"^write_?", "", spec["name"], flags=re.I) if key == "value" else field.get("name", key))}
+        for key, field in spec["arguments"].items()]
+    operation = spec["name"].replace("_", "").lower()
+    for field in fields:
+        key = field["name"]
+        if ((operation == "movetolevel" and key == "Level")
+                or (operation == "step" and key == "StepSize")
+                or (operation in ("writeonlevel", "writestartupcurrentlevel") and key == "value")):
+            mode = "Relative brightness change" if key == "StepSize" else "Absolute brightness"
+            field["semantics"] = f"{mode} on a raw 0–254 scale: percentage * 254 / 100, rounded to an integer. Preserve explicitly requested raw or sentinel values."
+        elif operation == "setpointraiselower" and key == "Amount":
+            field["semantics"] = "Signed relative temperature change in 0.1 Celsius units: Celsius change * 10. Positive raises, negative lowers; not an absolute setpoint."
+        elif "setpoint" in operation and key == "value" and "unit" in field:
+            field["semantics"] = f"Absolute temperature setpoint in {field['unit']} per raw unit; convert the requested temperature to this scale."
     return {"type": "function", "function": {
-        "name": f"{name}_{index}", "description": f"{spec['name']} ({control})",
-        "parameters": _argument_schema({"property_type": "object", "fields": [field | {"name": name} for name, field in spec["arguments"].items()]}),
+        "name": f"{name}_{sha256(control.encode()).hexdigest()[:12]}", "description": f"{spec['name']} ({control})",
+        "parameters": _argument_schema({"property_type": "object", "fields": fields}),
     }}
+
+
+def _resource_arguments(fields, resource):
+    arguments = {}
+    for name, field in fields.items():
+        if name in resource:
+            arguments[name] = resource[name]
+        elif "fields" in field:
+            nested = _resource_arguments({f["name"]: f for f in field["fields"]}, resource)
+            if nested:
+                arguments[name] = nested
+    return arguments
+
+
+def _descriptive_tool(agent, control, spec):
+    tool = _control_tool(control, spec)
+    device, request = agent.spec, spec["call"]
+    context = {"device_id": agent.agent_id, "device_name": device.device_name, "room": device.room}
+    if agent.protocol == "Matter":
+        endpoint = next(e for e in device.endpoints if e.endpoint_id == request["endpoint_id"])
+        cluster = next(c for c in endpoint.clusters if c.cluster_id == request["cluster_id"])
+        context.update(endpoint=endpoint.device_types, service=cluster.name)
+    elif agent.protocol == "W3C":
+        item = getattr(device.td, "actions" if request["interaction"] == "action" else "properties")[request["name"]]
+        context.update(service=request["interaction"], title=item.model_dump().get("title", request["name"]))
+    else:
+        context["service"] = request["capability"]
+    resources = {"launchurl": "contents", "selectareas": "cleaning_areas",
+                 "changechannel": "channels", "changechannelbynumber": "channels", "selectinput": "inputs",
+                 "launchapp": "applications", "stopapp": "applications", "hideapp": "applications"}
+    operation = (context.get("title") or spec["name"]).lower()
+    bucket = resources.get(operation)
+    if bucket in device.resources:
+        context["resources"] = []
+        for resource in device.resources[bucket]:
+            values = resource
+            if operation == "changechannel":
+                values = resource | {"Match": resource["name"]}
+            elif operation == "selectareas":
+                values = resource | {"NewAreas": [resource["AreaID"]]}
+            context["resources"].append({
+                "label": " · ".join(str(resource[k]) for k in ("name", "kind", "artist", "provider") if resource.get(k)),
+                "arguments": _resource_arguments(spec["arguments"], values),
+            })
+    tool["function"]["description"] += "\n" + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    return tool

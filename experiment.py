@@ -15,7 +15,7 @@ def simulate_scenario(model: Model, mode, scenario):
     user = mode(model)
     log = user.main(environment, scenario.utterance)
     if isinstance(user, LANCE) and not isinstance(user, LANCE_no_decision):
-        log["configuration"] = {"decision_model": user.screener.model, "noul_threshold": user.noul_threshold}
+        log["configuration"] = {"decision_model": user.decision_model, "noul_threshold": user.noul_threshold}
     return log, user.time_log, user.token_log, [action.model_dump() for action in environment.action_calls]
 
 def simulate_scenarios(model: Model, mode, scenarios):
@@ -92,6 +92,12 @@ def protocol_experiments(code, models: List[Model], modes, head=None, rerun_mode
             simulation(code, f"dataset_D{d}_M0.csv", models, modes, head, rerun_modes,
                        result_file=f"result_D{d}_M0_{protocol}.csv", protocol=protocol)
 
+def ablation_experiments(code, models: List[Model], head=None, rerun=False):
+    modes = [LANCE_no_decision, LANCE_no_discovery, LANCE_no_separation, LANCE_no_instruction]
+    for d in [0, 5, 10, 15, 20]:
+        print(f"dataset_D{d}_M0.csv")
+        simulation(code, f"dataset_D{d}_M0.csv", models, modes, head, [mode.__name__ for mode in modes] if rerun else [])
+
 def lance_settings_sweep(code, models: List[Model], head=None, rerun=False):
     for decision_model_name in DECISION_MODELS:
         decision_model = Model(decision_model_name)
@@ -136,10 +142,7 @@ if __name__ == "__main__":
         Model("qwen3.5:4b-q4_K_M", reasoning=False),
         Model("gemma4:e2b-it-q4_K_M", reasoning=False),
         Model("gemma4:e4b-it-q4_K_M", reasoning=False),
-        # Model("gemma4:12b-it-q4_K_M", reasoning=False),
-        # Model("gemma4:31b-cloud", reasoning=False),
-        Model("minimax-m3.1-flash:cloud", reasoning=False),
-        Model("beam:cloud", reasoning=False),
+        Model("gemma4:12b-it-q4_K_M", reasoning=False),
     ] if not args.edge else [Model("beam:cloud", reasoning=False)]
 
     try:
@@ -151,7 +154,7 @@ if __name__ == "__main__":
         if args.models:
             configurations.append((
                 ["dataset_D10_M0.csv"], modes, [
-                    # < 4B
+                    # # < 4B
                     Model("qwen3.5:0.8b-q8_0", reasoning=False),
                     Model("qwen3.5:2b-q4_K_M", reasoning=False),
                     Model("llama3.2:3b-instruct-q4_K_M"),
@@ -162,24 +165,24 @@ if __name__ == "__main__":
                     Model("gemma4:e2b-it-q4_K_M", reasoning=False),
                     Model("gemma4:e4b-it-q4_K_M", reasoning=False),
                     Model("nemotron-3.5-bolt:e4b-q4_K_M", reasoning=False),
-                    Model("ornith-1.5:9b", reasoning=False),
-                    Model("qwen3.5:9b-q4_K_M", reasoning=False),
                     # Model("granite4.2:8b-q4_K_M", reasoning=False),
                     # Model("ministral-3:8b-instruct-2512-q4_K_M", reasoning=False),
+                    Model("ornith-1.5:9b", reasoning=False),
+                    Model("qwen3.5:9b-q4_K_M", reasoning=False),
+                    Model("gemma4:12b-it-q4_K_M", reasoning=False),
+                    # Cloud
+                    Model("gemma4:31b-cloud", reasoning=False),
+                    Model("minimax-m3.1-flash:cloud", reasoning=False),
+                    Model("beam:cloud", reasoning=False),
                 ]
             ))
-        if args.ablation:
-            configurations.append((
-                ["dataset_D0_M0.csv", "dataset_D5_M0.csv", "dataset_D10_M0.csv", "dataset_D15_M0.csv", "dataset_D20_M0.csv"],
-                [LANCE_no_decision, LANCE_no_discovery, LANCE_no_separation, LANCE_no_instruction],
-                [Model("qwen3.5:4b-q4_K_M", reasoning=False)]
-            ))
-
         for dataset_files, modes, models in configurations:
             for dataset_file in dataset_files:
                 print(dataset_file)
                 simulation(code, dataset_file, models, modes, args.head, args.rerun)
 
+        if args.ablation:
+            ablation_experiments(code, [Model("qwen3.5:4b-q4_K_M", reasoning=False)], args.head, "LANCE" in args.rerun)
         if args.sweep:
             lance_settings_sweep(code, [Model("qwen3.5:4b-q4_K_M", reasoning=False)], args.head, "LANCE" in args.rerun)
         if args.protocol:

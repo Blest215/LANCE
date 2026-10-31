@@ -155,14 +155,15 @@ def device_controls(device):
 
 def _schema_field(schema, name):
     default = {"default": schema["default"]} if "default" in schema else {}
+    metadata = {key: schema[key] for key in ("description", "title", "unit") if key in schema}
     nullable = any(branch.get("type") == "null" for branch in schema.get("oneOf", []))
     if nullable:
         schema = next(branch for branch in schema["oneOf"] if branch.get("type") != "null")
-    field = {"name": name, "property_type": schema.get("type", "opaque"), "nullable": nullable} | default
+    field = {"name": name, "property_type": schema.get("type", "opaque"), "nullable": nullable} | default | metadata
     aliases = {"enum": "enum_values", "x-enumLabels": "enum_labels", "minLength": "min_length",
                "maxLength": "max_length", "minItems": "min_length", "maxItems": "max_length"}
     field.update({aliases.get(key, key): schema[key]
-                  for key in ("minimum", "maximum", "unit", *aliases) if key in schema})
+                  for key in ("minimum", "maximum", "unit", "description", "title", *aliases) if key in schema})
     if "properties" in schema:
         field["fields"] = list(_schema_arguments(schema).values())
     if "items" in schema:

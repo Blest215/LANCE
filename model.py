@@ -36,7 +36,10 @@ class CallLogger(BaseCallbackHandler):
         self.records.append(self.record)
 
     def on_llm_end(self, response, **kwargs):
-        self.record.update(response.generations[0][0].message.usage_metadata or {})
+        message = response.generations[0][0].message
+        self.record.update(message.usage_metadata or {})
+        self.record["tool_calls"] = getattr(message, "tool_calls", [])
+        self.record["invalid_tool_calls"] = getattr(message, "invalid_tool_calls", [])
         self.record.update(elapsed=perf_counter() - self.started, status="success")
 
     def on_llm_error(self, error, **kwargs):
