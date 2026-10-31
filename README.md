@@ -1,92 +1,56 @@
 # LANCE
 
-This artifact contains the (1) data synthesizer, (2) synthesized dataset, (3) experiment codes, and (4) testbed codes for the reproducibility of the paper titled: _**LANCE**: Linguistic Agent Network for Cooperative Ensemble of Heterogeneous Physical AI Services_
+This artifact contains the (1) data synthesizer, (2) synthesized dataset, (3) experiment codes, and (4) testbed codes for the reproducibility of the paper titled: _**LANCE**: Linguistic Agent Network for Cooperative Ecosystems of Heterogeneous Services_
 
 ## Main structure
 
-- **synthesizer.py**: LLM-based synthesis of realistic datasets. Requires survey data to be in `./dataset/db/survey_result.csv`, which is excluded in the repository to protect the participants' privacy.
+- **synthesizer.py**: LLM-based synthesis of realistic datasets. Requires survey data to be in `./dataset/db/survey_result.csv`, which is excluded from the repository to protect participants' privacy.
 - **dataset/**: the directory contains the synthesized datasets, which are converted from the survey results. (`dataset_D{device numbers}_M{mutation level}.csv`)
 - **experiment.py**: main code for the experiments.
 - **testbed.py**: code for the testbed.
 
 ## Dependencies
 
-- python >= 3.11
-- [Ollama](https://ollama.com/) >= 0.18
-- [Mosquitto](https://mosquitto.org/) >= 2.0.22
-- NVIDIA or AMD GPU required (VRAM >= 12GB)
+- python >= 3.13
+- [Ollama](https://ollama.com/) >= 0.40.12
+- NVIDIA or AMD GPU required (VRAM >= 16GB)
 - `pip install -r requirements.txt`
 
 ## How to reproduce the experiments
 
 1. Install the above dependencies
 2. Pull the following SLMs from the Ollama repository `ollama pull {model_name}`
-3. Ensure the Mosquitto broker is running (`MQTT_BROKER_ADDRESS` can be changed in `settings.py`)
-4. Run the experiments: `python experiment.py`
-5. After done, plot the results: `python plot.py` (The results used in the paper are in `./results/2026-02-10-01-48-36`)
+3. Run the experiments: `python experiment.py`
+4. After done, plot the results: `python plot.py` (The results used in the paper are in `./results/2026-10-28-00-00-00`)
 
-## Related-work baselines
+## Models used in the experiments
 
-`baseline.py` provides separate Agents for `REACT`, `SASHA`, `SAGE`,
-`AORCHESTRA`, `TOOLTREE`, `SKILLORCHESTRA`, `AGENTORCHESTRA`, `TOOLORCHESTRA`
-and a `RAGREACT` BM25 retrieval control. Public source snapshots are pinned in
-`third_party/baselines`. Select them alongside LANCE with:
+### Language models
 
-```console
-python experiment.py --debug --log --modes CENTRALIZED CONVERSATIONAL REACT RAGREACT SASHA SAGE
-```
-
-See [baseline sources, adaptations and evaluation limits](docs/baselines.md).
-SkillOrchestra needs a frozen development Handbook; ToolOrchestra needs its
-published checkpoint served separately. Configure these with `--baseline-config`
-using [the example](docs/baseline-config.example.json).
-
-## SLMs used in the experiments
-
-### Main
-
-- ministral-3:8b-instruct-2512-q8_0
-- qwen3:8b-q8_0
-- llama3.1:8b-instruct-q8_0
-- ibm/granite4:tiny-h-q8_0
-- qwen3:4b-instruct-2507-q8_0
-- ministral-3:3b-instruct-2512-q8_0
-- ibm/granite4:micro-h-q8_0
-- llama3.2:3b-instruct-q8_0
-- tomng/lfm2.5-instruct:1.2b-q8_0
-- granite4:1b-h-q8_0
 - qwen3.5:0.8b-q8_0
-- functiongemma:270m-it-q8_0
+- qwen3.5:2b-q4_K_M
+- llama3.2:3b-instruct-q4_K_M
+- granite4.2:3b-q4_K_M
+- ministral-3:3b-instruct-2512-q4_K_M
+- qwen3.5:4b-q4_K_M
+- gemma4:e2b-it-q4_K_M
+- gemma4:e4b-it-q4_K_M
+- nemotron-3.5-bolt:e4b-q4_K_M
+- ornith-1.5:9b
+- qwen3.5:9b-q4_K_M
+- gemma4:12b-it-q4_K_M
+- gemma4:31b-cloud
+- minimax-m3.1-flash:cloud
+- beam:cloud
 
-### In-depth analysis
+### Decision models
 
-- qwen3:0.6b-q8_0
-- qwen3:0.6b-q4_K_M
-- qwen3:1.7b-q8_0
-- qwen3:1.7b-q4_K_M
-- qwen3:4b-instruct-2507-q4_K_M
-- qwen3:4b-thinking-2507-q8_0
-- qwen3:8b-q4_K_M
-- qwen3:8b-q8_0
+- kev:0.8b-q8_0
+- tev1:0.8b-q8_0
+- d1:3b-q8_0
+- tev1:4b-q4_K_M
+- nimble-v3:9b-q4_K_M
 
-### etc.
+### Embedding models
 
-- granite4:350m-h-q8_0
-- rnj-1:8b-instruct-q8_0
-- mistral:7b-instruct-v0.3-q8_0
-- cogito:8b-v1-preview-llama-q8_0
-- cogito:3b-v1-preview-llama-q8_0
-- phi4-mini:3.8b-q8_0
-- smollm2:1.7b-instruct-q8_0
-- nemotron-3-nano:4b-q8_0
-- llama3.2:1b-instruct-q8_0
-- qwen3.5:2b-q8_0
-- qwen3.5:4b-q8_0
-- qwen3.5:9b-q8_0
-
-## How to reproduce the testbed
-
-1. Ensure the Mosquitto broker is running (`MQTT_BROKER_ADDRESS` can be changed in `settings.py`)
-2. `python testbed.py`: Run the testbed server, including service registry and Web GUI.
-3. `python agent.py`: Run service agents (if a description is not given, automatically get a random description from the dataset).
-4. Open the page on localhost:5000
+- nomic-embed-text:137m-v1.5-fp16
