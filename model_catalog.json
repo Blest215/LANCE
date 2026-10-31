@@ -1,0 +1,128 @@
+{
+  "checked": "2026-10-28",
+  "references": {
+    "qwen35": {
+      "group": "Alibaba Cloud", "developer_source": "https://huggingface.co/Qwen",
+      "author": "Qwen Team", "title": "Qwen3.5: Towards Native Multimodal Agents", "year": 2026,
+      "url": "https://qwen.ai/blog?id=qwen3.5",
+      "release": "2026-03-02", "release_source": "https://github.com/QwenLM/Qwen3.8/blob/main/README.md",
+      "basis": "Official news explicitly dates the 0.8B, 2B, 4B and 9B releases; the family citation is dated February 2026."
+    },
+    "gemma4": {
+      "author": "Google DeepMind", "title": "Gemma 4 Model Card", "year": 2026,
+      "url": "https://ai.google.dev/gemma/docs/core/model_card_4",
+      "release": "2026-03-31", "release_source": "https://ai.google.dev/gemma/docs/releases",
+      "basis": "Official release log for E2B, E4B and 31B; E denotes effective parameters, not total parameters."
+    },
+    "llama32": {
+      "citation_key": "grattafiori2024llama",
+      "bibtex": {"author": "Aaron Grattafiori and Abhimanyu Dubey and Abhinav Jauhri and others", "title": "The Llama 3 Herd of Models", "year": 2024, "url": "https://arxiv.org/abs/2407.21783", "eprint": "2407.21783"},
+      "author": "Meta", "title": "Llama 3.2: Revolutionizing Edge AI and Vision with Open, Customizable Models", "year": 2024,
+      "url": "https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/",
+      "release": "2024-09-25", "basis": "Official release announcement includes the text-only 3B model."
+    },
+    "granite42": {
+      "citation_key": "granite2026",
+      "author": "IBM Research", "title": "Granite 4.2 Brings Native Reasoning to Enterprise Agents", "year": 2026,
+      "url": "https://research.ibm.com/blog/introducing-granite-4-2",
+      "release": "2026-08-25", "basis": "Official release announcement includes the 3B model."
+    },
+    "ministral3": {
+      "citation_key": "liu2026ministral",
+      "bibtex": {"author": "Alexander H. Liu and Kartik Khandelwal and Sandeep Subramanian and others", "title": "Ministral 3", "year": 2026, "url": "https://arxiv.org/abs/2601.08584", "eprint": "2601.08584"},
+      "author": "Mistral AI", "title": "Introducing Mistral 3", "year": 2025,
+      "url": "https://mistral.ai/news/mistral-3/",
+      "release": "2025-12-02", "basis": "Official release announcement includes Ministral 3 3B."
+    },
+    "nemotron35bolt": {
+      "author": "NVIDIA", "title": "NVIDIA Nemotron 3.5 Bolt E4B Model Card", "year": 2026,
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-BF16",
+      "release": "2026-10-23", "basis": "Release Date section of the E4B model card; not the earlier 74B-A9B Bolt release."
+    },
+    "ornith15": {
+      "group": "DeepReinforce", "developer_source": "https://huggingface.co/ornith-ai",
+      "author": "Ornith Team", "title": "Ornith-1.5", "year": 2026,
+      "url": "https://ollama.com/library/ornith-1.5",
+      "release": "2026-08-19", "basis": "Publisher-supplied model changelog explicitly dates the 9B release."
+    },
+    "minimax31flash": {
+      "citation_key": "minimax2026m31flash",
+      "author": "MiniMax", "title": "MiniMax M3.1 Flash: Redefining Agent Performance and Cost", "year": 2026,
+      "url": "https://www.minimax.io/blog/minimax-m31f",
+      "release": "2026-10-19", "basis": "Official general-availability announcement.",
+      "parameter_source": "https://ollama.com/library/minimax-m3.1-flash"
+    },
+    "beam": {
+      "citation_key": "beam2026",
+      "author": "Reflection", "title": "Beam Is Now Available", "year": 2026,
+      "url": "https://reflection.ai/blog/beam-is-available",
+      "release": "2026-10-16", "basis": "Public weight release, following the October 5 announcement and beta API.",
+      "parameter_source": "https://ollama.com/library/beam"
+    },
+    "kev": {
+      "citation_key": "kev08b",
+      "author": "Jared Palmer", "title": "Kev-0.8B Model Card", "year": 2026,
+      "url": "https://huggingface.co/jaredpalmer/kev-0.8b",
+      "release": "2026-09-24", "basis": "Model card dates the checkpoint in Kev 1.0; earlier experimental checkpoints existed. The saved Ollama logs do not pin the upstream revision."
+    },
+    "tev1small": {
+      "citation_key": "tev1",
+      "author": "Together AI", "title": "Tev1-0.8B-experimental", "year": 2026,
+      "url": "https://huggingface.co/togethercomputer/Tev1-0.8B-experimental",
+      "release": "2026-09-25", "release_source": "https://huggingface.co/api/models/togethercomputer/Tev1-0.8B-experimental",
+      "basis": "Repository creation timestamp, 2026-09-25T17:19:54Z; public visibility date is not independently recorded.", "repository_date": true
+    },
+    "tev1": {
+      "author": "Together AI", "title": "Tev1-4B-experimental", "year": 2026,
+      "url": "https://huggingface.co/togethercomputer/Tev1-4B-experimental",
+      "release": "2026-09-23", "release_source": "https://huggingface.co/togethercomputer/Tev1-4B-experimental/commits/main",
+      "basis": "Initial commit and weight upload on September 23; repository created 2026-09-23T18:00:57Z.", "repository_date": true
+    },
+    "d1": {
+      "author": "Liquid AI", "title": "Open d1: Edge Decision Models for Text, Vision, and Audio", "year": 2026,
+      "url": "https://www.liquid.ai/blog/d1-open",
+      "release": "2026-10-07", "basis": "Official open-weight d1-3B release, distinct from the earlier hosted d1 API."
+    },
+    "nimble3": {
+      "citation_key": "nimble9bv3",
+      "group": "Bespoke Labs",
+      "author": "Shreyas Pimpalgaonkar and Sid Devic and Mrinal Kumar and Pratik Dalal and Mahesh Sathiamoorthy",
+      "title": "Bespoke-Nimble-9B-v3", "year": 2026,
+      "url": "https://huggingface.co/bespokelabs/Bespoke-Nimble-9B-v3",
+      "release": "2026-09-30", "release_source": "https://huggingface.co/api/models/bespokelabs/Bespoke-Nimble-9B-v3",
+      "basis": "Repository created 2026-09-30T02:58:04Z; publisher timeline confirms availability by October 6, not an exact public-release date.", "repository_date": true
+    },
+    "nomic15": {
+      "citation_key": "nussbaum2024nomic",
+      "group": "Nomic AI",
+      "author": "Zach Nussbaum and John X. Morris and Brandon Duderstadt and Andriy Mulyar",
+      "title": "Nomic Embed: Training a Reproducible Long Context Text Embedder", "year": 2024,
+      "url": "https://arxiv.org/abs/2402.01613", "eprint": "2402.01613",
+      "release": "2024-02-14", "release_source": "https://www.nomic.ai/news/nomic-embed-matryoshka",
+      "basis": "Official v1.5 release announcement; model card requests citation of the Nomic Embed technical report."
+    }
+  },
+  "models": [
+    {"purpose": ["Synthesis", "Experiment"], "type": "LLM", "name": "Beam", "parameters": "501.3B", "parameter_count": 501300000000, "notes": "MoE; 23.4B active; cloud", "code": "beam:cloud", "reference": "beam"},
+    {"purpose": ["Synthesis", "Experiment"], "type": "Decision", "name": "Nimble v3", "parameters": "9B", "notes": "Qwen3.5-9B", "code": "nimble-v3:9b-q4_K_M", "reference": "nimble3"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Qwen 3.5", "parameters": "0.8B", "code": "qwen3.5:0.8b-q8_0", "reference": "qwen35"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Qwen 3.5", "parameters": "2B", "code": "qwen3.5:2b-q4_K_M", "reference": "qwen35"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Llama 3.2", "parameters": "3B", "code": "llama3.2:3b-instruct-q4_K_M", "reference": "llama32"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Granite 4.2", "parameters": "3B", "code": "granite4.2:3b-q4_K_M", "reference": "granite42"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Ministral 3", "parameters": "3B", "code": "ministral-3:3b-instruct-2512-q4_K_M", "reference": "ministral3"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Qwen 3.5", "parameters": "4B", "code": "qwen3.5:4b-q4_K_M", "reference": "qwen35"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Gemma 4", "parameters": "E2B", "notes": "Instruct; 5.12B total", "code": "gemma4:e2b-it-q4_K_M", "reference": "gemma4"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Nemotron 3.5 Bolt", "parameters": "E4B", "notes": "Post-trained; 7.52B total", "code": "nemotron-3.5-bolt:e4b-q4_K_M", "reference": "nemotron35bolt"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Gemma 4", "parameters": "E4B", "notes": "Instruct; 8.00B total", "code": "gemma4:e4b-it-q4_K_M", "reference": "gemma4"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Gemma 4", "parameters": "12B", "parameter_count": 11900000000, "release": "2026-06-03", "notes": "Instruct; Unified", "code": "gemma4:12b-it-q4_K_M", "reference": "gemma4"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Gemma 4", "parameters": "31B", "parameter_count": 30700000000, "quantization": "Native", "notes": "Instruct; cloud", "code": "gemma4:31b-cloud", "reference": "gemma4"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Ornith 1.5", "parameters": "9B", "quantization": "Q4_K_M", "notes": "Self-improvement post-training", "code": "ornith-1.5:9b", "reference": "ornith15"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "Qwen 3.5", "parameters": "9B", "code": "qwen3.5:9b-q4_K_M", "reference": "qwen35"},
+    {"purpose": ["Experiment"], "type": "LLM", "name": "MiniMax M3.1 Flash", "parameters": "428B", "parameter_count": 428000000000, "code": "minimax-m3.1-flash:cloud", "reference": "minimax31flash"},
+    {"purpose": ["Experiment"], "type": "Decision", "name": "Kev", "parameters": "0.8B", "notes": "Qwen3.5-0.8B-Base", "code": "kev:0.8b-q8_0", "reference": "kev"},
+    {"purpose": ["Experiment"], "type": "Decision", "name": "Tev1", "parameters": "0.8B", "notes": "Qwen3.5-0.8B", "code": "tev1:0.8b-q8_0", "reference": "tev1small"},
+    {"purpose": ["Experiment"], "type": "Decision", "name": "D1", "parameters": "3B", "notes": "LFM2.5-VL-3B / LFM2.5-2.6B", "code": "d1:3b-q8_0", "reference": "d1"},
+    {"purpose": ["Experiment"], "type": "Decision", "name": "Tev1", "parameters": "4B", "notes": "Qwen3.5-4B", "code": "tev1:4b-q4_K_M", "reference": "tev1"},
+    {"purpose": ["Experiment"], "type": "Embedding", "name": "Nomic Embed Text v1.5", "parameters": "137M", "parameter_count": 137000000, "code": "nomic-embed-text:137m-v1.5-fp16", "reference": "nomic15"}
+  ]
+}
