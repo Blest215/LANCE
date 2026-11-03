@@ -379,7 +379,7 @@ def bars(ax, data, categories, field="f1"):
     ax.grid(axis="y", alpha=.25)
 
 
-def device_curves(axes, data, foreground=False, fields=("f1", "error")):
+def device_curves(axes, data, foreground=False, fields=("f1", "error"), show_interval=True):
     """Shared device curves; missing D conditions remain NaN gaps."""
     values = []
     for method, marker in zip(METHODS, ["s", "^", "D", "o", "*"]):
@@ -392,7 +392,8 @@ def device_curves(axes, data, foreground=False, fields=("f1", "error")):
                     alpha=ALPHAS[method],
                     linewidth=2.8 if ours else 1.1, markersize=6 if ours else 4,
                     **({"zorder": 4 if ours else 2} if foreground else {}))
-            ax.fill_between(DEVICES, low, high, color=COLORS[method], alpha=.12 if ours else .06, linewidth=0)
+            if show_interval:
+                ax.fill_between(DEVICES, low, high, color=COLORS[method], alpha=.12 if ours else .06, linewidth=0)
             values.extend(dict(method=method, metric=field, D=d, value=float(m), low=float(lo), high=float(hi))
                           for d, m, lo, hi in zip(DEVICES, mean, low, high) if np.isfinite(m))
     axes[-1].set_xlabel("Devices")
@@ -439,49 +440,34 @@ def plot_by_model(data, output):
 
 def plot_by_devices(data, output):
     models = DEVICE_MODELS
-    data = data[data.method.isin(METHODS)]
-    fig, axes = plt.subplots(2, len(models), figsize=(3.4*len(models), 5.8), sharex="col", sharey="row",
-                             squeeze=False, layout="constrained")
-    for j, model in enumerate(models):
-        part = matched(data[data.model == model], ["D", "method"])
-        axes[0, j].set_title(model_name(model))
-        device_curves(axes[:, j], part, foreground=True)
-        for ax in axes[:, j]:
-            for line in ax.lines:
-                line.set_markersize(line.get_markersize()*1.875)
-            ax.set_xlim(-1, 21)
-            if part.empty:
-                ax.text(.5, .5, "Pending", transform=ax.transAxes, ha="center")
-    axes[1, 0].set_ylim(bottom=0)
-    axes[0, 0].set_ylabel("F1 Score (%)")
-    axes[1, 0].set_ylabel("Execution error rate (%)")
-    fig.legend(*axes[0, 0].get_legend_handles_labels(), loc="outside upper center", ncol=len(METHODS), frameon=True)
-    result = completeness(save_figure(fig, output, "result_by_devices"), data, models, DEVICES)
-    result["models"] = models
-    result["definitions"] = {"error": "Fraction of requests with execution/parsing errors; HTTP API failures excluded; lower is better",
-                             "f1": "Absolute mean per-request F1; pointwise request-bootstrap 95% intervals, matched IDs across available D/method conditions",
-                             "models": "Qwen 3.5 4B followed by Gemma 4 E2B, E4B and 12B; local Q4_K_M weights",
-                             "stability": "Within-run robustness to device-count changes, not repeated-run variance"}
-    return result
-
-
-def plot_input(data, output):
+    data = data[data.model.isin(models) & data.method.isin(METHODS) & data.D.isin(DEVICES)]
     present = set(zip(data.model, data.method, data.D))
-    models = [m for m in DEVICE_MODELS if all((m, method, d) in present for method in METHODS for d in DEVICES)]
-    part = matched(data[data.model.isin(models) & data.method.isin(METHODS)], ["model", "method", "D"])
-    if part.empty:
+    if not all((m, method, d) in present for m in models for method in METHODS for d in DEVICES):
         return None
-    inputs = part.groupby(["D", "method", "ID"], as_index=False).llm_input.mean()
-    fig, ax = plt.subplots(figsize=(6.5, 4), layout="constrained")
-    values = device_curves([ax], inputs, foreground=True, fields=("llm_input",))
-    for line in ax.lines:
-        line.set_markersize(line.get_markersize()*1.875)
-    ax.set(xlim=(-1, 21), ylim=(0, None), ylabel="LLM Input")
-    fig.legend(*ax.get_legend_handles_labels(), loc="outside upper center", ncol=len(METHODS), frameon=True)
-    result = completeness(save_figure(fig, output, "result_input"), part, DEVICE_MODELS, DEVICES)
-    result.update(models=models, values=values, shared_requests=int(part.ID.nunique()),
-                  definitions={"llm_input": "Mean total LLM input tokens per request after discovery-boundary filtering; equal-weight average across models complete for all D/methods",
-                               "interval": "95% request-bootstrap interval after averaging models within each matched request"})
+    data = matched(data, ["model", "D", "method"])
+    if data.empty:
+        return None
+    averages = data.groupby(["D", "method", "ID"], as_index=False)[["f1", "llm_input", "error"]].mean()
+    fig, axes = plt.subplots(3, 1, figsize=(5.2, 8.448), sharex=True, layout="constrained")
+    values = device_curves(axes, averages, foreground=True, fields=("f1", "error", "llm_input"), show_interval=False)
+    for ax in axes:
+        ax.set_xlim(-1, 21)
+        for line in ax.lines:
+            line.set_markersize(line.get_markersize()*1.3)
+    axes[0].set_ylabel("F1 Score (%)")
+    axes[1].set(ylabel="Execution error rate (%)", ylim=(0, None))
+    axes[2].set(ylabel="LLM Input", ylim=(0, None))
+    axes[2].ticklabel_format(axis="y", style="plain", useOffset=False)
+    fig.legend(*axes[0].get_legend_handles_labels(), loc="outside upper center", ncol=3, frameon=True)
+    result = completeness(save_figure(fig, output, "result_by_devices"), data, models, DEVICES)
+    result.update(models=models, values=values, shared_requests=int(data.ID.nunique()), definitions={
+        "error": "Fraction of requests with execution/parsing errors; HTTP API failures excluded; lower is better",
+        "f1": "Absolute mean per-request F1",
+        "llm_input": "Mean LLM input tokens per request after discovery-boundary filtering; excludes decision and embedding inputs",
+        "aggregation": "Equal-weight mean across four models within each request, then mean across requests; matched IDs across all models, D and methods",
+        "interval": "Pointwise request-bootstrap 95% intervals recorded but not plotted",
+        "models": "Qwen 3.5 4B and Gemma 4 E2B, E4B and 12B; local Q4_K_M weights",
+        "stability": "Within-run robustness to device-count changes, not repeated-run variance"})
     return result
 
 
@@ -554,7 +540,7 @@ def plot_by_protocol(data, directory, dataset_dir, output):
     per_d = frame.groupby(["protocol", "method", "D"])[["f1", "error"]].mean()
     averages = per_d.groupby(level=["protocol", "method"]).mean()*100
     averages.loc[per_d.groupby(level=["protocol", "method"]).size().lt(len(DEVICES))] = np.nan
-    fig, axes = plt.subplots(2, 1, figsize=(5.2, 5.2), sharey=True, layout="constrained")
+    fig, axes = plt.subplots(2, 1, figsize=(5.2, 4.68), sharey=True, layout="constrained")
     fig.get_layout_engine().set(hspace=.12)
     for ax, metric, title, color in zip(axes, ["f1", "error"],
             ["F1 Score (%)", "Execution Error Rate (%)"], ["Blues", "YlOrRd"]):
@@ -726,7 +712,8 @@ def plot_by_phase(data, output):
 
 
 def table_ablation(data, output):
-    data = data[data.method.isin(ABLATIONS)]
+    devices = [0, 10, 20]
+    data = data[data.method.isin(ABLATIONS) & data.D.isin(devices)]
     if data.empty:
         return None
     if data.model.nunique() != 1:
@@ -738,20 +725,20 @@ def table_ablation(data, output):
                "parallel_time": "Total"}
     latency_columns = ["Discovery", "Composition", "Orchestration", "Total"]
     labels = {"LANCE": "LANCE", "LANCE_no_decision": "w/o decision models",
-              "LANCE_no_discovery": "w/o selection", "LANCE_no_separation": "w/o service-specific tools",
+              "LANCE_no_discovery": "w/o selection", "LANCE_no_separation": "w/o service-tailored tools",
               "LANCE_no_instruction": "w/o natural instruction"}
-    index = pd.MultiIndex.from_product([ABLATIONS, DEVICES], names=["method", "D"])
+    index = pd.MultiIndex.from_product([ABLATIONS, devices], names=["method", "D"])
     table = data.groupby(["method", "D"])[list(metrics)].mean().reindex(index)
     table[["discovery_recall", "error", "f1"]] *= 100
     table = table.rename(columns=metrics)
     table.index = pd.MultiIndex.from_tuples([(labels[m], f"D{d}") for m, d in table.index])
     style = metric_style(table, [], latency_columns, bold=False)
-    caption = f"Ablation study of LANCE with {model_name(data.model.iloc[0])} across D0--D20."
+    caption = f"Ablation study of LANCE with {model_name(data.model.iloc[0])} on D0, D10, and D20."
     latex = style.to_latex(hrules=True, column_format="lc"+"c"*len(table.columns), multirow_align="c",
                           clines="skip-last;data", caption=caption, label="tab:ablation")
     latex = re.sub(r"\\cline\{\d+-\d+\}", lambda _: r"\midrule", latex)
     latex = latex.replace("\\midrule\n\\bottomrule", r"\bottomrule").replace("{LANCE}", r"{\textbf{LANCE (vanilla)}}")
-    boundary = f"\\midrule\n\\multirow[c]{{{len(DEVICES)}}}{{*}}{{{labels[ABLATIONS[1]]}}}"
+    boundary = f"\\midrule\n\\multirow[c]{{{len(devices)}}}{{*}}{{{labels[ABLATIONS[1]]}}}"
     latex = latex.replace(boundary, "\\midrule\n" + boundary, 1)
     headers = ["Configuration", "D", *list(metrics.values())[:-4]]
     header = " & ".join([""]*6) + r" & \multicolumn{4}{c}{\textbf{Latency}} \\" + "\n" + r"\cmidrule(lr){7-10}" + "\n"
@@ -759,7 +746,7 @@ def table_ablation(data, output):
     latex = latex.replace(" & ".join(["", "", *metrics.values()]) + r" \\", header, 1)
     result = write_table(latex, output, "table2_ablation")
     result["recall_definition"] = "Mean per-request fraction of unique gold target devices included in discovery (%)"
-    return completeness(result, data, list(data.model.unique()), DEVICES, ABLATIONS)
+    return completeness(result, data, list(data.model.unique()), devices, ABLATIONS)
 
 
 def table_by_model(data, output):
@@ -954,7 +941,6 @@ def main():
                "figure3_by_protocol": plot_by_protocol(regular, directory, Path("dataset"), output),
                "figure4_by_settings": plot_by_settings(directory, output),
                "figure5_by_phase": plot_by_phase(regular, output),
-               "figure6_input": plot_input(regular, output),
                "figure7_by_tasks": plot_by_tasks(regular, output)}
     ablation = data[data.model.isin(ABLATION_MODELS) & data.method.isin(ABLATIONS)]
     tables = {"table1_details": table_by_model(regular[regular.D == TARGET_D], output),
